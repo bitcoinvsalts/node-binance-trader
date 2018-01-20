@@ -1,0 +1,25 @@
+{
+  "name": "node-binance-trader",
+  "version": "0.0.1",
+  "description": "An efficient cryptocurrency trading bot for Binance using Node.js",
+  "engines": {
+    "node": "8.9.1"
+  },
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "audio-loader": "^1.0.3",
+    "audio-play": "^2.2.0",
+    "express": "^4.15.2",
+    "lodash": "^4.17.4",
+    "moment": "^2.20.1",
+    "nodemailer": "^4.4.1",
+    "numeral": "^2.0.6",
+    "ws": "^4.0.0"
+  },
+  "devDependencies": {
+    "request": "^2.81.0"
+  }
+}

@@ -1,2 +1,2 @@
 # node-binance-trader
-A Cryptocurrency Trading Bot for Binance using Node.JS
+An efficient cryptocurrency trading bot for Binance using Node.js
