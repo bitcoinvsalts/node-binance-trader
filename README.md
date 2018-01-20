@@ -40,3 +40,16 @@ git clone https://github.com/jsappme/node-binance-trader
 4. Create New Key
         [✓] Read Info [✓] Enable Trading [X] Enable Withdrawals 
 5. Copy the API key and secret to index.js
+
+# Usage 💡
+
+```
+yarn
+yarn start
+```
+or 
+
+```
+npm install
+npm run start
+```

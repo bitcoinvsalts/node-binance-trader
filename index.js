@@ -24,14 +24,15 @@ const nodemailer = require('nodemailer')
 const APIKEY = 'xxx'
 const APISECRET = 'xxx'
 
-const sound_alert = true
 const tracked_max = 10
 const depth_limit = 10
 const wait_time = 1000 			// ms
 const trading_fee = 0.1 		// pourcent
 
+const sound_alert = false
+
 // https://medium.com/@manojsinghnegi/sending-an-email-using-nodemailer-gmail-7cfa0712a799
-const send_email = true
+const send_email = false
 const gmail_address = 'xxx@gmail.com'
 const gmail_password = 'xxx'
 const gmailEmail = encodeURIComponent(gmail_address);
