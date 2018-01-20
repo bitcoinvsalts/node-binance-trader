@@ -122,7 +122,7 @@ There are no warranties or guarantees expressed or implied.
 You assume all responsibility and liability.
 ```
 
-# Final 📝
+# Final 🙏
 
 Feel free to fork and add new pull request to this repo. 
 If you have any questions/suggestions, or simply you need some help building your trading bot, or mining historical data or improving your strategies using the latest AI/ML algorithms, please feel free to <a href="mailto:contact@jsapp.me" target="_blank">contact me</a>.
