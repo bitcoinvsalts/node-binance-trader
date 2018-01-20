@@ -2,7 +2,7 @@
  * node-binance-trader
  * https://github.com/jsappme/node-binance-trader
  * ============================================================
- * Copyright 2018, Herve Fulchiron - JSapp.me
+ * Copyright 2018, Herve Fulchiron - contact@jsapp.me
  * Released under the MIT License
  * ============================================================ */
 
@@ -379,4 +379,4 @@ console.log("----------------------")
 
 const app = express()
 app.get('/', (req, res) => res.send(tracked_pairs))
-app.listen(process.env.PORT || 80, () => console.log('Example app listening on port 80'))
+app.listen(process.env.PORT || 80, () => console.log('NBT api accessable on port 80'))
