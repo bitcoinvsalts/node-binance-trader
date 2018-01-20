@@ -117,7 +117,7 @@ You assume all responsibility and liability.
 # Final 📝
 
 Feel free to fork and add new pull request to this repo. 
-If you have any questions/suggestions, or simply you need some help building your trading bot, or mining historical data or improving your strategies using the latest AI/ML algorithms, please feel free to <a href={`mailto:contact@jsapp.me`} target="_blank">contact me</a>.
+If you have any questions/suggestions, or simply you need some help building your trading bot, or mining historical data or improving your strategies using the latest AI/ML algorithms, please feel free to <a href="mailto:contact@jsapp.me" target="_blank">contact me</a>.
 
 If this repo helped you in any way, you can always leave me a BNB tip at 0xf0c499c0accddd52d2f96d8afb6778be0659ee0c
 
