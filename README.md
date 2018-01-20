@@ -105,6 +105,14 @@ let strategies = [
 //////////////////////////////////////////////////////////////////////////////////
 ```
 
+# Roadmap 🚧
+
+* ✔️ All BTC Pair tracking.
+* ✔️ Live testing of 1 or n strats.
+* Auto Trading.
+* Add an AI/ML "brain" to the bot.
+
+
 # Disclaimer 📖
 
 ```
