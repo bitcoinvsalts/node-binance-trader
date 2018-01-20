@@ -15,6 +15,7 @@
     "express": "^4.15.2",
     "lodash": "^4.17.4",
     "moment": "^2.20.1",
+    "node-binance-api": "^0.4.4",
     "nodemailer": "^4.4.1",
     "numeral": "^2.0.6",
     "ws": "^4.0.0"

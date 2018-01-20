@@ -6,17 +6,17 @@
  * Released under the MIT License
  * ============================================================ */
 
+const binance = require('node-binance-api')
 const express = require('express')
 const path = require('path')
-const binance = require('./node-binance-api.js');
-var _ = require('lodash');
-var moment = require('moment');
-var numeral = require('numeral');
-var readline = require('readline');
-var fs = require('fs');
-const play = require('audio-play');
-const load = require('audio-loader');
-const nodemailer = require('nodemailer');
+var _ = require('lodash')
+var moment = require('moment')
+var numeral = require('numeral')
+var readline = require('readline')
+var fs = require('fs')
+const play = require('audio-play')
+const load = require('audio-loader')
+const nodemailer = require('nodemailer')
 
 //////////////////////////////////////////////////////////////////////////////////
 
