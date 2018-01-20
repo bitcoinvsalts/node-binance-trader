@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <a href="https://jsapp.me" target="_new"><img src="https://avatars0.githubusercontent.com/u/13439477?s=200&v=4" width="180"></a>
+  <a href="https://jsapp.me" target="_blank"><img src="https://avatars0.githubusercontent.com/u/13439477?s=200&v=4" width="180"></a>
 </h1>
 
 <h4 align="center">Node-Binance-Trader</h4>
