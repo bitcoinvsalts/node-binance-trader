@@ -1,383 +1,163 @@
-/* ============================================================
- * node-binance-trader
- * https://github.com/jsappme/node-binance-trader
- * ============================================================
- * Copyright 2018, Herve Fulchiron - contact@jsapp.me
- * Released under the MIT License
- * ============================================================ */
+#!/usr/bin/env node
 
-const binance = require('node-binance-api')
-const express = require('express')
-const path = require('path')
-var _ = require('lodash')
-var moment = require('moment')
-var numeral = require('numeral')
-var readline = require('readline')
-var fs = require('fs')
-const play = require('audio-play')
-const load = require('audio-loader')
-const nodemailer = require('nodemailer')
+const chalk       = require('chalk')
+const moment      = require('moment')
+const numeral     = require('numeral')
+const clear       = require('clear')
+const figlet      = require('figlet')
+const Configstore = require('configstore')
+const binance     = require('binance-api-node').default
+const inquirer    = require("inquirer")
 
 //////////////////////////////////////////////////////////////////////////////////
 
 // https://www.binance.com/restapipub.html
-const APIKEY = 'xxx'
-const APISECRET = 'xxx'
-
-const tracked_max = 10
-const depth_limit = 10
-const wait_time = 1000 			// ms
-const trading_fee = 0.1 		// pourcent
-
-const sound_alert = false
-
-// https://medium.com/@manojsinghnegi/sending-an-email-using-nodemailer-gmail-7cfa0712a799
-const send_email = false
-const gmail_address = 'xxx@gmail.com'
-const gmail_password = 'xxx'
-const gmailEmail = encodeURIComponent(gmail_address);
-const gmailPassword = encodeURIComponent(gmail_password);
-const mailTransport = nodemailer.createTransport(`smtps://${gmailEmail}:${gmailPassword}@smtp.gmail.com`);
+const APIKEY = ''
+const APISECRET = ''
 
 //////////////////////////////////////////////////////////////////////////////////
 
-let btc_price = 0
-
-let pairs = []
-
-let depth_bids = {}
-let depth_asks = {}
-let depth_diff = {}
-
-let minute_prices = {}
-let hourly_prices = {}
-
-let tracked_pairs = []
-let tracked_data = {}
-let total_pnl = {}
+const budget = 0.01
+let tracking = false
+let trading = false
+let pnl = 0
+let tot_trades = 0
+let tot_cancel = 0
+let step = 0
+let order_id = 0
+let buy_price  = 0.00
+let stop_price = 0.00
+let loss_price = 0.00
+let sell_price = 0.00
+let minute_price = 0.00
+let minute_prices = []
+let minute_volume = 0.00
+let long_min_delta = 0.00
+let minute_delta = 0.00
+let short_min_delta = 0.00
+let last_volume = 9999.00
+let last_price = 0.00
+let price_direction = 0
 
 //////////////////////////////////////////////////////////////////////////////////
-// that's where you define your buying conditions:
-//////////////////////////////////////////////////////////////////////////////////
 
-buying_up_trend = (pair) => {
-	const ma_s = 3
-	const ma_m = 13
-	const ma_l = 99
-	const ma_h_s = hourly_prices[pair].slice(0,ma_s).reduce((sum, price) => (sum + parseFloat(price)), 0) / parseFloat(hourly_prices[pair].slice(0,ma_s).length)
-	const ma_h_m = hourly_prices[pair].slice(0,ma_m).reduce((sum, price) => (sum + parseFloat(price)), 0) / parseFloat(hourly_prices[pair].slice(0,ma_m).length)
-	const ma_h_l = hourly_prices[pair].slice(0,ma_l).reduce((sum, price) => (sum + parseFloat(price)), 0) / parseFloat(hourly_prices[pair].slice(0,ma_l).length)
-	const ma_m_s = minute_prices[pair].slice(0,ma_s).reduce((sum, price) => (sum + parseFloat(price)), 0) / parseFloat(minute_prices[pair].slice(0,ma_s).length)
-	const ma_m_m = minute_prices[pair].slice(0,ma_m).reduce((sum, price) => (sum + parseFloat(price)), 0) / parseFloat(minute_prices[pair].slice(0,ma_m).length)
-	const ma_m_l = minute_prices[pair].slice(0,ma_l).reduce((sum, price) => (sum + parseFloat(price)), 0) / parseFloat(minute_prices[pair].slice(0,ma_l).length)
-	if ( (ma_h_s >= ma_h_m) && (ma_h_m >= ma_h_l) && (ma_m_s >= ma_m_m) && (ma_m_m >= ma_m_l) ) { 
-		return "BUY"
-	}
-	else {
-		return "SELL"
-	}
-}
+// Binance API initialization //
+const client = binance({apiKey: APIKEY, apiSecret: APISECRET})
 
-buying_low_depth_diff = (pair) => {
-	const max_ask_bid_ratio = 3.0 	// depth_asks/depth_bids < max_ask_bid_ratio
-	const min_depth_volume = 2.0  	// btc
-	const max_depth_diff = 0.003 	// pourcent(ask-bid/bid)
-	if ( (parseFloat(depth_bids[pair])>=(parseFloat(depth_asks[pair])*max_ask_bid_ratio)) 
-		&& (parseFloat(depth_bids[pair])>=min_depth_volume) 
-		&& (parseFloat(depth_diff[pair])<=parseFloat(max_depth_diff)) ) { 
-		return "BUY"
-	}
-	else {
-		return "SELL"
-	}
-}
+const conf = new Configstore('nbt')
+let default_pair = conf.get('nbt.default_pair')?conf.get('nbt.default_pair'):"BTCUSDT"
 
-let strategies = [ 
-	{ name: "UP_TREND", condition: buying_up_trend }, 
-	{ name: "LOW_DEPTH_DIFF", condition: buying_low_depth_diff },
+clear()
+
+console.log(chalk.yellow(figlet.textSync('NBT', { horizontalLayout: 'fitted' })))
+console.log(" 🐬 ".padEnd(5) + chalk.cyan('--------------------------------') + " 🐬 ")
+console.log(" 🐬 ".padEnd(10) + chalk.bold.underline.cyan('Node Binance Trader') + " 🐬 ".padStart(12))
+console.log(" 🐬 ".padEnd(10) + chalk.italic.cyan('Test Drive Version') + " 🐬 ".padStart(13))
+console.log(" 🐬 ".padEnd(5) + chalk.cyan('--------------------------------') + " 🐬 ")
+console.log(' ')
+console.log(chalk.cyan('Welcome to the test drive of a very basic Binance trading bot.'))
+console.log(' ')
+console.log(chalk.red('-------------------------------------------------------'))
+console.log(chalk.red('   This bot is for education purpose only.'))
+console.log(chalk.red('   You are responsible for your own use.'))
+console.log(chalk.red('-------------------------------------------------------'))
+console.log(' ')
+console.log(chalk.cyan('The mission of this bot is to make one simple trade.'))
+console.log(' ')
+
+var default_pair_input = [
+  {
+    type: 'input',
+    name: 'pair',
+    message: chalk.cyan('What pair would you like to trade?'),
+    default: default_pair
+  },
 ]
 
-//////////////////////////////////////////////////////////////////////////////////
-
-// API initialization //
-binance.options({ 'APIKEY': APIKEY, 'APISECRET': APISECRET, 'reconnect': true });
-
-console.log('------------ NBT starting -------------')
-
-async function run() {
-
-	if (sound_alert) load('./alert.mp3').then(play);
-	await sleep(2)
-
-	console.log('------------------------------')
-	console.log(' start get_BTC_price')
-	console.log('------------------------------')
-	btc_price = await get_BTC_price()
-	console.log('------------------------------')
-	console.log('BTC price: $' + numeral(btc_price).format('0,0'))
-	console.log('------------------------------')
-
-	await sleep(2)
-
-	console.log('------------------------------')
-	console.log(' get_BTC_pairs start')
-	console.log('------------------------------')
-	pairs = await get_BTC_pairs()
-	console.log('------------------------------')
-	pairs = pairs.slice(0, tracked_max) //for debugging purpose
-	console.log("Total BTC pairs: " + pairs.length)
-	console.log('------------------------------')
-	
-	await sleep(2)
-
-	console.log('------------------------------')
-	console.log(' trackDepthData start')
-	console.log('------------------------------')
-	await trackDepthData()
-	console.log('------------------------------')
-
-	await sleep(2)
-
-	console.log('------------------------------')
-	console.log(' getHourlyPrevPrices start')
-	console.log('------------------------------')
-	await getHourlyPrevPrices()
-	console.log('------------------------------')
-
-	await sleep(2)
-
-	console.log('------------------------------')
-	console.log(' trackMinutePrices start')
-	console.log('------------------------------')
-	await trackMinutePrices()
-	console.log('------------------------------')
-
-	console.log('------------ we are ready to track all strategies -------------')
-	if (sound_alert) load('./alert.mp3').then(play)
+ask_default_pair = () => {
+  inquirer.prompt(default_pair_input).then(answers => {
+    default_pair = answers.pair.toUpperCase()
+    conf.set('nbt.default_pair', default_pair)
+    client.candles({ symbol: default_pair })
+    .then(candles => { 
+      console.log('\n--------------------------------------------')
+      console.log('Current Price is ' + candles[candles.length-1].close)
+      console.log('Current Volume is ' + candles[candles.length-1].volume)
+      console.log('Candle - % -> ' + 100.00*(candles[candles.length-1].close-candles[candles.length-1].open)/candles[candles.length-1].open )
+      console.log('--------------------------------------------\n')
+      const clean = client.ws.candles(default_pair, '1m', candle => {
+        if (!tracking) {
+          tracking = true
+          process.stdin.setRawMode(true);
+          process.stdin.resume();
+          process.stdin.once('data', function () {
+            console.log("\n --- stoping tracking now ---\n")
+            if (tracking) {
+              tracking = false
+              clean() 
+              setTimeout(() => { ask_default_pair() }, 1000 )
+            }
+          })
+        }
+        minute_volume = parseFloat(candle.volume)
+        minute_price = parseFloat(candle.close)
+        minute_prices.unshift(parseFloat(candle.close))
+        minute_delta    = (minute_prices.length > 60) ? 100.00*(minute_prices[0]-minute_prices[60])/minute_prices[60] : 100.00*(parseFloat(candle.close)-parseFloat(candle.open))/parseFloat(candle.close)
+        short_min_delta = (minute_prices.length > 30) ? 100.00*(minute_prices[0]-minute_prices[30])/minute_prices[30] : 100.00*(parseFloat(candle.close)-parseFloat(candle.open))/parseFloat(candle.close)
+        long_min_delta  = (minute_prices.length > 120) ? 100.00*(minute_prices[60]-minute_prices[120])/minute_prices[120] : 100.00*(parseFloat(candle.close)-parseFloat(candle.open))/parseFloat(candle.close)
+        price_direction = (parseFloat(candle.close) > last_price) ? 1 : ( (parseFloat(candle.close) < last_price) ? -1 : 0 )
+        if (minute_prices.length > 130) minute_prices.pop()
+        last_volume = parseFloat(candle.volume)
+        last_price = parseFloat(candle.close)
+        var log_report = moment().format('h:mm:ss')
+          + " :: " + ((price_direction===1)?"+":((price_direction===-1)?"-":" ")) + " ::   "
+          + numeral(minute_price).format("0.00").padStart(8)
+          + " [" + numeral(long_min_delta).format("0.00").padStart(6)
+          + "%] [" + numeral(minute_delta).format("0.00").padStart(6)
+          + "%] [" + numeral(short_min_delta).format("0.00").padStart(6)
+          + "%] :: " + numeral(minute_volume).format("0.00").padStart(6)
+          + " :: "
+        console.log(log_report)
+      })
+    })
+    .catch(error => { 
+      console.log(chalk.yellow("--> Sorry, Invalid Pair!!!")) 
+      ask_default_pair()
+    })
+  })
 }
 
-sleep = (x) => {
-	return new Promise(resolve => {
-		setTimeout(() => { resolve(true) }, x )
-	});
+var new_price_request = [
+  {
+    type: 'confirm',
+    name: 'askAgain',
+    message: 'Would you like to buy at this price?',
+    default: true
+  },
+]
+
+ask_new_price_request = () => {
+  inquirer.prompt(new_price_request).then(answer => {
+    if (answer.askAgain) {
+      client.candles({ symbol: default_pair })
+      .then(candles => { 
+        //console.log(JSON.stringify(candles[candles.length-1]))
+        console.log('\n--------------------------------------------')
+        console.log('Current Price is ' + candles[candles.length-1].close)
+        console.log('Current Volume is ' + candles[candles.length-1].volume)
+        console.log('Candle - % -> ' + 100.00*(candles[candles.length-1].close-candles[candles.length-1].open)/candles[candles.length-1].open )
+        console.log('--------------------------------------------\n')
+        ask_new_price_request()
+      })
+    }
+    else {
+      process.exit()
+    }
+  })
 }
 
-get_BTC_price = () => {
-	return new Promise(resolve => {
-		binance.websockets.candlesticks(['BTCUSDT'], "1m", (candlesticks) => {
-			let { e:eventType, E:eventTime, s:symbol, k:ticks } = candlesticks;
-			let { o:open, h:high, l:low, c:close, v:volume, n:trades, i:interval, x:isFinal, q:quoteVolume, V:buyVolume, Q:quoteBuyVolume } = ticks;
-			btc_price = close
-			resolve(btc_price)
-		})
-	})
-}
-
-get_BTC_pairs = () => {
-	return new Promise(resolve => {
-		binance.exchangeInfo((error, data) => {
-			if (error) {
-				console.log( error )
-				resolve([])
-			}
-			if (data) {
-				console.log( data.symbols.length + " total pairs")
-				resolve( data.symbols.filter( pair => pair.symbol.endsWith('BTC') ).map(pair=>pair.symbol) )
-			}
-		})
-	})
-}
-
-trackDepthPair = (pair) => {
-	return new Promise(resolve => {
-		console.log( "> starting tracking depth data for " + pair )
-		binance.websockets.depthCache([pair], (symbol, depth) => {
-			var bids = binance.sortBids(depth.bids, depth_limit)
-			var asks = binance.sortAsks(depth.asks, depth_limit)
-			depth_asks[pair] = _.sum(_.values(asks).slice(0,depth_limit))*binance.first(asks)
-			depth_bids[pair] = _.sum(_.values(bids).slice(0,depth_limit))*binance.first(bids)
-			depth_diff[pair] = 100 * (binance.first(asks) - binance.first(bids)) / (binance.first(bids))
-		}, depth_limit);
-		resolve(true)
-	}, depth_limit)
-}
-
-async function trackDepthData() {
-	for (var i = 0, len = pairs.length; i < len; i++) {
-		var pair = pairs[i]
-		await trackDepthPair(pair)
-		await sleep(wait_time)
-		console.log( (i+1) + " > " + pair + " depth tracked a:" + numeral(depth_asks[pair]).format("0.00") + " / b:" + numeral(depth_bids[pair]).format("0.00") )
-	}
-}
-
-getPairHourlyPrices = (pair) => {
-	return new Promise(resolve => {
-		binance.candlesticks(pair, "1h", (error, ticks, symbol) => {
-			if (error) {
-				console.log( symbol + " > hourly prices ERROR " + error )
-				resolve(true)
-			}
-			if (ticks) {
-				//console.log( symbol + " >>>>>> hourly prices retrieved " + ticks[ticks.length-1][4])
-				//var last_tick = ticks[ticks.length - 2];
-				//let [time, open, high, low, close, volume, closeTime, assetVolume, trades, buyBaseVolume, buyAssetVolume, ignored] = last_tick;
-				hourly_prices[symbol] =  _.drop(_.reverse( ticks.map( tick => (tick[4]) ) ) ) //we use close price
-				console.log( symbol + " > " + hourly_prices[symbol].length + " hourly prices retrieved p:" + hourly_prices[symbol][0])
-				resolve(true)	
-			}
-		})
-	})
-}
-
-async function getHourlyPrevPrices() {
-	for (var i = 0, len = pairs.length; i < len; i++) {
-		await getPairHourlyPrices(pairs[i])
-		await sleep(wait_time)
-	}
-}
-
-getPrevMinutePrices = (pair) => {
-	return new Promise(resolve => {
-		binance.candlesticks(pair, "1m", (error, ticks, symbol) => {
-			if (error) {
-				console.log( pair + " getPrevMinutePrices ERROR " + error )
-				resolve(true)
-			}
-			if (ticks) {
-				minute_prices[symbol] = _.drop(_.reverse( ticks.map( tick => (tick[4]) ) ) )
-				resolve(true)
-			}
-		})
-	})
-}
-
-async function trackMinutePrices() {
-	for (var i = 0, len = pairs.length; i < len; i++) {
-		await getPrevMinutePrices(pairs[i])
-		await sleep(wait_time)
-		console.log( (i+1) + " > " + pairs[i] + " " + minute_prices[pairs[i]].length + " minute prices retrieved")
-		await trackFutureMinutePrices(pairs[i])
-		await sleep(wait_time)
-		console.log( (i+1) + " > " + pairs[i] + " future prices tracked.")
-	}
-}
-
-trackFutureMinutePrices = (pair) => {
-	return new Promise(resolve => {
-		//console.log( "> starting tracking future prices for " + pair)
-		binance.websockets.candlesticks([pair], "1m", (candlesticks) => {
-			let { e:eventType, E:eventTime, s:symbol, k:ticks } = candlesticks
-			let { o:open, h:high, l:low, c:close, v:volume, n:trades, i:interval, x:isFinal, q:quoteVolume, V:buyVolume, Q:quoteBuyVolume } = ticks
-			strategies.map( strat => { 
-				var tracked_index = _.findIndex(tracked_pairs, (o) => { return ( (o.strat === strat.name) && (o.symbol === pair) )})
-				if ( tracked_index > -1) {
-					tracked_data[symbol][strat.name].push({ 
-						date: moment().format('h:mm:ss a'),
-						price: close,
-						depth_asks: parseFloat(depth_asks[symbol]),
-						depth_bids: parseFloat(depth_bids[symbol]),
-						depth_diff: parseFloat(depth_diff[symbol]),
-					})
-				}
-			})
-			if (isFinal) {
-				minute_prices[symbol].unshift(close)
-				if ( (moment().format('m')%1 === 0) && (symbol==="ETHBTC") ) { 
-					console.log("------------------ " + moment().format('h:mm:ss') + " - new minute price added ------------------") 
-				}
-				if ( moment().format('m')==='59' ){ 
-					hourly_prices[symbol].unshift(close) 
-					if (symbol==="ETHBTC") { console.log("------------------ " + moment().format('h:mm:ss') + " - new hourly price added ------------------") }
-				}
-				strategies.map( strat => { 
-					if (strat.condition(symbol)==="BUY") {
-						var tracked_index = _.findIndex(tracked_pairs, (o) => { return ( (o.strat === strat.name) && (o.symbol === symbol) )})
-						if ( tracked_index === -1 ) {
-							console.log(moment().format('h:mm:ss') + " :: " + symbol 
-								+ " BUY :: " + strat.name + " :: "
-								+ " A:" + numeral(depth_asks[symbol]).format("0.00") 
-								+ " B:" + numeral(depth_bids[symbol]).format("0.00") 
-								+ " C:" + close 
-								+ " D:%" + numeral(depth_diff[symbol]).format("0.000") 
-								+ " https://www.binance.com/tradeDetail.html?symbol=" + symbol.slice(0, -3) + "_BTC")
-							if (sound_alert) load('./alert.mp3').then(play)
-							if ( typeof tracked_data[symbol] === 'undefined' ) {
-								tracked_data[symbol] = {}
-							}
-							tracked_data[symbol][strat.name] = []
-							tracked_pairs.push({ 
-								symbol: symbol, 
-								date: moment().format('MMMM Do YYYY, h:mm:ss a'),
-								timestamp: Date.now(),
-								price: close,
-								volume: volume,
-								usdvolume: volume*close*btc_price,
-								strat: strat.name
-							})
-						}
-					} 
-					if (strat.condition(symbol)==="SELL") {
-						var tracked_index = _.findIndex(tracked_pairs, (o) => { return ( (o.strat === strat.name) && (o.symbol === symbol) )})
-						if ( tracked_index > -1) {
-							if ( typeof total_pnl[strat.name] === 'undefined' ) {
-								total_pnl[strat.name] = []
-							}
-							total_pnl[strat.name].unshift({ 
-								symbol: symbol, 
-								date: moment().format('MMMM Do YYYY, h:mm:ss a'),
-								timestamp: Date.now(),
-								pnl: ( 100.00*((parseFloat(close)/parseFloat(tracked_pairs[tracked_index].price))-1) - trading_fee*2.0),
-							})
-							console.log(moment().format('h:mm:ss') + " :: " + symbol 
-								+ " SELL :: " + strat.name + " :: "
-								//+ " max:%" + numeral(100.00*(parseFloat((_.maxBy(tracked_data[symbol], 'price').price)/parseFloat(tracked_pairs[tracked_index].price))-1)).format("0.000") 
-								+ " pnl:%" + numeral(100.00*((parseFloat(close)/parseFloat(tracked_pairs[tracked_index].price))-1)).format("0.000") 
-								+ " tpnl:%" + numeral(_.sumBy(total_pnl[strat.name], 'pnl')).format("0.000") 
-								+ " ::  A:" + numeral(depth_asks[symbol]).format("0.00") 
-								+ " B:" + numeral(depth_bids[symbol]).format("0.00") 
-								+ " C:" + close 
-								+ " D:%" + numeral(depth_diff[symbol]).format("0.000") 
-								+ " https://www.binance.com/tradeDetail.html?symbol=" + symbol.slice(0, -3) + "_BTC")
-							if (send_email) {
-								const mailOptions = {
-									from: '"My NBT Bot" <contact@jsapp.me>',
-									to: gmail_address,
-									subject: symbol + " SELL :: " + strat.name + " :: "
-										+ " pnl:%" + numeral(100.00*((parseFloat(close)/parseFloat(tracked_pairs[tracked_index].price))-1)).format("0.000") 
-										+ " tpnl:%" + numeral(_.sumBy(total_pnl[strat.name], 'pnl')).format("0.000") 
-										+ " ::  A:" + numeral(depth_asks[symbol]).format("0.00") 
-										+ " B:" + numeral(depth_bids[symbol]).format("0.00") 
-										+ " C:" + close 
-										+ " D:%" + numeral(depth_diff[symbol]).format("0.000"), 
-									text: "https://www.binance.com/tradeDetail.html?symbol=" + symbol.slice(0, -3) + "_BTC \n"
-										+ "  ------------------------------------------ \n"
-										+ tracked_data[symbol][strat.name].map(item => JSON.stringify(item)+"\n") + "\n"
-								};
-								mailTransport.sendMail(mailOptions).then(() => {
-								}).catch(error => {
-									console.error('There was an error while sending the email ... trying again...')
-									setTimeout(() => {
-										mailTransport.sendMail(mailOptions).then(() => {
-										}).catch(error => { console.error('There was an error while sending the email: stopped trying') })
-									}, 2000 )
-								});
-							}
-							if (sound_alert) load('./alert.mp3').then(play)
-							tracked_pairs = tracked_pairs.filter(o => !( (o.strat === strat.name) && (o.symbol === symbol) ))
-						}
-					} 
-				})
-			}
-		});
-		resolve(true)
-	})
+const run = async () => {
+  ask_default_pair()
 }
 
 run()
-
-console.log("----------------------")
-
-const app = express()
-app.get('/', (req, res) => res.send(tracked_pairs))
-app.listen(process.env.PORT || 80, () => console.log('NBT api accessable on port 80'))

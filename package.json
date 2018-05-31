@@ -1,26 +1,33 @@
 {
   "name": "node-binance-trader",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "An efficient cryptocurrency trading bot for Binance using Node.js",
-  "engines": {
-    "node": "8.9.1"
-  },
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "binance",
+    "cryptocurrency",
+    "trading",
+    "bot"
+  ],
+  "author": "Herve Fulchiron <herve76@gmail.com>",
+  "license": "ISC",
+  "bin": {
+    "nbt": "./index.js"
   },
   "dependencies": {
-    "audio-loader": "^1.0.3",
-    "audio-play": "^2.2.0",
-    "express": "^4.15.2",
+    "binance-api-node": "^0.8.0",
+    "chalk": "^2.3.0",
+    "clear": "0.0.1",
+    "clui": "^0.3.6",
+    "configstore": "^3.1.2",
+    "figlet": "^1.2.0",
+    "inquirer": "^5.2.0",
     "lodash": "^4.17.4",
-    "moment": "^2.20.1",
-    "node-binance-api": "^0.4.4",
-    "nodemailer": "^4.4.1",
-    "numeral": "^2.0.6",
-    "ws": "^4.0.0"
-  },
-  "devDependencies": {
-    "request": "^2.81.0"
+    "moment": "^2.22.1",
+    "numeral": "^2.0.6"
   }
 }
