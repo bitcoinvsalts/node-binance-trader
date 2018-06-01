@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const chalk       = require('chalk')
+const ora         = require('ora')
 const moment      = require('moment')
 const numeral     = require('numeral')
 const clear       = require('clear')
@@ -63,7 +64,6 @@ console.log(chalk.red('   You are responsible for your own use.'))
 console.log(chalk.red('-------------------------------------------------------'))
 console.log(' ')
 console.log(chalk.cyan('The mission of this bot is to make one simple trade.'))
-console.log(' ')
 
 var default_pair_input = [
   {
@@ -75,23 +75,23 @@ var default_pair_input = [
 ]
 
 ask_default_pair = () => {
+  console.log(" ")
   inquirer.prompt(default_pair_input).then(answers => {
     default_pair = answers.pair.toUpperCase()
+    default_pair_input[0].default = default_pair
     conf.set('nbt.default_pair', default_pair)
+    const report = ora('Loading 1 min candles...').start()
     client.candles({ symbol: default_pair })
     .then(candles => { 
-      console.log('\n--------------------------------------------')
-      console.log('Current Price is ' + candles[candles.length-1].close)
-      console.log('Current Volume is ' + candles[candles.length-1].volume)
-      console.log('Candle - % -> ' + 100.00*(candles[candles.length-1].close-candles[candles.length-1].open)/candles[candles.length-1].open )
-      console.log('--------------------------------------------\n')
+      report.text = "Current Price: " + candles[candles.length-1].close
+      report.color = 'yellow'
       const clean = client.ws.candles(default_pair, '1m', candle => {
         if (!tracking) {
           tracking = true
           process.stdin.setRawMode(true);
           process.stdin.resume();
           process.stdin.once('data', function () {
-            console.log("\n --- stoping tracking now ---\n")
+            report.succeed()
             if (tracking) {
               tracking = false
               clean() 
@@ -109,7 +109,8 @@ ask_default_pair = () => {
         if (minute_prices.length > 130) minute_prices.pop()
         last_volume = parseFloat(candle.volume)
         last_price = parseFloat(candle.close)
-        var log_report = moment().format('h:mm:ss')
+        report.color = 'cyan'
+        report.text = moment().format('h:mm:ss')
           + " :: " + ((price_direction===1)?"+":((price_direction===-1)?"-":" ")) + " ::   "
           + numeral(minute_price).format("0.00").padStart(8)
           + " [" + numeral(long_min_delta).format("0.00").padStart(6)
@@ -117,11 +118,10 @@ ask_default_pair = () => {
           + "%] [" + numeral(short_min_delta).format("0.00").padStart(6)
           + "%] :: " + numeral(minute_volume).format("0.00").padStart(6)
           + " :: "
-        console.log(log_report)
       })
     })
     .catch(error => { 
-      console.log(chalk.yellow("--> Sorry, Invalid Pair!!!")) 
+      report.fail(chalk.yellow("--> Sorry, Invalid Pair!!!")) 
       ask_default_pair()
     })
   })

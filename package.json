@@ -22,12 +22,12 @@
     "binance-api-node": "^0.8.0",
     "chalk": "^2.3.0",
     "clear": "0.0.1",
-    "clui": "^0.3.6",
     "configstore": "^3.1.2",
     "figlet": "^1.2.0",
     "inquirer": "^5.2.0",
     "lodash": "^4.17.4",
     "moment": "^2.22.1",
-    "numeral": "^2.0.6"
+    "numeral": "^2.0.6",
+    "ora": "^2.1.0"
   }
 }
