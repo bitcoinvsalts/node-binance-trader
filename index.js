@@ -50,7 +50,7 @@ let default_pair = conf.get('nbt.default_pair')?conf.get('nbt.default_pair'):"BT
 
 clear()
 
-console.log(chalk.yellow(figlet.textSync('NBT', { horizontalLayout: 'fitted' })))
+console.log(chalk.yellow(figlet.textSync('_N_B_T_', { horizontalLayout: 'fitted' })))
 console.log(" 🐬 ".padEnd(5) + chalk.cyan('--------------------------------') + " 🐬 ")
 console.log(" 🐬 ".padEnd(10) + chalk.bold.underline.cyan('Node Binance Trader') + " 🐬 ".padStart(12))
 console.log(" 🐬 ".padEnd(10) + chalk.italic.cyan('Test Drive Version') + " 🐬 ".padStart(13))
