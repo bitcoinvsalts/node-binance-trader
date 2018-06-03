@@ -25,7 +25,7 @@
     "configstore": "^3.1.2",
     "figlet": "^1.2.0",
     "inquirer": "^5.2.0",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.10",
     "moment": "^2.22.1",
     "numeral": "^2.0.6",
     "ora": "^2.1.0"
