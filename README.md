@@ -31,6 +31,9 @@ Today NBT is an experimental node.js trading bot that will:
 
 ```
 git clone https://github.com/jsappme/node-binance-trader
+cd node-binance-trader
+npm i
+npm i -g
 ```
 
 # Configuration 🔑
@@ -45,8 +48,11 @@ git clone https://github.com/jsappme/node-binance-trader
 # Usage ⚡️
 
 ```
-npm i
-npm i -g
+node index.js
+```
+or
+
+```
 nbt
 ```
 
