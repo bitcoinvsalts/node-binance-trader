@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img src="demo.gif">
+  <img src="nbt_demo.gif">
 </h1>
 
 <h4 align="center">Node-Binance-Trader</h4>
