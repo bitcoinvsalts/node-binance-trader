@@ -1,5 +1,15 @@
 #!/usr/bin/env node
 
+/* ============================================================
+ * node-binance-trader
+ * https://github.com/jsappme/node-binance-trader
+ * ============================================================
+ * Copyright 2018, Herve Fulchiron - herve76@gmail.com
+ * Released under the MIT License
+ * v0.0.2 - 🐬 delphines 🐬
+ * 3/13/2018
+ * ============================================================ */
+
 const chalk       = require('chalk')
 const ora         = require('ora')
 const moment      = require('moment')
