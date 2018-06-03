@@ -22,10 +22,10 @@ My name is Herve Fulchiron, I’m a passionate full stack JS engineer, and I als
 
 Today NBT is an experimental node.js trading bot that will:
 
---* ask for a trading pair
---* ask for a loss pourcentage
---* ask for a profit pourcentage
---* and dynamically auto trade the whole operation.
+* ask for a trading pair
+* ask for a loss pourcentage
+* ask for a profit pourcentage
+* and dynamically auto trade the whole operation.
 
 # Installation 📦
 
