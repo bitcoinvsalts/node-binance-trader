@@ -14,7 +14,7 @@
 
 <h4 align="center">An efficient cryptocurrency trading bot for Binance using Node.js 💸</h4>
 
-# Why Node-Binance-Trader? 🤔
+# Time to upgrade your crypto trading 🤔
 
 My name is Herve Fulchiron, I’m a passionate full stack JS engineer, and I also trade cryptocurrencies on a weekly basis. I mostly use <a href="https://www.binance.com/?ref=10177791" target="_blank">Binance</a> for my altcoins trading. The high volatility of the crypto market makes it an emotional rollercoster that requires high awareness and constant attention. This demands a lot of time to monitor always more trading pairs and more data to process. Like most of the people I used to trade manually via the Binance website. I was slow to execute and beating the market gets more difficult every days.  It was time to upgrade my trading operation.
 
