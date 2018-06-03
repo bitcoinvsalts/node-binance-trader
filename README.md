@@ -50,7 +50,7 @@ npm i -g
 ```
 node index.js
 ```
-or
+or simply:
 
 ```
 nbt
