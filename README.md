@@ -131,3 +131,7 @@ If you have any questions/suggestions, or simply you need some help building you
 Special thank you to Jon for his very helpful repo https://github.com/jaggedsoft/node-binance-api
 
 If this repo helped you in any way, you can always leave me a BNB tip at 0xf0c499c0accddd52d2f96d8afb6778be0659ee0c
+
+# GETTING IN TOUCH #
+
+* Discord: [Invite Link](https://discord.gg/4EQrEgj)
