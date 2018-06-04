@@ -31,7 +31,7 @@ Today NBT is an experimental node.js trading bot that will:
 
 # Requirements
 
-* [Git](https://git-scm.com/)
+* [Git](https://git-scm.com/download/)
 * [Node.Js](http://nodejs.org)
 
 
