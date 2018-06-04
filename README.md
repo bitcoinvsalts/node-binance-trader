@@ -6,9 +6,6 @@
 <h4 align="center">Node-Binance-Trader</h4>
 
 <p align="center">
-  <img src="https://img.shields.io/github/license/jsappme/node-binance-trader.svg">
-  <img src="https://img.shields.io/github/stars/jsappme/node-binance-trader.svg">
-  <img src="https://img.shields.io/github/issues/jsappme/node-binance-trader.svg">
   <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="https://cdn.rawgit.com/Hyleus/237f9903320939eb4f7615633a8fb221/raw/dca104edf34eabaca1016e633f06a52a346a7700/chat-Discord-blue.svg" /></a>
 </p>
 
