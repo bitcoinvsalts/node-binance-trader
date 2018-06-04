@@ -27,7 +27,7 @@ Today NBT is an experimental node.js trading bot that will:
 * ask for a trading pair
 * ask for a loss pourcentage
 * ask for a profit pourcentage
-* and dynamically auto trade the whole operation.
+* and dynamically auto trade the whole operation as fast and efficient as possible.
 
 # Installation 📦
 
@@ -60,8 +60,8 @@ nbt
 
 # Roadmap 🚧
 
-* ✔️ Dynamic trading
-* Add strategies + auto trades
+* ✔️ Dynamic trading execution
+* Add more complex trading strategies + live testing and trading
 * Add an AI/ML "brain" to the bot
 
 
@@ -81,6 +81,6 @@ If you have any questions/suggestions, or simply you need some help building you
 
 If this repo helped you in any way, you can always leave me a BNB tip at 0xf0c499c0accddd52d2f96d8afb6778be0659ee0c
 
-# GETTING IN TOUCH #
+# GETTING IN TOUCH 💬
 
-* Discord: [Invite Link](https://discord.gg/4EQrEgj)
+* **Discord**: [Invite Link](https://discord.gg/4EQrEgj)
