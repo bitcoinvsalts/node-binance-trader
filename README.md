@@ -66,8 +66,8 @@ nbt
 
 # Roadmap 🚧
 
-* ✔️ Dynamic trading execution
-* Add more complex trading strategies + live testing and trading
+* ✔️  Stop Loss + Take Profit Trading Execution
+* Add more complex and dynamic trading strategies + live testing + live trading
 * Add an AI/ML "brain" to the bot
 
 
