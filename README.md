@@ -22,7 +22,7 @@ Here is the article that comes with this repository: <a href="https://jsapp.me/h
 
 # What is Node-Binance-Trader? 📡
 
-Today NBT is an experimental node.js trading bot that will:
+Today NBT is a trading bot console app that will:
 
 * ask for a trading pair
 * ask for a loss pourcentage
