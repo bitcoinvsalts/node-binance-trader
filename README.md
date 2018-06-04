@@ -29,6 +29,11 @@ Today NBT is an experimental node.js trading bot that will:
 * ask for a profit pourcentage
 * and dynamically auto trade the whole operation as fast and efficient as possible.
 
+# Requirements
+
+* [NodeJs](http://nodejs.org)
+
+
 # Installation 📦
 
 ```
