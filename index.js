@@ -25,8 +25,8 @@ const inquirer    = require("inquirer")
 // https://www.binance.com/restapipub.html
 // REPLACE xxx with your own API key key and secret.
 //
-const APIKEY = 'xxx'
-const APISECRET = 'xxx'
+const APIKEY = ''
+const APISECRET = ''
 //////////////////////////////////////////////////////////////////////////////////
 
 let tracking = false
@@ -97,12 +97,12 @@ ask_default_pair = () => {
   inquirer.prompt(default_pair_input).then(answers => {
     default_pair = answers.pair.toUpperCase()
     const report = ora('Loading 1 min candles...').start()
-    
-    client.candles({ symbol: default_pair, interval: '1m' }).then(candles => { 
+
+    client.candles({ symbol: default_pair, interval: '1m' }).then(candles => {
 
       conf.set('nbt.default_pair', default_pair)
       default_pair_input[0].default = default_pair
-      
+
       candles.forEach((candle) => {
         minute_prices.unshift(parseFloat(candle.close))
       })
@@ -137,7 +137,7 @@ ask_default_pair = () => {
         last_price = parseFloat(candle.close)
 
         report.text = candle_report()
-        
+
         if (minute_prices.length > 130) minute_prices.pop()
       })
 
@@ -149,7 +149,7 @@ ask_default_pair = () => {
           report.succeed()
           if (tracking) {
             tracking = false
-            clean_candles() 
+            clean_candles()
             minute_prices = []
             console.log(" ")
             setTimeout(() => { ask_buy_or_change() }, 1000 )
@@ -157,8 +157,8 @@ ask_default_pair = () => {
         })
       }
     })
-    .catch(error => { 
-      report.fail(chalk.yellow("--> Sorry, Invalid Pair!!!")) 
+    .catch(error => {
+      report.fail(chalk.yellow("--> Sorry, Invalid Pair!!!"))
       console.error("ERROR 6 " + error)
       ask_default_pair()
     })
@@ -225,7 +225,7 @@ var ask_buy_info_request = [
     type: 'input',
     name: 'loss_pourcent',
     default: loss_pourcent,
-    message: chalk.magenta('Enter the stop loss pourcentage:'),
+    message: chalk.magenta('Enter the stop loss percentage:'),
     validate: function(value) {
       var valid = !isNaN(parseFloat(value)) && (value>0.10) && (value<100.00)
       return valid || 'Please enter a number between 0.10 and 99.99'
@@ -236,7 +236,7 @@ var ask_buy_info_request = [
     type: 'input',
     name: 'profit_pourcent',
     default: profit_pourcent,
-    message: chalk.green('Enter the profit pourcentage:'),
+    message: chalk.green('Enter the profit percentage:'),
     validate: function(value) {
       var valid = !isNaN(parseFloat(value)) && (value>0.10) && (value<100.00)
       return valid || 'Please enter a number between 0.10 and 99.99'
@@ -268,7 +268,7 @@ ask_buy_info = () => {
 
       // Find out the order quote precision
       client.exchangeInfo().then(results => {
-        
+
         precision = _.filter(results.symbols, {symbol: default_pair})[0].filters[0].tickSize.indexOf("1") - 1
         report.text = chalk.grey(moment().format('h:mm:ss').padStart(8))
           + chalk.yellow(default_pair.padStart(10))
@@ -281,7 +281,7 @@ ask_buy_info = () => {
           report.text = chalk.grey(moment().format('h:mm:ss').padStart(8))
             + chalk.yellow(default_pair.padStart(10))
             + chalk.white(" Last trade price was: " + buy_price + " Let's try to buy at this price.")
-          
+
           // Try to buy at the last price:
           client.order({
             symbol: default_pair,
@@ -307,7 +307,7 @@ ask_buy_info = () => {
                 step = 99
                 var i = 1
                 checkOrderStatus = () => {
-                  setTimeout( () => {  
+                  setTimeout( () => {
                     client.getOrder({
                       symbol: default_pair,
                       orderId: order_id,
@@ -396,7 +396,7 @@ ask_buy_info = () => {
                   })
                   .then((order) => {
                     order_id = order.orderId
-                    var log_report = " STOP LOSS READY (1) " 
+                    var log_report = " STOP LOSS READY (1) "
                     report.text = add_status_to_trade_report(trade, log_report)
                     step = 3
                   })
@@ -629,7 +629,7 @@ ask_buy_info = () => {
                     tot_cancel = 0
                     report.succeed()
                     clean_trades()
-                    ask_buy_or_change() 
+                    ask_buy_or_change()
                   }
                 })
                 .catch((error) => {
