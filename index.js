@@ -25,8 +25,8 @@ const inquirer    = require("inquirer")
 // https://www.binance.com/restapipub.html
 // REPLACE xxx with your own API key key and secret.
 //
-const APIKEY = ''
-const APISECRET = ''
+const APIKEY = 'xxx'
+const APISECRET = 'xxx'
 //////////////////////////////////////////////////////////////////////////////////
 
 let tracking = false
@@ -346,11 +346,13 @@ ask_buy_info = () => {
                             })
                             .catch((error) => {
                               //step = 1
+                              // need to fix: Order BUY MARKET Error... Error: Filter failure: LOT_SIZE
+                              // for bigger orders full amount not fully bought
                               console.error("Order BUY MARKET Error... " + error)
                             })
                           })
                           .catch((error) => {
-                            //step = 1
+                            step = 1
                             console.error("Order Cancelling Error... " + error)
                           })
                         }
@@ -401,7 +403,7 @@ ask_buy_info = () => {
                     step = 3
                   })
                   .catch((error) => {
-                    //console.error(error)
+                    console.error(error)
                     // Error: Order would trigger immediately
                     // Sell the bag at market price
                     var log_report = " SELLING AT MARKET PRICE "
@@ -428,20 +430,12 @@ ask_buy_info = () => {
                       ask_buy_or_change()
                     })
                     .catch((error) => {
-                      step = 0
-                      pnl = 100.00*(buy_price - trade.price)/buy_price
-                      var log_report = chalk.magenta(" STOP LOSS PRICE REACHED THE BOT TRIED TO SELL EVERYTHING AT MARKET PRICE #651 ")
-                      report.text = add_status_to_trade_report(trade, log_report)
-                      order_id = 0
-                      buy_price  = 0.00
-                      stop_price = 0.00
-                      loss_price = 0.00
-                      sell_price = 0.00
-                      tot_cancel = 0
-                      report.succeed()
-                      clean_trades()
-                      ask_buy_or_change()
+                      console.error("ERROR #651" + error)
+                      //var log_report = chalk.magenta(" STOP LOSS PRICE REACHED THE BOT TRIED TO SELL EVERYTHING AT MARKET PRICE BUT NO ERROR OCCURED #651 ")
+                      //report.text = add_status_to_trade_report(trade, log_report)
+                      //step = 2
                     })
+
                   })
                 })
               }
@@ -597,8 +591,22 @@ ask_buy_info = () => {
                   })
                 })
                 .catch((error) => {
-                  console.error("ERROR 4 " + error)
-                  step = 5
+                  // need to fix: ERROR 4 Error: UNKNOWN_ORDER
+                  //console.error("ERROR 4 " + error)
+                  //step = 5
+                  step = 0
+                  pnl = 100.00*(buy_price - trade.price)/buy_price
+                  var log_report = chalk.magenta(" LOSS PRICE REACHED THE BOT SOLD EVERYTHING #454 ")
+                  report.text = add_status_to_trade_report(trade, log_report)
+                  order_id = 0
+                  buy_price  = 0.00
+                  stop_price = 0.00
+                  loss_price = 0.00
+                  sell_price = 0.00
+                  tot_cancel = 0
+                  report.fail()
+                  clean_trades()
+                  ask_buy_or_change()
                 })
               }
 
