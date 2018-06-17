@@ -12,7 +12,7 @@
 <h4 align="center">An efficient cryptocurrency trading bot framework for Binance using Node.js</h4>
 
 <p align="center">
-  <a href="https://www.binance.com/clientDownloads.html"><img alt="Discord chat" src="Screenshot.png" /></a>
+  <img alt="Discord chat" src="Screenshot.png" />
   Screenshot of my trading setup: the Binance Desktop app plus NBT on a floating iTerm2 console.
 </p>
 
