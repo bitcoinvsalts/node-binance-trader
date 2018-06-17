@@ -310,8 +310,8 @@ ask_trade_info = () => {
               })
             })
             .catch((error) => {
-              console.error(error)
-              report.fail(chalk.yellow("There was an issue processing the Market Buy Order. Verify the minimum amount was reached and you have the right amount on your account."))
+              //console.error(error)
+              report.fail(chalk.yellow("Verify the minimum amount was reached (min. value should be more than 10 USD) and you have this amount available on your balance."))
               ask_trade_info()
             })
           })
@@ -345,31 +345,9 @@ sell_at_market_price = () => {
     setTimeout( () => { ask_trade_info(), 2500 } )
   })
   .catch( error => {
-    console.error( " ERROR #7771 " + buy_amount + " :: " + error )
-    client.getOrder({
-      symbol: default_pair,
-      orderId: order_id,
-      recvWindow: 1000000
-    })
-    .then( (order_result) => {
-      client.order({
-        symbol: default_pair,
-        side: 'SELL',
-        type: 'MARKET',
-        quantity: parseFloat(order_result.executedQty).toFixed(20),
-        recvWindow: 1000000
-      })
-      .then( order => {
-        reset_trade()
-        report.succeed( chalk.magenta(" THE BOT SOLD AT MARKET PRICE #878 ") )
-        setTimeout( () => { ask_trade_info(), 2500 } )
-      })
-      .catch( error => {
-        report.fail( " ERROR #7871 " + parseFloat(order_result.executedQty).toFixed(19) + " :: " + error )
-        reset_trade()
-        setTimeout( () => { ask_trade_info(), 2500 } )
-      })
-    })
+    report.fail( " ERROR #7771 " + buy_amount + " :: " + error )
+    reset_trade()
+    setTimeout( () => { ask_trade_info(), 2500 } )
   })
 }
 
@@ -411,12 +389,11 @@ checkOrderStatus = (i) => {
               })
             }
             else {
-              console.log(chalk.grey(" WE KEEP GOING WITH OUR PARTIAL FILLED AMOUNT "))
+              console.log(chalk.grey(" WE KEEP GOING WITH PARTIAL FILLED AMOUNT "))
               client.getOrder({ symbol: default_pair, orderId: order_id, recvWindow: 1000000 }).then( order => {
-                console.log(chalk.grey(" NEW BUY AMOUNT :: " + order.executedQty ))
                 buy_amount = parseFloat(order.executedQty)
                 buy_price = parseFloat(order.price)
-                console.log(chalk.gray(" FINAL BUY PRICE :: ") + chalk.cyan(buy_price))
+                console.log(chalk.grey(" NEW BUY AMOUNT :: " + order.executedQty + " FINAL BUY PRICE ") + chalk.cyan(buy_price))
                 switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
                 stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
                 loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
@@ -430,7 +407,7 @@ checkOrderStatus = (i) => {
             console.error(" ORDER CANCELLING ERROR " + error)
             client.myTrades({ symbol: default_pair, recvWindow: 1000000, limit: 1 }).then( mytrade => {
               buy_price = parseFloat(mytrade[0].price)
-              console.log(chalk.gray(" FINAL BUY PRICE :: ") + chalk.cyan(buy_price))
+              console.log(chalk.gray(" FINAL BUY PRICE ::: ") + chalk.cyan(buy_price))
               switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
               stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
               loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
@@ -452,13 +429,13 @@ checkOrderStatus = (i) => {
           stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
           loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
           sell_price = (buy_price + (buy_price * 0.010 * profit_pourcent)).toFixed(precision)
-          console.log(chalk.gray(" FINAL BUY PRICE :: ") + chalk.cyan(buy_price))
+          console.log(chalk.gray(" FINAL BUY PRICE ::: ") + chalk.cyan(buy_price))
           set_stop_loss_order()
         })
       }
     })
     .catch((error) => {
-      console.error("ERROR 12 " + error)
+      //console.error("ERROR 12 " + error)
     })
   }, 1000)
 }
@@ -470,7 +447,7 @@ check_market_buy_order = () => {
       console.log(chalk.gray(" MARKET BUY ORDER FILLED "))
       client.myTrades({ symbol: default_pair, recvWindow: 1000000, limit: 1 }).then( mytrade => {
         buy_price = parseFloat(mytrade[0].price)
-        console.log(chalk.gray(" FINAL BUY PRICE :: ") + chalk.cyan(buy_price))
+        console.log(chalk.gray(" FINAL BUY PRICE ::: ") + chalk.cyan(buy_price))
         switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
         stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
         loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
@@ -543,7 +520,42 @@ process.stdin.on('keypress', ( key ) => {
       })
       .then( (order) => {
         console.log(" CURRENT ORDER CANCELED ")
-        sell_at_market_price()
+        client.getOrder({
+          symbol: default_pair,
+          orderId: order_id,
+          recvWindow: 1000000
+        })
+        .then( (order_result) => {
+          if (order_result.status === "FILLED") {
+            console.log("PREV ORDER FILLED")
+            sell_at_market_price()
+          }
+          else if (order_result.status === "PARTIALLY_FILLED") {
+            console.log("PREV ORDER PARTIALLY_FILLED")
+            if (order_result.side === "BUY") {
+              buy_amount = parseFloat(order_result.executedQty)
+              sell_at_market_price()
+            }
+            else {
+              buy_amount = parseFloat(order_result.origQty) - parseFloat(order_result.executedQty)
+              sell_at_market_price()
+            }
+          }
+          else if (order_result.status === "CANCELED") {
+            if (order_result.side === "SELL") {
+              sell_at_market_price()
+            }
+            else {
+              reset_trade()
+              report.succeed( chalk.magenta(" THE BOT STOPPED THE TRADE #3365 ") )
+              setTimeout( () => { ask_trade_info(), 2500 } )
+            }
+          }
+        })
+        .catch((error) => {
+          console.error(" GET FINAL ORDER ERROR : " + order_id + " : " + error)
+          sell_at_market_price()
+        })
       })
       .catch((error) => {
         console.error(" FINAL CANCEL ERROR : " + order_id + " : " + error)
