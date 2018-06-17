@@ -11,6 +11,10 @@
 
 <h4 align="center">An efficient cryptocurrency trading bot framework for Binance using Node.js</h4>
 
+<p align="center">
+  <a href="https://www.binance.com/clientDownloads.html"><img alt="Discord chat" src="Screenshot.png" /></a>
+</p>
+
 # Time to upgrade your crypto trading 🤔
 
 My name is Herve Fulchiron, I’m a passionate full stack JS engineer and a cryptocurrency enthusiast/trader. I mostly use <a href="https://www.binance.com/?ref=10177791" target="_blank">Binance</a> for my cryptocurrency trading. Like most of the people I used to trade manually via the Binance website. I was slow to execute and beating the market gets more difficult every days.  It was time to upgrade my trading execution. Console apps run on the Terminal (or Command Prompt), and they provide an easy and efficient way to execute difficult tasks like **low latency cryptocurrency trading**. The minimalism of the graphical interface give them an edge on the speed of execution vs. manual retail trading.
