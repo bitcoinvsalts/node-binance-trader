@@ -230,7 +230,7 @@ ask_trade_info = () => {
                 // PRICE BELLOW BUY PRICE SETTING UP STOP LOSS ORDER
                 if ( order_id && (step === 5) && (trade.price < buy_price) ) {
                   step = 99
-                  var log_report = " CANCEL PROFIT / SETTING UP STOP LOSS NOW / "
+                  var log_report = " CANCEL PROFIT + SETTING UP STOP LOSS NOW "
                   report.text = add_status_to_trade_report(trade, log_report)
                   tot_cancel = tot_cancel + 1
                   client.cancelOrder({
@@ -361,7 +361,7 @@ checkOrderStatus = (i) => {
     })
     .then( (order_result) => {
       if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
-        var log_report = chalk.grey(" AMOUNT NOT ALL EXECUTED " + i)
+        var log_report = chalk.grey(" NOT ALL AMOUNT EXECUTED (" + i + ")")
         console.log(log_report)
         //report.text = add_status_to_trade_report(trade, log_report)
         if (i > buy_bid_price_trial_max) {
@@ -428,7 +428,7 @@ checkOrderStatus = (i) => {
         }
       }
       else {
-        var log_report = " ALL AMOUNT EXECUTED "
+        var log_report = chalk.grey(" ALL AMOUNT EXECUTED ")
         //report.text = add_status_to_trade_report(trade, log_report)
         console.log(log_report)
         //buy_amount = parseFloat(order_result.origQty)
