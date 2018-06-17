@@ -6,7 +6,7 @@
 <h4 align="center">Node-Binance-Trader</h4>
 
 <p align="center">
-  <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="https://cdn.rawgit.com/Hyleus/237f9903320939eb4f7615633a8fb221/raw/dca104edf34eabaca1016e633f06a52a346a7700/chat-Discord-blue.svg" /></a>
+  <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="Discord_button.png" /></a>
 </p>
 
 <h4 align="center">An efficient cryptocurrency trading bot framework for Binance using Node.js</h4>
@@ -24,7 +24,7 @@ Today NBT is a trading bot console app that will:
 * ask for a trading pair
 * ask for a loss percentage
 * ask for a profit percentage
-* and dynamically auto trade the whole operation as fast and efficient as possible.
+* automatically auto trade the whole operation as fast and efficient as possible.
 
 # Requirements
 
