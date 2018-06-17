@@ -259,7 +259,7 @@ ask_trade_info = () => {
                   })
                   .then( (order_result) => {
                     if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
-                      var log_report = chalk.grey(" PROFIT PRICE REACHED BUT NOT ALL EXECUTED " + order_result.executedQty + " / " + order_result.origQty)
+                      var log_report = chalk.grey(" PROFIT PRICE REACHED BUT NOT ALL EXECUTED " + order_result.executedQty )
                       report.text = add_status_to_trade_report(trade, log_report)
                       step = 5
                     }
@@ -288,7 +288,7 @@ ask_trade_info = () => {
                   })
                   .then( (order_result) => {
                     if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
-                      var log_report = chalk.grey(" STOP PRICE REACHED BUT NOT ALL EXECUTED " + order_result.executedQty + " / " + order_result.origQty)
+                      var log_report = chalk.grey(" STOP PRICE REACHED BUT NOT ALL EXECUTED " + order_result.executedQty )
                       report.text = add_status_to_trade_report(trade, log_report)
                       step = 5
                     }
@@ -331,7 +331,6 @@ ask_trade_info = () => {
 }
 
 sell_at_market_price = () => {
-  //process.stdin.pause()
   console.log(chalk.keyword('orange')(" SELLING AT MARKET PRICE "))
   client.order({
     symbol: default_pair,
@@ -361,9 +360,8 @@ checkOrderStatus = (i) => {
     })
     .then( (order_result) => {
       if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
-        console.log(chalk.grey(" NOT ALL AMOUNT EXECUTED (" + i + ") ["  + order_result.executedQty + " / " + order_result.origQty + "]"))
+        console.log(chalk.grey(" NOT ALL AMOUNT EXECUTED (" + i + ") " + order_result.executedQty ))
         if (i > buy_bid_price_trial_max) {
-          console.log(chalk.grey(" STOP TRYING TO BUY AT THE INITIAL PRICE "))
           // WE TRIED TO BUY AT THE FIRST BID PRICE BUT IT WAS NOT EXECUTED IN TIME:
           client.cancelOrder({
             symbol: default_pair,
@@ -373,7 +371,6 @@ checkOrderStatus = (i) => {
           .then( (order) => {
             if (parseFloat(order_result.executedQty) === 0.00) {
               console.log(chalk.grey(" NOTHING WAS EXECUTED "))
-              console.log(chalk.grey(" SETTING BUY ORDER AT MARKET PRICE "))
               // SETUP MARKET BUY ORDER
               client.order({
                 symbol: default_pair,
@@ -516,7 +513,6 @@ process.stdin.on('keypress', ( key ) => {
   if ( (key === '\u0003') || (key === 'q') ) {
     if (order_id) {
       trade_count = trade_count + 1
-      //process.stdin.pause()
       console.log(" --- STOPPING THE TRADE ---  ")
       client.cancelOrder({
         symbol: default_pair,
