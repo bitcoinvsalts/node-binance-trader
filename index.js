@@ -295,7 +295,7 @@ ask_trade_info = () => {
                     else {
                       clean_trades()
                       pnl = 100.00*(buy_price - trade.price)/buy_price
-                      var log_report = chalk.magenta(" LOSS PRICE REACHED THE BOT SOLD EVERYTHING #746")
+                      var log_report = chalk.magenta(" STOP LOSS ALL EXECUTED")
                       report.text = add_status_to_trade_report(trade, log_report)
                       reset_trade()
                       report.succeed()
@@ -393,7 +393,7 @@ checkOrderStatus = (i) => {
               client.getOrder({ symbol: default_pair, orderId: order_id, recvWindow: 1000000 }).then( order => {
                 buy_amount = parseFloat(order.executedQty)
                 buy_price = parseFloat(order.price)
-                console.log(chalk.grey(" NEW BUY AMOUNT :: " + order.executedQty + " FINAL BUY PRICE ") + chalk.cyan(buy_price))
+                console.log(chalk.grey(" FINAL BUY PRICE ") + chalk.cyan(buy_price))
                 switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
                 stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
                 loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
@@ -480,7 +480,7 @@ set_stop_loss_order = () => {
   })
   .catch((error) => {
     console.error(" ERRROR #1233 " + error )
-    sell_at_market_price()
+    //sell_at_market_price()
   })
 }
 
