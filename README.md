@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://www.binance.com/clientDownloads.html"><img alt="Discord chat" src="Screenshot.png" /></a>
+  Screenshot of my trading setup: the Binance Desktop app plus NBT on a floating iTerm2 console.
 </p>
 
 # Time to upgrade your crypto trading 🤔
