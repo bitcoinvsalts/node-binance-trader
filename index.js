@@ -194,9 +194,8 @@ ask_trade_info = () => {
                 // SWITCH PRICE REACHED SETTING UP SELL FOR PROFIT ORDER
                 if ( order_id && (step === 3) && (trade.price > switch_price) ) {
                   step = 99
-                  var log_report = " CANCEL STOP LOSS AND GO FOR PROFIT "
-                  report.text = add_status_to_trade_report(trade, log_report)
-                  tot_cancel = tot_cancel + 1
+                  var log_report = chalk.grey(" CANCEL STOP LOSS AND GO FOR PROFIT ")
+                  console.log(log_report)
                   client.cancelOrder({
                     symbol: default_pair,
                     orderId: order_id,
@@ -213,8 +212,8 @@ ask_trade_info = () => {
                     .then((order) => {
                       step = 5
                       order_id = order.orderId
-                      var log_report = " SELL ORDER READY "
-                      report.text = add_status_to_trade_report(trade, log_report)
+                      var log_report = chalk.grey(" SELL ORDER READY ")
+                      console.log(log_report)
                     })
                     .catch((error) => {
                       var log_report = chalk.magenta(" ERROR #555 ")
@@ -230,8 +229,8 @@ ask_trade_info = () => {
                 // PRICE BELLOW BUY PRICE SETTING UP STOP LOSS ORDER
                 if ( order_id && (step === 5) && (trade.price < buy_price) ) {
                   step = 99
-                  var log_report = " CANCEL PROFIT + SETTING UP STOP LOSS NOW "
-                  report.text = add_status_to_trade_report(trade, log_report)
+                  var log_report = chalk.grey(" CANCEL PROFIT SETTING UP STOP LOSS ")
+                  console.log(log_report)
                   tot_cancel = tot_cancel + 1
                   client.cancelOrder({
                     symbol: default_pair,
@@ -334,7 +333,7 @@ ask_trade_info = () => {
 
 sell_at_market_price = () => {
   process.stdin.pause()
-  console.log(chalk.keyword('orange')(" SELLING AT MARKET PRICE NOW "))
+  console.log(chalk.keyword('orange')(" SELLING AT MARKET PRICE "))
   client.order({
     symbol: default_pair,
     side: 'SELL',
@@ -466,7 +465,7 @@ set_stop_loss_order = () => {
     step = 3
   })
   .catch((error) => {
-    console.error(" ERRROR #1233 :: " + buy_amount + " : " + error)
+    console.error(" ERRROR #1233 " + error )
     sell_at_market_price()
   })
 }
