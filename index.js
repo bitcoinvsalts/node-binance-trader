@@ -6,8 +6,8 @@
  * ============================================================
  * Copyright 2018, Herve Fulchiron - herve76@gmail.com
  * Released under the MIT License
- * v0.0.2 - 🐬 delphines 🐬
- * 3/13/2018
+ * v0.0.3 - 🐬 delphines 🐬
+ * 6/16/2018
  * ============================================================ */
 
 const chalk       = require('chalk')
@@ -25,13 +25,13 @@ const inquirer    = require("inquirer")
 // https://www.binance.com/restapipub.html
 // REPLACE xxx with your own API key key and secret.
 //
-const APIKEY = ''
-const APISECRET = ''
+const APIKEY = 'xxx'
+const APISECRET = 'xxx'
 //////////////////////////////////////////////////////////////////////////////////
 
-let trading = false
 let pnl = 0
 let step = 0
+let trade_count = 0
 let order_id = 0
 let buy_price  = 0.00
 let switch_price  = 0.00
@@ -73,7 +73,7 @@ console.log(" 🐬 ".padEnd(10) + '                   ' + " 🐬 ".padStart(11))
 console.log(" 🐬 ".padEnd(10) + chalk.bold.underline.cyan('Node Binance Trader') + " 🐬 ".padStart(11))
 console.log(" 🐬 ".padEnd(10) + '                   ' + " 🐬 ".padStart(11))
 console.log(' ')
-console.log(chalk.red('     USE THIS APP AT YOUR OWN RISK  '))
+console.log(chalk.yellow('     USE THIS APP AT YOUR OWN RISK  '))
 console.log(' ')
 
 var buy_info_request = [
@@ -124,7 +124,9 @@ var buy_info_request = [
 },
 ]
 
-ask_buy_info = () => {
+const report = ora(chalk.grey('Starting the trade...'))
+
+ask_trade_info = () => {
   inquirer.prompt(buy_info_request).then(answers => {
 
     conf.set('nbt.default_pair', answers.pair.toUpperCase())
@@ -145,22 +147,23 @@ ask_buy_info = () => {
     // ORDER CONFIRMED BY USER, LET'S HAVE FUN:
     if (answers.confirm) {
 
-      const report = ora(chalk.grey('Starting the trade...')).start()
-      step = 0
+      step = 1
+      report.text = ""
+      report.start()
 
       // FIND OUT IF PAIR EXISTS AND THE PAIR QUOTE PRECISION:
       client.exchangeInfo().then(results => {
 
         // CHECK IF PAIR IS UNKNOWN:
         if (_.filter(results.symbols, {symbol: default_pair}).length > 0) {
-
           precision = _.filter(results.symbols, {symbol: default_pair})[0].filters[0].tickSize.indexOf("1") - 1
 
+          // GET ORDER BOOK
           client.book({ symbol: default_pair }).then(results => {
+
+            // SO WE CAN TRY TO BUY AT THE 1ST BID PRICE + %0.02:
             buy_price = parseFloat(results.bids[0].price) * 1.0002
             console.log(chalk.grey(" Initial Buy Price :: " + buy_price))
-
-            // TRY TO BUY AT THE LAST BID PRICE:
             client.order({
               symbol: default_pair,
               side: 'BUY',
@@ -172,196 +175,21 @@ ask_buy_info = () => {
 
               order_id = order_result.orderId
               var log_report = chalk.grey(moment().format('h:mm:ss').padStart(8))
-                + chalk.yellow(default_pair.padStart(10))
-                + chalk.gray(" INITIAL BUY ORDER SET AT FIRST BID PRICE: " + buy_price)
+              + chalk.yellow(default_pair.padStart(10))
+              + chalk.gray(" BUY ORDER SET AT 1ST BID PRICE " + buy_price)
               report.text = log_report
-              step = 1
 
-              // LISTEN TO KEYBOARD AND CLOSE THE TRADE IF (CRTL + C) OR Q PRESSED
+              process.stdin.resume()
+              process.stdin.setRawMode(true)
               console.log(chalk.grey(" Press [ CTRL + c ] or q to exit. "))
-              var stdin = process.stdin
-              stdin.setRawMode( true )
-              stdin.resume()
-              stdin.setEncoding( 'utf8' )
-              stdin.on( 'data', ( key ) => {
-                if ( (key === '\u0003') || (key === 'q') ) {
-                  if (order_id) {
-                    stdin.removeAllListeners('data')
-                    stdin.pause()
-                    // CANCELLING CURRENT RUNNING ORDER
-                    console.log(" --- cancelOrder ---  ")
-                    client.cancelOrder({
-                      symbol: default_pair,
-                      orderId: order_id,
-                      recvWindow: 1000000
-                    })
-                    .then( (order) => {
-                      console.log(" CURRENT ORDER CANCELED ")
-                      sell_at_market_price()
-                    })
-                    .catch((error) => {
-                      console.error(" FINAL CANCEL ERROR : " + order_id + " : " + error)
-                      sell_at_market_price()
-                    })
-                  }
-                }
-                //WRITE THE KEY TO STDOUT ALL NORMAL LIKE
-                //process.stdout.write( key )
-              })
-              /////////////////////
 
-              sell_at_market_price = () => {
-                step = 99
-                console.log(chalk.keyword('orange')(" SELLING AT MARKET PRICE NOW "))
-                client.order({
-                  symbol: default_pair,
-                  side: 'SELL',
-                  type: 'MARKET',
-                  quantity: buy_amount,
-                  recvWindow: 1000000
-                })
-                .then( order => {
-                  clean_trades()
-                  stdin.removeAllListeners('data')
-                  stdin.pause()
-                  step = 0
-                  order_id = 0
-                  buy_price  = 0.00
-                  stop_price = 0.00
-                  loss_price = 0.00
-                  sell_price = 0.00
-                  tot_cancel = 0
-                  report.succeed( chalk.magenta(" THE BOT SOLD AT MARKET PRICE #777 ") )
-                  setTimeout( () => { ask_buy_info(), 1000 } )
-                })
-                .catch( error => {
-                  clean_trades()
-                  stdin.removeAllListeners('data')
-                  stdin.pause()
-                  step = 0
-                  order_id = 0
-                  buy_price  = 0.00
-                  stop_price = 0.00
-                  loss_price = 0.00
-                  sell_price = 0.00
-                  tot_cancel = 0
-                  report.fail( " ERROR #7771 " + buy_amount + " :: " + error )
-                })
-              }
+              checkOrderStatus(1)
 
+              const curr_trade = trade_count
               const clean_trades = client.ws.trades([default_pair], trade => {
 
+                if (curr_trade !== trade_count) clean_trades()
                 report.text = add_status_to_trade_report(trade, '')
-
-                // CHECK IF INITIAL BUY ORDER HAS BEEN EXECUTED
-                if ( order_id && (step === 1) ) {
-                  step = 99
-                  var i = 1
-                  checkOrderStatus = () => {
-                    setTimeout( () => {
-                      client.getOrder({
-                        symbol: default_pair,
-                        orderId: order_id,
-                        recvWindow: 1000000
-                      })
-                      .then( (order_result) => {
-                        if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
-                          var log_report = " AMOUNT NOT ALL EXECUTED "
-                          report.text = add_status_to_trade_report(trade, log_report)
-                          if (i > buy_bid_price_trial_max) {
-                            // WE TRIED TO BUY AT THE FIRST BID PRICE BUT IT WAS NOT EXECUTED IN TIME:
-                            client.cancelOrder({
-                              symbol: default_pair,
-                              orderId: order_result.orderId,
-                              recvWindow: 1000000
-                            })
-                            .then( (order) => {
-                              buy_amount = (parseFloat(order_result.origQty) - parseFloat(order_result.executedQty)).toFixed(15)
-                              log_report = " BUY ORDER AT MARKET PRICE "
-                              report.text = add_status_to_trade_report(trade, log_report)
-                              // SETUP MARKET BUY ORDER
-                              client.order({
-                                symbol: default_pair,
-                                side: 'BUY',
-                                type: 'MARKET',
-                                quantity: buy_amount,
-                                recvWindow: 1000000
-                              })
-                              .then((order) => {
-                                order_id = order.orderId
-                                var log_report = " BUY MARKET ORDER SET "
-                                report.text = add_status_to_trade_report(trade, log_report)
-                                buy_amount = parseFloat(order_result.origQty).toFixed(19)
-                                step = 2
-                              })
-                              .catch((error) => {
-                                console.error(" BUY MARKET Error... " + error)
-                                step = 2
-                              })
-                            })
-                            .catch((error) => {
-                              console.error(" Order Cancelling Error... " + error)
-                              process.exit()
-                            })
-                          }
-                          else {
-                            i++
-                            checkOrderStatus()
-                          }
-                        }
-                        else {
-                          var log_report = " ALL AMOUNT EXECUTED "
-                          report.text = add_status_to_trade_report(trade, log_report)
-                          step = 2
-                        }
-                      })
-                      .catch((error) => {
-                        //console.error("ERROR 12 " + error)
-                      })
-                    }, 1000)
-                  }
-                  checkOrderStatus()
-                }
-
-                // SETTING INITIAL STOP LOSS (1)
-                if ( order_id && (step === 2) ) {
-                  step = 99
-                  // FIND OUT OUR BUY PRICE
-                  client.myTrades({ symbol: default_pair, recvWindow: 1000000, limit: 1 }).then( mytrade => {
-
-                    buy_price = parseFloat(mytrade[0].price)
-                    console.log(chalk.gray(" BUY PRICE :: " + buy_price))
-
-                    switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
-                    stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
-                    loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
-                    sell_price = (buy_price + (buy_price * 0.010 * profit_pourcent)).toFixed(precision)
-
-                    //var log_report = " SETTING UP STOP LOSS NOW (1) "
-                    //report.text = add_status_to_trade_report(trade, log_report)
-
-                    client.order({
-                      symbol: default_pair,
-                      side: 'SELL',
-                      type: 'STOP_LOSS_LIMIT',
-                      stopPrice: stop_price,
-                      quantity: buy_amount,
-                      price: loss_price,
-                      recvWindow: 1000000
-                    })
-                    .then((order) => {
-                      order_id = order.orderId
-                      var log_report = " STOP LOSS READY (1) "
-                      report.text = add_status_to_trade_report(trade, log_report)
-                      step = 3
-                    })
-                    .catch((error) => {
-                      console.error(" ERRROR #1233 :: " + buy_amount + " : " + error)
-                      sell_at_market_price()
-                    })
-
-                  })
-                }
 
                 // SWITCH PRICE REACHED SETTING UP SELL FOR PROFIT ORDER
                 if ( order_id && (step === 3) && (trade.price > switch_price) ) {
@@ -389,68 +217,20 @@ ask_buy_info = () => {
                       report.text = add_status_to_trade_report(trade, log_report)
                     })
                     .catch((error) => {
-                      var log_report = chalk.magenta(" WE LOST THIS ONE 5 ")
-                      report.text = add_status_to_trade_report(trade, log_report)
-                      //console.error(error)
-                      client.getOrder({
-                        symbol: default_pair,
-                        orderId: order_id,
-                        recvWindow: 1000000
-                      })
-                      .then( (order_result) => {
-                        step = 0
-                        clean_trades()
-                        stdin.removeAllListeners('data')
-                        stdin.pause()
-                        order_id = 0
-                        buy_price  = 0.00
-                        stop_price = 0.00
-                        loss_price = 0.00
-                        sell_price = 0.00
-                        tot_cancel = 0
-                        report.succeed()
-                        setTimeout( () => { ask_buy_info(), 1000 } )
-                      })
-                      .catch((error) => {
-                        console.error(" ERROR 10 " + error)
-                      })
+                      var log_report = chalk.magenta(" ERROR #555 ")
+                      console.error(log_report + error)
                     })
                   })
                   .catch((error) => {
-                    //console.log("  --- error 2 ---")
-                    //console.error(error)
-                    var log_report = chalk.magenta(" STOP LOSS EXECUTED #456 ")
-                    report.text = add_status_to_trade_report(trade, log_report)
-                    client.getOrder({
-                      symbol: default_pair,
-                      orderId: order_id,
-                      recvWindow: 1000000
-                    })
-                    .then( (order_result) => {
-                      //console.log(JSON.stringify(order_result))
-                      step = 0
-                      clean_trades()
-                      stdin.removeAllListeners('data')
-                      stdin.pause()
-                      order_id = 0
-                      buy_price  = 0.00
-                      stop_price = 0.00
-                      loss_price = 0.00
-                      sell_price = 0.00
-                      tot_cancel = 0
-                      report.succeed()
-                      setTimeout( () => { ask_buy_info(), 1000 } )
-                    })
-                    .catch((error) => {
-                      console.error(" ERROR 11 " + error)
-                    })
+                    console.log(" ERROR #547 ")
+                    console.error(error)
                   })
                 }
 
                 // PRICE BELLOW BUY PRICE SETTING UP STOP LOSS ORDER
                 if ( order_id && (step === 5) && (trade.price < buy_price) ) {
                   step = 99
-                  var log_report = " CANCEL PROFIT AND SETTING UP STOP LOSS NOW (2) !!! "
+                  var log_report = " CANCEL PROFIT / SETTING UP STOP LOSS NOW / "
                   report.text = add_status_to_trade_report(trade, log_report)
                   tot_cancel = tot_cancel + 1
                   client.cancelOrder({
@@ -459,49 +239,15 @@ ask_buy_info = () => {
                     recvWindow: 1000000
                   })
                   .then(() => {
-                    client.order({
-                      symbol: default_pair,
-                      side: 'SELL',
-                      type: 'STOP_LOSS_LIMIT',
-                      stopPrice: stop_price,
-                      quantity: buy_amount,
-                      price: loss_price,
-                      recvWindow: 1000000
-                    })
-                    .then((order) => {
-                      order_id = order.orderId
-                      var log_report = " STOP LOSS READY (2) "
-                      report.text = add_status_to_trade_report(trade, log_report)
-                      step = 3
-                    })
-                    .catch((error) => {
-                      //console.error(error)
-                      // Error: Order would trigger immediately
-                      // Sell the bag at market price
-                      var log_report = " SELLING AT MARKET PRICE (2)"
-                      report.text = add_status_to_trade_report(trade, log_report)
-                      sell_at_market_price()
-                    })
+                    set_stop_loss_order()
                   })
                   .catch((error) => {
-                    // need to fix: ERROR 4 Error: UNKNOWN_ORDER
-                    //console.error("ERROR 4 " + error)
-                    //step = 5
-                    step = 0
-                    clean_trades()
-                    stdin.removeAllListeners('data')
-                    stdin.pause()
                     pnl = 100.00*(buy_price - trade.price)/buy_price
-                    var log_report = chalk.magenta(" LOSS PRICE REACHED THE BOT SOLD EVERYTHING #454 ")
-                    report.text = add_status_to_trade_report(trade, log_report)
-                    order_id = 0
-                    buy_price  = 0.00
-                    stop_price = 0.00
-                    loss_price = 0.00
-                    sell_price = 0.00
-                    tot_cancel = 0
-                    report.fail()
-                    setTimeout( () => { ask_buy_info(), 1000 } )
+                    var log_report = chalk.magenta(" LOSS PRICE REACHED THE BOT SHOULD HAVE SOLD EVERYTHING #454 ")
+                    //report.text = add_status_to_trade_report(trade, log_report)
+                    report.fail(add_status_to_trade_report(trade, log_report))
+                    reset_trade()
+                    setTimeout( () => { ask_trade_info(), 1000 } )
                   })
                 }
 
@@ -515,26 +261,18 @@ ask_buy_info = () => {
                   })
                   .then( (order_result) => {
                     if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
-                      var log_report = " PROFIT PRICE REACHED BUT NOT ALL EXECUTED -> " + order_result.executedQty + " / " + order_result.origQty
+                      var log_report = chalk.grey(" PROFIT PRICE REACHED BUT NOT ALL EXECUTED " + order_result.executedQty + " / " + order_result.origQty)
                       report.text = add_status_to_trade_report(trade, log_report)
                       step = 5
                     }
                     else {
-                      step = 0
                       clean_trades()
-                      stdin.removeAllListeners('data')
-                      stdin.pause()
                       pnl = 100.00*(trade.price - buy_price)/buy_price
-                      var log_report = chalk.greenBright(" 🐬 !!! WE HAVE A WINNER !!! 🐬 THE BOT SOLD EVERYTHING AT PROFIT")
+                      var log_report = chalk.greenBright(" 🐬 !!! WE HAVE A WINNER !!! 🐬 ")
                       report.text = add_status_to_trade_report(trade, log_report)
-                      order_id = 0
-                      buy_price  = 0.00
-                      stop_price = 0.00
-                      loss_price = 0.00
-                      sell_price = 0.00
-                      tot_cancel = 0
+                      reset_trade()
                       report.succeed()
-                      setTimeout( () => { ask_buy_info(), 1000 } )
+                      setTimeout( () => { ask_trade_info(), 1000 } )
                     }
                   })
                   .catch((error) => {
@@ -552,27 +290,18 @@ ask_buy_info = () => {
                   })
                   .then( (order_result) => {
                     if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
-                      var log_report = " STOP PRICE REACHED BUT NOT ALL EXECUTED -> " + order_result.executedQty + " / " + order_result.origQty
+                      var log_report = chalk.grey(" STOP PRICE REACHED BUT NOT ALL EXECUTED " + order_result.executedQty + " / " + order_result.origQty)
                       report.text = add_status_to_trade_report(trade, log_report)
                       step = 5
                     }
                     else {
-                      pnl = 100.00*(buy_price - trade.price)/buy_price
-                      // might be a bug here, got this message but bag not sold, need a fix ?!/
-                      var log_report = chalk.magenta(" LOSS PRICE REACHED THE BOT SOLD EVERYTHING SUCCESSFULLY #746")
-                      report.text = add_status_to_trade_report(trade, log_report)
-                      step = 0
                       clean_trades()
-                      stdin.removeAllListeners('data')
-                      stdin.pause()
-                      order_id = 0
-                      buy_price  = 0.00
-                      stop_price = 0.00
-                      loss_price = 0.00
-                      sell_price = 0.00
-                      tot_cancel = 0
+                      pnl = 100.00*(buy_price - trade.price)/buy_price
+                      var log_report = chalk.magenta(" LOSS PRICE REACHED THE BOT SOLD EVERYTHING #746")
+                      report.text = add_status_to_trade_report(trade, log_report)
+                      reset_trade()
                       report.succeed()
-                      setTimeout( () => { ask_buy_info(), 1400 } )
+                      setTimeout( () => { ask_trade_info(), 1400 } )
                     }
                   })
                   .catch((error) => {
@@ -581,34 +310,166 @@ ask_buy_info = () => {
                 }
 
               })
-
-
             })
             .catch((error) => {
               console.error(error)
               report.fail(chalk.yellow("There was an issue processing the Market Buy Order. Verify the minimum amount was reached and you have the right amount on your account."))
-              ask_buy_info()
+              ask_trade_info()
             })
-
           })
         }
         // PAIR UNKNOWN:
         else {
           report.fail(chalk.yellow(default_pair + "  => This pair is unknown to Binance. Please try another one."))
-          ask_buy_info()
+          ask_trade_info()
         }
-
       })
-
     }
     // NO ORDER CONFIRMATION, ASK FOR INPUTS AGAIN:
     else {
-      ask_buy_info()
+      ask_trade_info()
     }
-
   })
 }
 
+sell_at_market_price = () => {
+  process.stdin.pause()
+  console.log(chalk.keyword('orange')(" SELLING AT MARKET PRICE NOW "))
+  client.order({
+    symbol: default_pair,
+    side: 'SELL',
+    type: 'MARKET',
+    quantity: buy_amount,
+    recvWindow: 1000000
+  })
+  .then( order => {
+    reset_trade()
+    report.succeed( chalk.magenta(" THE BOT SOLD AT MARKET PRICE #777 ") )
+    setTimeout( () => { ask_trade_info(), 1000 } )
+  })
+  .catch( error => {
+    report.fail( " ERROR #7771 " + buy_amount + " :: " + error )
+  })
+}
+
+checkOrderStatus = (i) => {
+  setTimeout( () => {
+    client.getOrder({
+      symbol: default_pair,
+      orderId: order_id,
+      recvWindow: 1000000
+    })
+    .then( (order_result) => {
+      if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
+        var log_report = chalk.grey(" AMOUNT NOT ALL EXECUTED " + i)
+        console.log(log_report)
+        //report.text = add_status_to_trade_report(trade, log_report)
+        if (i > buy_bid_price_trial_max) {
+          // WE TRIED TO BUY AT THE FIRST BID PRICE BUT IT WAS NOT EXECUTED IN TIME:
+          client.cancelOrder({
+            symbol: default_pair,
+            orderId: order_result.orderId,
+            recvWindow: 1000000
+          })
+          .then( (order) => {
+            //buy_amount = (parseFloat(order_result.origQty) - parseFloat(order_result.executedQty)).toFixed(15)
+            var log_report = chalk.grey(" BUY ORDER AT MARKET PRICE ")
+            console.log(log_report)
+            //report.text = add_status_to_trade_report(trade, log_report)
+            // SETUP MARKET BUY ORDER
+            client.order({
+              symbol: default_pair,
+              side: 'BUY',
+              type: 'MARKET',
+              quantity: buy_amount,
+              recvWindow: 1000000
+            })
+            .then((order) => {
+              order_id = order.orderId
+              console.log(chalk.grey(" BUY MARKET ORDER SET "))
+              client.myTrades({ symbol: default_pair, recvWindow: 1000000, limit: 1 }).then( mytrade => {
+                buy_price = parseFloat(mytrade[0].price)
+                console.log(chalk.gray(" BUY PRICE :: ") + chalk.cyan(buy_price))
+                switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
+                stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
+                loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
+                sell_price = (buy_price + (buy_price * 0.010 * profit_pourcent)).toFixed(precision)
+                set_stop_loss_order()
+              })
+            })
+            .catch((error) => {
+              console.error(" BUY MARKET Error... " + error)
+              client.myTrades({ symbol: default_pair, recvWindow: 1000000, limit: 1 }).then( mytrade => {
+                buy_price = parseFloat(mytrade[0].price)
+                console.log(chalk.gray(" BUY PRICE :: ") + chalk.cyan(buy_price))
+                switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
+                stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
+                loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
+                sell_price = (buy_price + (buy_price * 0.010 * profit_pourcent)).toFixed(precision)
+                set_stop_loss_order()
+              })
+            })
+          })
+          .catch((error) => {
+            console.error(" Order Cancelling Error... " + error)
+            client.myTrades({ symbol: default_pair, recvWindow: 1000000, limit: 1 }).then( mytrade => {
+              buy_price = parseFloat(mytrade[0].price)
+              console.log(chalk.gray(" BUY PRICE :: ") + chalk.cyan(buy_price))
+              switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
+              stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
+              loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
+              sell_price = (buy_price + (buy_price * 0.010 * profit_pourcent)).toFixed(precision)
+              set_stop_loss_order()
+            })
+          })
+        }
+        else {
+          checkOrderStatus(i+1)
+        }
+      }
+      else {
+        var log_report = " ALL AMOUNT EXECUTED "
+        //report.text = add_status_to_trade_report(trade, log_report)
+        console.log(log_report)
+        //buy_amount = parseFloat(order_result.origQty)
+        client.myTrades({ symbol: default_pair, recvWindow: 1000000, limit: 1 }).then( mytrade => {
+          buy_price = parseFloat(mytrade[0].price)
+          switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
+          stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
+          loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
+          sell_price = (buy_price + (buy_price * 0.010 * profit_pourcent)).toFixed(precision)
+          console.log(chalk.gray(" BUY PRICE :: ") + chalk.cyan(buy_price))
+          set_stop_loss_order()
+        })
+      }
+    })
+    .catch((error) => {
+      console.error("ERROR 12 " + error)
+    })
+  }, 1000)
+}
+
+set_stop_loss_order = () => {
+  client.order({
+    symbol: default_pair,
+    side: 'SELL',
+    type: 'STOP_LOSS_LIMIT',
+    stopPrice: stop_price,
+    quantity: buy_amount,
+    price: loss_price,
+    recvWindow: 1000000
+  })
+  .then((order) => {
+    order_id = order.orderId
+    var log_report = chalk.grey(" STOP LOSS READY (" + tot_cancel + ") ") + chalk.cyan(stop_price)
+    console.log(log_report)
+    step = 3
+  })
+  .catch((error) => {
+    console.error(" ERRROR #1233 :: " + buy_amount + " : " + error)
+    sell_at_market_price()
+  })
+}
 
 add_status_to_trade_report = (trade, status) => {
   var pnl = 100.00*(parseFloat(trade.price)-buy_price)/buy_price
@@ -620,8 +481,46 @@ add_status_to_trade_report = (trade, status) => {
     + chalk.white(status)
 }
 
+reset_trade = () => {
+  step = 0
+  trade_count = trade_count + 1
+  order_id = 0
+  buy_price  = 0.00
+  stop_price = 0.00
+  loss_price = 0.00
+  sell_price = 0.00
+  tot_cancel = 0
+}
+
+////////////////////////////////////////////////////////////////////
+// LISTEN TO KEYBOARD AND STOP THE TRADE IF (CRTL + C) OR Q PRESSED
+process.stdin.setEncoding( 'utf8' )
+process.stdin.on('keypress', ( key ) => {
+  if ( (key === '\u0003') || (key === 'q') ) {
+    if (order_id) {
+      trade_count = trade_count + 1
+      process.stdin.pause()
+      console.log(" --- STOPPING THE TRADE ---  ")
+      client.cancelOrder({
+        symbol: default_pair,
+        orderId: order_id,
+        recvWindow: 1000000
+      })
+      .then( (order) => {
+        console.log(" CURRENT ORDER CANCELED ")
+        sell_at_market_price()
+      })
+      .catch((error) => {
+        console.error(" FINAL CANCEL ERROR : " + order_id + " : " + error)
+        sell_at_market_price()
+      })
+    }
+  }
+})
+////////////////////////////////////////////////////////////////////
+
 const run = async () => {
-  ask_buy_info()
+  ask_trade_info()
 }
 
 run()
