@@ -342,12 +342,34 @@ sell_at_market_price = () => {
   .then( order => {
     reset_trade()
     report.succeed( chalk.magenta(" THE BOT SOLD AT MARKET PRICE #777 ") )
-    setTimeout( () => { ask_trade_info(), 1500 } )
+    setTimeout( () => { ask_trade_info(), 2500 } )
   })
   .catch( error => {
-    report.fail( " ERROR #7771 " + buy_amount + " :: " + error )
-    reset_trade()
-    setTimeout( () => { ask_trade_info(), 1500 } )
+    console.error( " ERROR #7771 " + buy_amount + " :: " + error )
+    client.getOrder({
+      symbol: default_pair,
+      orderId: order_id,
+      recvWindow: 1000000
+    })
+    .then( (order_result) => {
+      client.order({
+        symbol: default_pair,
+        side: 'SELL',
+        type: 'MARKET',
+        quantity: parseFloat(order_result.executedQty).toFixed(20),
+        recvWindow: 1000000
+      })
+      .then( order => {
+        reset_trade()
+        report.succeed( chalk.magenta(" THE BOT SOLD AT MARKET PRICE #878 ") )
+        setTimeout( () => { ask_trade_info(), 2500 } )
+      })
+      .catch( error => {
+        report.fail( " ERROR #7871 " + parseFloat(order_result.executedQty).toFixed(19) + " :: " + error )
+        reset_trade()
+        setTimeout( () => { ask_trade_info(), 2500 } )
+      })
+    })
   })
 }
 
