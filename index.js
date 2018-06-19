@@ -317,7 +317,8 @@ ask_trade_info = () => {
               })
             })
             .catch((error) => {
-              //console.error(error)
+              //console.error(JSON.stringify(error))
+              console.log(error);
               report.fail(chalk.yellow("Verify the minimum amount was reached (min. value should be more than 10 USD) and you have this amount available on your balance."))
               ask_trade_info()
             })
@@ -569,12 +570,12 @@ process.stdin.on('keypress', ( key ) => {
           }
         })
         .catch((error) => {
-          console.error(" GET FINAL ORDER ERROR : " + order_id + " : " + error)
+          console.error(" GET FINAL ORDER ERROR : " + error)
           sell_at_market_price()
         })
       })
       .catch((error) => {
-        console.error(" FINAL CANCEL ERROR : " + order_id + " : " + error)
+        console.error(" FINAL CANCEL ERROR : " + error)
         sell_at_market_price()
       })
     }
