@@ -182,7 +182,7 @@ ask_trade_info = () => {
               */
               process.stdin.resume()
               process.stdin.setRawMode(true)
-              console.log(chalk.grey(" Press [ CTRL + c ] or q to exit. "))
+              console.log(chalk.grey(" ⚠️  Press [ CTRL + c ] or q to stop the trade and sell everything at market price. ⚠️"))
 
               checkOrderStatus(1)
 
