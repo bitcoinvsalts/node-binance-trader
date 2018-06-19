@@ -303,7 +303,14 @@ ask_trade_info = () => {
                     }
                   })
                   .catch((error) => {
-                    console.error(" ERROR 9 " + error)
+                    console.error(" API ERROR #9 " + error)
+                    clean_trades()
+                    pnl = 100.00*(buy_price - trade.price)/buy_price
+                    var log_report = chalk.magenta(" TRADE STOPPED ")
+                    report.text = add_status_to_trade_report(trade, log_report)
+                    reset_trade()
+                    report.fail()
+                    setTimeout( () => { ask_trade_info(), 1400 } )
                   })
                 }
 
