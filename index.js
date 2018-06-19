@@ -435,7 +435,16 @@ checkOrderStatus = (i) => {
       }
     })
     .catch((error) => {
-      //console.error("ERROR 12 " + error)
+      console.error("API ERROR #12 " + error)
+      client.myTrades({ symbol: default_pair, recvWindow: 1000000, limit: 1 }).then( mytrade => {
+        buy_price = parseFloat(mytrade[0].price)
+        console.log(chalk.gray(" FINAL BUY PRICE ::: ") + chalk.cyan(buy_price))
+        switch_price = (buy_price + (buy_price * 0.005 * profit_pourcent)).toFixed(precision)
+        stop_price = (buy_price - (buy_price * 0.010 * loss_pourcent)).toFixed(precision)
+        loss_price = (stop_price - (stop_price * 0.040)).toFixed(precision)
+        sell_price = (buy_price + (buy_price * 0.010 * profit_pourcent)).toFixed(precision)
+        set_stop_loss_order()
+      })
     })
   }, 1000)
 }
@@ -480,7 +489,7 @@ set_stop_loss_order = () => {
   })
   .catch((error) => {
     console.error(" ERRROR #1233 " + error )
-    //sell_at_market_price()
+    sell_at_market_price()
   })
 }
 
