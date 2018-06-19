@@ -6,7 +6,7 @@
  * ============================================================
  * Copyright 2018, Herve Fulchiron - herve76@gmail.com
  * Released under the MIT License
- * v0.0.3 - 🐬 delphines 🐬
+ * v0.0.4 - 🐬 delphines 🐬
  * 6/16/2018
  * ============================================================ */
 

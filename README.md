@@ -26,15 +26,16 @@ Here is the article that comes with this repository: <a href="https://jsapp.me/h
 
 Today NBT is a trading bot console app that will:
 
-* ask for a trading pair
-* ask for a loss percentage
-* ask for a profit percentage
+* ask for a trading pair.
+* ask for a loss percentage.
+* ask for a profit percentage.
 * automatically auto trade the whole operation as fast and efficient as possible.
+* stop the trade and sell everything at the current market price if the user pressed q or CTRL+c.
 
 # Requirements
 
 * [Git](https://git-scm.com/download/)
-* [Node.Js](http://nodejs.org)
+* [Node.JS v8 min.](http://nodejs.org)
 
 
 # Installation 📦
