@@ -319,7 +319,7 @@ ask_trade_info = () => {
             .catch((error) => {
               //console.error(JSON.stringify(error))
               console.log(error);
-              report.fail(chalk.yellow("Verify the minimum amount was reached (min. value should be more than 10 USD) and you have this amount available on your balance."))
+              report.fail(chalk.yellow("Verify the minimum amount was reached (min. value should be more than 15 USD) and you have this amount available on your balance."))
               ask_trade_info()
             })
           })
@@ -461,7 +461,8 @@ check_market_buy_order = () => {
   client.getOrder({ symbol: default_pair, orderId: order_id, recvWindow: 1000000 })
   .then( order => {
     if (order.status === "FILLED") {
-      console.log(chalk.gray(" MARKET BUY ORDER FILLED "))
+      buy_amount = parseFloat(order.executedQty)
+      console.log(chalk.gray(" MARKET BUY ORDER FILLED QTY: " + buy_amount))
       client.myTrades({ symbol: default_pair, recvWindow: 1000000, limit: 1 }).then( mytrade => {
         buy_price = parseFloat(mytrade[0].price)
         console.log(chalk.gray(" FINAL BUY PRICE ::: ") + chalk.cyan(buy_price))
