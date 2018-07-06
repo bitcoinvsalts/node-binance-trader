@@ -336,7 +336,7 @@ start_trading = () => {
     })
   }
   else if (buying_method === "Bid") {
-    buy_amount = (( ((budget / (bid_price * 1.0002)) / parseFloat(stepSize)) | 0 ) * parseFloat(stepSize)).toFixed(precision)
+    buy_amount = (( ((parseFloat(budget) / (parseFloat(bid_price) * 1.0002)) / parseFloat(stepSize)) | 0 ) * parseFloat(stepSize)).toFixed(precision)
     buy_price = parseFloat(bid_price) * 1.0002
     console.log(chalk.green("BUYING " + buy_amount + " OF " + currency_to_buy + " AT JUST ABOVE 1ST BID PRICE " + buy_price.toFixed(tickSize)))
     client.order({
@@ -356,7 +356,7 @@ start_trading = () => {
     })
   }
   else if (buying_method === "Market") {
-    buy_amount = (( ((budget / ask_price) / parseFloat(stepSize)) | 0 ) * parseFloat(stepSize)).toFixed(precision)
+    buy_amount = (( ((parseFloat(budget) / (parseFloat(ask_price) * 1.0002)) / parseFloat(stepSize)) | 0 ) * parseFloat(stepSize)).toFixed(precision)
     buy_price = parseFloat(ask_price)
     console.log(chalk.green("BUYING " + buy_amount + " OF " + currency_to_buy + " AT MARKET PRICE" ))
     client.order({
