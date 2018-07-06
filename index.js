@@ -47,7 +47,7 @@ let tot_cancel = 0
 let pair = ""
 let buying_method = ""
 let selling_method = ""
-let trade_status = ""
+let init_buy_filled = false
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -327,7 +327,6 @@ start_trading = () => {
     })
     .then( (order_result) => {
       order_id = order_result.orderId
-      trade_status = " :: NOT YET EXECUTED :: "
       auto_trade()
     })
     .catch((error) => {
@@ -348,7 +347,6 @@ start_trading = () => {
     })
     .then( (order_result) => {
       order_id = order_result.orderId
-      trade_status = " :: NOT YET EXECUTED :: "
       auto_trade()
     })
     .catch((error) => {
@@ -359,7 +357,7 @@ start_trading = () => {
   }
   else if (buying_method === "Market") {
     buy_amount = (( ((budget / ask_price) / parseFloat(stepSize)) | 0 ) * parseFloat(stepSize)).toFixed(precision)
-    buy_price = parseFloat(ask_price * 2.00)
+    buy_price = parseFloat(ask_price)
     console.log(chalk.green("BUYING " + buy_amount + " OF " + currency_to_buy + " AT MARKET PRICE" ))
     client.order({
       symbol: pair,
@@ -369,7 +367,6 @@ start_trading = () => {
     })
     .then( (order_result) => {
       order_id = order_result.orderId
-      trade_status = " :: NOT YET EXECUTED :: "
       auto_trade()
     })
     .catch((error) => {
@@ -387,17 +384,17 @@ auto_trade = () => {
   // LISTEN TO KEYBOARD PRSEED KEYS
   process.stdin.resume()
   process.stdin.setRawMode(true)
-  console.log(chalk.grey(" ⚠️  Press [ CTRL + c ] or q to cancel the trade and sell everything at market price. ⚠️"))
+  console.log(chalk.grey(" ⚠️  Press [ CTRL + c ] or q to cancel the trade and sell everything at market price. ⚠️ "))
+  console.log(" ")
   const curr_trade = trade_count
   const clean_trades = client.ws.trades([pair], trade => {
 
     if (curr_trade !== trade_count) clean_trades()
-    report.text = add_status_to_trade_report(trade, trade_status)
+    report.text = add_status_to_trade_report(trade, "")
 
     // CHECK IF INITIAL BUY ORDER IS EXECUTED
-    if ( order_id && (step === 1) && (trade.price <= buy_price) ) {
+    if ( order_id && (step === 1) ) {
       step = 99
-      trade_status = ""
       checkBuyOrderStatus()
     }
 
@@ -562,15 +559,15 @@ sell_at_market_price = () => {
 }
 
 checkBuyOrderStatus = () => {
-  trade_status = ""
   client.getOrder({ symbol: pair, orderId: order_id,  })
   .then( order => {
     if (order.status === "FILLED") {
+      init_buy_filled = true
       buy_amount = parseFloat(order.executedQty)
-      console.log(chalk.white(" :: INITAL BUY ORDER FULLY EXECUTED ::"))
+      console.log(chalk.white(" INITAL BUY ORDER FULLY EXECUTED "))
       client.myTrades({ symbol: pair, limit: 1 }).then( mytrade => {
         buy_price = parseFloat(mytrade[0].price)
-        console.log(chalk.gray(" FINAL BUY PRICE :: ") + chalk.cyan(buy_price))
+        console.log(chalk.gray(" FINAL BUY PRICE @ ") + chalk.cyan(buy_price))
         if (selling_method==="Trailing") {
           stop_price = (buy_price - (buy_price * trailing_pourcent / 100.00)).toFixed(tickSize)
           loss_price = (stop_price - (stop_price * 0.040)).toFixed(tickSize)
@@ -587,7 +584,8 @@ checkBuyOrderStatus = () => {
       })
     }
     else {
-      trade_status = chalk.gray(" :: BUY ORDER NOT YET FULLY EXECUTED :: ")
+      console.log(chalk.gray(" BUY ORDER NOT YET FULLY EXECUTED "))
+      init_buy_filled = false
       step = 1
     }
   })
@@ -619,12 +617,17 @@ set_stop_loss_order = () => {
 }
 
 add_status_to_trade_report = (trade, status) => {
-  var pnl = 100.00*(parseFloat(trade.price)-parseFloat(buy_price))/parseFloat(buy_price)
+  if (init_buy_filled) {
+    var pnl = 100.00*(parseFloat(trade.price)-parseFloat(buy_price))/parseFloat(buy_price)
+  }
+  else {
+    var pnl = 0.00
+  }
   return chalk.grey(moment().format('h:mm:ss').padStart(8))
     + chalk.yellow(trade.symbol.padStart(10))
-    + (!trade.maker?chalk.green((chalk.grey("qty:")+numeral(trade.quantity).format("0.000")).padStart(24)):chalk.red((chalk.grey("qty:")+numeral(trade.quantity).format("0.000")).padStart(24)))
+    + (!trade.maker?chalk.green((chalk.grey("qty:")+numeral(trade.quantity).format("0.000")).padStart(30)):chalk.red((chalk.grey("qty:")+numeral(trade.quantity).format("0.000")).padStart(30)))
     + chalk.grey(" @ ") + chalk.cyan(trade.price).padEnd(24)
-    + ((pnl >= 0)?chalk.green((chalk.grey("pnl:")+numeral(pnl).format("0.000")).padStart(16)):chalk.red((chalk.grey("pnl:")+numeral(pnl).format("0.000")).padStart(16)))
+    + ((pnl >= 0)?chalk.green((chalk.grey("pnl:")+numeral(pnl).format("0.000")).padStart(20)):chalk.red((chalk.grey("pnl:")+numeral(pnl).format("0.000")).padStart(20)))
     + chalk.white(status)
 }
 
@@ -637,6 +640,7 @@ reset_trade = () => {
   loss_price = 0.00
   sell_price = 0.00
   tot_cancel = 0
+  init_buy_filled = false
 }
 
 ////////////////////////////////////////////////////////////////////
