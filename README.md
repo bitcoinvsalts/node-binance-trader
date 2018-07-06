@@ -9,7 +9,7 @@
   <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="Discord_button.png" /></a>
 </p>
 
-<h4 align="center">An efficient cryptocurrency trading bot framework for Binance using Node.js</h4>
+<h4 align="center">An efficient cryptocurrency command line trading bot framework for Binance using Node.js</h4>
 
 <p align="center">
   <img alt="Discord chat" src="Screenshot.png" />
@@ -26,17 +26,19 @@ Here is the article that comes with this repository: <a href="https://jsapp.me/h
 
 Today NBT is a trading bot console app that will:
 
-* ask for a trading pair.
-* ask for a loss percentage.
-* ask for a profit percentage.
+* ask which currency you want to use to buy the wanted currency
+* ask for the budget for the trade
+* ask which currency you want to buy
+* ask for buying method: market price, bid price or fixed buy price
+* ask for selling method: trailing stop loss or maximum loss n profit percentages.
 * automatically auto trade the whole operation as fast and efficient as possible.
 * stop the trade and sell everything at the current market price if the user pressed q or CTRL+c.
 
 # Requirements
 
+* A Binance Account with some BNB available to pay for the trading fees.
 * [Git](https://git-scm.com/download/)
 * [Node.JS v8 min.](http://nodejs.org)
-
 
 # Installation 📦
 
@@ -70,8 +72,9 @@ nbt
 # Roadmap 🚧
 
 * ✔️  Stop Loss + Take Profit Trading Execution
-* Add more complex and dynamic trading strategies + live testing + live trading
-* Add an AI/ML "brain" to the bot
+* ✔️  Trailing Stop Loss
+* Add TA signals
+* Add AI/ML "brain" signals and risk mgmt
 
 
 # Disclaimer 📖

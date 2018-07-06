@@ -1,7 +1,7 @@
 {
   "name": "node-binance-trader",
-  "version": "0.0.4",
-  "description": "An efficient cryptocurrency trading bot for Binance using Node.js",
+  "version": "0.0.5",
+  "description": "An efficient cryptocurrency command line trading bot for Binance using Node.js",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
