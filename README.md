@@ -16,9 +16,9 @@
   Screenshot of my trading setup: the Binance Desktop app plus NBT on a floating iTerm2 console.
 </p>
 
-<p align="center">
-If you’re feeling generous, you can buy me a pack of beer by sending me a quick <a href="https://www.paypal.me/jsappme">PayPal</a> payment.
-</p>
+<h4 align="center">
+🙏 If you’re feeling generous, you can buy me a pack of 🍻  by sending me a quick <a href="https://www.paypal.me/jsappme">PayPal</a> payment. 🙏
+</h4>
 
 # Time to upgrade your crypto trading 🤔
 
