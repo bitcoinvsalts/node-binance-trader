@@ -20,6 +20,7 @@ const figlet      = require('figlet')
 const Configstore = require('configstore')
 const binance     = require('binance-api-node').default
 const inquirer    = require("inquirer")
+const setTitle    = require('node-bash-title')
 
 //////////////////////////////////////////////////////////////////////////////////
 // https://www.binance.com/restapipub.html
@@ -123,6 +124,7 @@ ask_pair_budget = () => {
     client.exchangeInfo().then(results => {
       // CHECK IF PAIR IS UNKNOWN:
       if (_.filter(results.symbols, {symbol: pair}).length > 0) {
+        setTitle('🍻  ' + pair)
         tickSize = _.filter(results.symbols, {symbol: pair})[0].filters[0].tickSize.indexOf("1") - 1
         stepSize = _.filter(results.symbols, {symbol: pair})[0].filters[1].stepSize
         // GET ORDER BOOK
@@ -318,12 +320,13 @@ start_trading = () => {
   if (buying_method === "Fixed") {
     buy_amount = (( ((budget / fixed_buy_price) / parseFloat(stepSize)) | 0 ) * parseFloat(stepSize)).toFixed(precision)
     buy_price = parseFloat(fixed_buy_price)
-    console.log(chalk.green("BUYING " + buy_amount + " OF " + currency_to_buy + " AT FIXED PRICE " + buy_price.toFixed(tickSize)))
+    console.log(chalk.grey("BUYING " + buy_amount + " OF " + currency_to_buy + " AT FIXED PRICE ") + chalk.green(buy_price.toFixed(tickSize)))
     client.order({
       symbol: pair,
       side: 'BUY',
       quantity: buy_amount,
       price: buy_price.toFixed(tickSize),
+      recvWindow: 1000000,
     })
     .then( (order_result) => {
       order_id = order_result.orderId
@@ -338,12 +341,13 @@ start_trading = () => {
   else if (buying_method === "Bid") {
     buy_amount = (( ((parseFloat(budget) / (parseFloat(bid_price) * 1.0002)) / parseFloat(stepSize)) | 0 ) * parseFloat(stepSize)).toFixed(precision)
     buy_price = parseFloat(bid_price) * 1.0002
-    console.log(chalk.green("BUYING " + buy_amount + " OF " + currency_to_buy + " AT JUST ABOVE 1ST BID PRICE " + buy_price.toFixed(tickSize)))
+    console.log(chalk.grey("BUYING " + buy_amount + " OF " + currency_to_buy + " AT JUST ABOVE 1ST BID PRICE ") + chalk.green(buy_price.toFixed(tickSize)))
     client.order({
       symbol: pair,
       side: 'BUY',
       quantity: buy_amount,
       price: buy_price.toFixed(tickSize),
+      recvWindow: 1000000,
     })
     .then( (order_result) => {
       order_id = order_result.orderId
@@ -364,6 +368,7 @@ start_trading = () => {
       side: 'BUY',
       quantity: buy_amount,
       type: 'MARKET',
+      recvWindow: 1000000,
     })
     .then( (order_result) => {
       order_id = order_result.orderId
@@ -405,6 +410,7 @@ auto_trade = () => {
       client.cancelOrder({
         symbol: pair,
         orderId: order_id,
+        recvWindow: 1000000,
       })
       .then(() => {
         client.order({
@@ -412,6 +418,7 @@ auto_trade = () => {
           side: 'SELL',
           quantity: buy_amount,
           price: sell_price,
+          recvWindow: 1000000,
         })
         .then((order) => {
           step = 5
@@ -438,6 +445,7 @@ auto_trade = () => {
       client.cancelOrder({
         symbol: pair,
         orderId: order_id,
+        recvWindow: 1000000,
       })
       .then(() => {
         stop_price = (parseFloat(stop_price) + (parseFloat(stop_price) * trailing_pourcent / 100.00)).toFixed(tickSize)
@@ -461,6 +469,7 @@ auto_trade = () => {
       client.cancelOrder({
         symbol: pair,
         orderId: order_id,
+        recvWindow: 1000000,
       })
       .then(() => {
         set_stop_loss_order()
@@ -480,6 +489,7 @@ auto_trade = () => {
       client.getOrder({
         symbol: pair,
         orderId: order_id,
+        recvWindow: 1000000,
       })
       .then( (order_result) => {
         if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
@@ -508,6 +518,7 @@ auto_trade = () => {
       client.getOrder({
         symbol: pair,
         orderId: order_id,
+        recvWindow: 1000000,
       })
       .then( (order_result) => {
         if ( parseFloat(order_result.executedQty) < parseFloat(order_result.origQty) ) {
@@ -546,6 +557,7 @@ sell_at_market_price = () => {
     side: 'SELL',
     type: 'MARKET',
     quantity: buy_amount,
+    recvWindow: 1000000,
   })
   .then( order => {
     reset_trade()
@@ -559,7 +571,7 @@ sell_at_market_price = () => {
 }
 
 checkBuyOrderStatus = () => {
-  client.getOrder({ symbol: pair, orderId: order_id,  })
+  client.getOrder({ symbol: pair, orderId: order_id, recvWindow: 1000000, })
   .then( order => {
     if (order.status === "FILLED") {
       init_buy_filled = true
@@ -599,7 +611,7 @@ set_stop_loss_order = () => {
     stopPrice: stop_price,
     quantity: buy_amount,
     price: loss_price,
-
+    recvWindow: 1000000,
   })
   .then((order) => {
     order_id = order.orderId
@@ -654,14 +666,14 @@ process.stdin.on('keypress', ( key ) => {
       client.cancelOrder({
         symbol: pair,
         orderId: order_id,
-
+        recvWindow: 1000000,
       })
       .then( (order) => {
         console.log(" CURRENT ORDER CANCELED ")
         client.getOrder({
           symbol: pair,
           orderId: order_id,
-
+          recvWindow: 1000000,
         })
         .then( (order_result) => {
           if (order_result.status === "FILLED") {
@@ -684,6 +696,7 @@ process.stdin.on('keypress', ( key ) => {
               sell_at_market_price()
             }
             else {
+              sell_at_market_price()
               reset_trade()
               report.succeed( chalk.magenta(" THE BOT STOPPED THE TRADE #3365 ") )
               setTimeout( () => { ask_pair_budget(), 2500 } )

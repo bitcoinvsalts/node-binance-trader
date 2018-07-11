@@ -9,11 +9,15 @@
   <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="Discord_button.png" /></a>
 </p>
 
-<h4 align="center">An efficient cryptocurrency command line trading bot framework for Binance using Node.js</h4>
+<h4 align="center">An efficient cryptocurrency trading bot command line framework for Binance using Node.js</h4>
 
 <p align="center">
   <img alt="Discord chat" src="Screenshot.png" />
   Screenshot of my trading setup: the Binance Desktop app plus NBT on a floating iTerm2 console.
+</p>
+
+<p align="center">
+If you’re feeling generous, you can buy me a pack of beer by sending me a quick <a href="https://www.paypal.me/jsappme">PayPal</a> payment.
 </p>
 
 # Time to upgrade your crypto trading 🤔

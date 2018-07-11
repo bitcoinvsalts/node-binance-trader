@@ -30,6 +30,7 @@
     "inquirer": "^5.2.0",
     "lodash": "^4.17.10",
     "moment": "^2.22.1",
+    "node-bash-title": "^0.0.2",
     "numeral": "^2.0.6",
     "ora": "^2.1.0",
     "path": "^0.12.7",
