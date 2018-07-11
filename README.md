@@ -17,7 +17,8 @@
 </p>
 
 <h4 align="center">
-🙏  If you’re feeling generous or simply want show your support, you can buy me a 🍻  by sending me a quick <a href="https://www.paypal.me/jsappme">PayPal</a> payment. 🙏
+🙏  If you’re feeling generous or simply want show your support, <br>
+ you can buy me a 🍻  by sending me a quick <a href="https://www.paypal.me/jsappme">PayPal</a> payment. 🙏
 </h4>
 
 # Time to upgrade your crypto trading 🤔
