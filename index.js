@@ -577,7 +577,7 @@ checkBuyOrderStatus = () => {
       init_buy_filled = true
       buy_amount = parseFloat(order.executedQty)
       console.log(chalk.white(" INITAL BUY ORDER FULLY EXECUTED "))
-      client.myTrades({ symbol: pair, limit: 1 }).then( mytrade => {
+      client.myTrades({ symbol: pair, limit: 1, recvWindow: 1000000 }).then( mytrade => {
         buy_price = parseFloat(mytrade[0].price)
         console.log(chalk.gray(" FINAL BUY PRICE @ ") + chalk.cyan(buy_price))
         if (selling_method==="Trailing") {
