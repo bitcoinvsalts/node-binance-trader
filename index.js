@@ -6,8 +6,8 @@
  * ============================================================
  * Copyright 2018, Herve Fulchiron - herve76@gmail.com
  * Released under the MIT License
- * v0.0.6 - 🐬 delphines 🐬
- * 7/6/2018
+ * v0.0.7 - 🐬 delphines 🐬
+ * 10/14/2018
  * ============================================================ */
 
 const chalk       = require('chalk')
@@ -26,8 +26,8 @@ const setTitle    = require('node-bash-title')
 // https://www.binance.com/restapipub.html
 // REPLACE xxx with your own API key key and secret.
 //
-const APIKEY = 'xxx'
-const APISECRET = 'xxx'
+const APIKEY = 'XXXX'
+const APISECRET = 'XXXX'
 //////////////////////////////////////////////////////////////////////////////////
 
 let pnl = 0
@@ -124,7 +124,7 @@ ask_pair_budget = () => {
     client.exchangeInfo().then(results => {
       // CHECK IF PAIR IS UNKNOWN:
       if (_.filter(results.symbols, {symbol: pair}).length > 0) {
-        setTitle('🍻  ' + pair)
+        setTitle('🐬 ' + pair + ' 🐬 ')
         tickSize = _.filter(results.symbols, {symbol: pair})[0].filters[0].tickSize.indexOf("1") - 1
         stepSize = _.filter(results.symbols, {symbol: pair})[0].filters[1].stepSize
         // GET ORDER BOOK
