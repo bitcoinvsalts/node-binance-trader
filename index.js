@@ -49,6 +49,7 @@ let pair = ""
 let buying_method = ""
 let selling_method = ""
 let init_buy_filled = false
+let activePair = [];
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -125,8 +126,17 @@ ask_pair_budget = () => {
       // CHECK IF PAIR IS UNKNOWN:
       if (_.filter(results.symbols, {symbol: pair}).length > 0) {
         setTitle('🐬 ' + pair + ' 🐬 ')
-        tickSize = _.filter(results.symbols, {symbol: pair})[0].filters[0].tickSize.indexOf("1") - 1
-        stepSize = _.filter(results.symbols, {symbol: pair})[0].filters[1].stepSize
+
+        activePair = _.filter(results.symbols, {symbol: pair})[0];
+        let filters = _.get(activePair, 'filters', null);
+        if (activePair && filters) {
+          let tempTickSize = _.get(_.filter(filters, (item => item.tickSize)), '[0].tickSize', null);
+          if (!tempTickSize) throw new Error('Failed to get tickSize');
+          tickSize = tempTickSize.indexOf("1") - 1;
+          stepSize =  _.get(_.filter(filters, (item => item.stepSize)), '[0].stepSize', null);
+          if (!stepSize) throw new Error('Failed to get stepSize');
+        }
+
         // GET ORDER BOOK
         client.book({ symbol: pair }).then(results => {
           // SO WE CAN TRY TO BUY AT THE 1ST BID PRICE + %0.02:
@@ -144,6 +154,9 @@ ask_pair_budget = () => {
         ask_pair_budget()
       }
     })
+    .catch(err => {
+      console.log(chalk.red(err))
+    });
   })
 }
 
