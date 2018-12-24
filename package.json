@@ -4,7 +4,8 @@
     "description": "An efficient cryptocurrency command line trading bot for Binance using Node.js",
     "main": "index.js",
     "scripts": {
-        "start": "nodemon --exec babel-node index.js",
+        "start": "babel-node index.js",
+        "monitor": "nodemon --exec babel-node index.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [
