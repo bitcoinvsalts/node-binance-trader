@@ -1,0 +1,16 @@
+{
+    "presets": [
+        [
+            "@babel/preset-env",
+            {
+                "shippedProposals": true,
+                "debug": false,
+                "useBuiltIns": "usage",
+                "targets": {
+                    "browsers": ["last 2 versions"]
+                }
+            }
+        ]
+    ],
+    "plugins": ["@babel/plugin-proposal-class-properties"]
+}
