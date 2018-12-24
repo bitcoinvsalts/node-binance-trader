@@ -34,7 +34,6 @@ const cancel_order = async (pair, orderId, cb) => {
             orderId: orderId,
             recvWindow: 1000000,
         });
-        if (cb) return cb();
     } catch (err) {
         if (cb) return cb(err);
         const log_report = chalk.magenta(" ERROR #547 ");
@@ -168,6 +167,7 @@ export const start_trading = async (pair) => {
         opts.orderData = order_result;
 
         BNBT.setDataForPair(pair, opts);
+
         auto_trade(pair);
     } catch (err) {
         report.fail(err);
@@ -179,7 +179,9 @@ const auto_trade = (pair) => {
     const opts = {
         step: 1,
     };
+
     BNBT.setDataForPair(pair, opts);
+
     const {
         trade_count
     } = BNBT.getDataForPair(pair);
@@ -202,7 +204,6 @@ const auto_trade = (pair) => {
         if (curr_trade !== pairData.trade_count) clean_trades();
         report.text = add_status_to_trade_report(pair, trade, '');
 
-
         // CHECK IF INITIAL BUY ORDER IS EXECUTED
         if (pairData.order_id && (step === 1)) {
             opts.step = 99;
@@ -214,11 +215,13 @@ const auto_trade = (pair) => {
             pairData.order_id &&
             (step === 3) &&
             (trade.price > pairData.switch_price)) {
+
             opts.step = 99
             BNBT.setDataForPair(pair, opts);
             messages.printColor('grey', 'CANCEL STOP LOSS AND GO FOR PROFIT');
 
             await cancel_order(pair, pairData.order_id);
+
             const order = await do_order({
                 symbol: pair,
                 side: 'SELL',
@@ -244,7 +247,6 @@ const auto_trade = (pair) => {
             BNBT.setDataForPair(pair, opts);
 
             messages.printColor('grey', 'CANCEL CURRENT STOP LOSS');
-
             await cancel_order(pair, pairData.order_id);
 
             opts.stop_price = (parseFloat(pairData.stop_price) + (parseFloat(pairData.stop_price) * pairData.trailing_pourcent / 100.00))
@@ -274,7 +276,8 @@ const auto_trade = (pair) => {
 
             opts.step = 99;
             messages.printColor('grey','CANCEL PROFIT SETTING UP STOP LOSS');
-            opts.tot_cancel = pairData.tot_cancel + 1
+            opts.tot_cancel = pairData.tot_cancel + 1;
+
             BNBT.setDataForPair(pair, opts);
 
             await cancel_order(pair, pairData.order_id, () => {
@@ -285,6 +288,7 @@ const auto_trade = (pair) => {
                 reset_trade(pair);
                 setTimeout(() => rerun(), 1000);
             });
+
             await set_stop_loss_order(pair);
         }
 
@@ -293,6 +297,7 @@ const auto_trade = (pair) => {
             pairData.order_id &&
             (step === 5) &&
             (trade.price >= pairData.sell_price)) {
+
             opts.step = 99;
             BNBT.setDataForPair(pair, opts);
 
@@ -320,9 +325,7 @@ const auto_trade = (pair) => {
                 reset_trade(pair);
                 report.succeed();
 
-                setTimeout(() => {
-                    rerun(), 1000
-                });
+                setTimeout(() => rerun(), 1000);
             }
         }
 
@@ -427,6 +430,7 @@ const checkBuyOrderStatus = async (pair) => {
                 limit: 1,
                 recvWindow: 1000000
             });
+
             opts.buy_price = parseFloat(mytrade[0].price);
             console.log(chalk.gray(" FINAL BUY PRICE @ ") + chalk.cyan(opts.buy_price));
 
@@ -453,6 +457,7 @@ const checkBuyOrderStatus = async (pair) => {
                     .toFixed(tickSize);
 
                 BNBT.setDataForPair(pair, opts);
+
                 await set_stop_loss_order(pair);
 
                 opts.witch_price = (opts.buy_price + (opts.buy_price * profit_pourcent / 200.00))
@@ -531,7 +536,7 @@ const reset_trade = (pair) => {
     const {
         trade_count
     } = BNBT.getDataForPair(pair);
-    
+
     const opts = {
         step: 0,
         trade_count: trade_count + 1,
@@ -543,5 +548,6 @@ const reset_trade = (pair) => {
         tot_cancel: 0,
         init_buy_filled: false
     };
+    
     BNBT.setDataForPair(pair, opts);
 };
