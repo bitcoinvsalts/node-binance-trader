@@ -11,4 +11,4 @@
 
 import setTitle from 'node-bash-title';
 
-export const setTerminalTitle = (title) => setTitle('🐬 ' + title + ' 🐬 ');
+export const set_terminal_title = (title) => setTitle('🐬 ' + title + ' 🐬 ');

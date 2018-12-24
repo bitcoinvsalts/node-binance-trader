@@ -63,7 +63,7 @@ const get_order = async (order, cb) => {
     }
 }
 
-export const checkIfPairIsKnown = async (pair) => {
+export const check_if_pair_is_known = async (pair) => {
     // FIND OUT IF PAIR EXISTS AND THE PAIR QUOTE INFO:
     const results = await client.exchangeInfo();
     const pairStatus = filter(results.symbols, {
@@ -93,7 +93,7 @@ export const checkIfPairIsKnown = async (pair) => {
     return pairStatus;
 };
 
-export const getPrices = async (pair) => {
+export const get_prices = async (pair) => {
     // GET ORDER BOOK
     const orderBookResults = await client.book({
         symbol: pair
@@ -457,7 +457,6 @@ const checkBuyOrderStatus = async (pair) => {
                     .toFixed(tickSize);
 
                 BNBT.setDataForPair(pair, opts);
-
                 await set_stop_loss_order(pair);
 
                 opts.witch_price = (opts.buy_price + (opts.buy_price * profit_pourcent / 200.00))
@@ -548,6 +547,6 @@ const reset_trade = (pair) => {
         tot_cancel: 0,
         init_buy_filled: false
     };
-    
+
     BNBT.setDataForPair(pair, opts);
 };

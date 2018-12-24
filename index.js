@@ -16,7 +16,7 @@ import chalk from 'chalk';
 import clear from 'clear';
 import messages from './messages';
 import {
-    setTerminalTitle
+    set_terminal_title
 } from './screen';
 
 import {
@@ -28,8 +28,8 @@ import {
 } from './questions';
 
 import {
-    checkIfPairIsKnown,
-    getPrices,
+    check_if_pair_is_known,
+    get_prices,
     start_trading
 } from './tradehelpers';
 
@@ -41,12 +41,12 @@ messages.showIntro();
 
 const stepOne = async () => {
     const pair = await ask_pair_budget();
-    const pairIsKnown = await checkIfPairIsKnown(pair);
+    const pairIsKnown = await check_if_pair_is_known(pair);
     if (pairIsKnown) {
-        setTerminalTitle(pair);
+        set_terminal_title(pair);
         const {
             bid_price
-        } = await getPrices(pair);
+        } = await get_prices(pair);
 
         // update user with message
         messages.showBidPrice(bid_price, pair);
