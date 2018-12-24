@@ -20,6 +20,7 @@ import messages from './messages';
 import {
     rerun
 } from './index';
+
 const {
     client
 } = BNBT;
@@ -204,13 +205,10 @@ const auto_trade = (pair) => {
 
         // CHECK IF INITIAL BUY ORDER IS EXECUTED
         if (pairData.order_id && (step === 1)) {
-            console.log('hit');
             opts.step = 99;
             BNBT.setDataForPair(pair, opts);
             await checkBuyOrderStatus(pair);
         }
-
-        console.log('tp:', trade.price, 'sp:', pairData.switch_price, 'step: ', step, 'sm: ', pairData.selling_method, 'profittargetReach: ', trade.price > pairData.switch_price);
         // SWITCH PRICE REACHED SETTING UP SELL FOR PROFIT ORDER
         if ((pairData.selling_method === "Profit") &&
             pairData.order_id &&
@@ -273,6 +271,7 @@ const auto_trade = (pair) => {
             pairData.order_id &&
             (step === 5) &&
             (trade.price < pairData.buy_price)) {
+
             opts.step = 99;
             messages.printColor('grey','CANCEL PROFIT SETTING UP STOP LOSS');
             opts.tot_cancel = pairData.tot_cancel + 1
@@ -379,7 +378,9 @@ const sell_at_market_price = async (pair) => {
     const {
         buy_amount
     } = BNBT.getDataForPair(pair);
+
     console.log(chalk.keyword('orange')(" SELLING AT MARKET PRICE "));
+
     try {
         await client.order({
             symbol: pair,
@@ -514,7 +515,9 @@ const add_status_to_trade_report = (pair, trade, status) => {
         init_buy_filled,
         buy_price
     } = BNBT.getDataForPair(pair);
+
     const opts = {};
+
     if (init_buy_filled) {
         opts.pnl = 100.00 * (parseFloat(trade.price) - parseFloat(buy_price)) / parseFloat(buy_price);
     } else {
@@ -528,6 +531,7 @@ const reset_trade = (pair) => {
     const {
         trade_count
     } = BNBT.getDataForPair(pair);
+    
     const opts = {
         step: 0,
         trade_count: trade_count + 1,
