@@ -159,7 +159,7 @@ export const ask_pair_budget = async () => {
             budget: parseFloat(answers.budget)
         };
 
-        await BNBT.newPair(tradeRequestData.pair, tradeRequestData);
+        BNBT.newPair(tradeRequestData.pair, tradeRequestData);
         return tradeRequestData.pair;
     } catch (err) {
         console.log(chalk.red(err))
@@ -178,7 +178,7 @@ export const ask_buy_sell_options = async (pair) => {
             selling_method: sell_option
         };
 
-        await BNBT.setDataForPair(pair, methodsOfTrade);
+        BNBT.setDataForPair(pair, methodsOfTrade);
 
         if (buy_option !== 'Fixed') {
             if (sell_option === 'Trailing') {
@@ -210,7 +210,7 @@ export const ask_trailing_percent = async (pair) => {
                 trailing_pourcent: answers.trailing_pourcent
             };
 
-            await BNBT.setDataForPair(pair, trailingOpts);
+            BNBT.setDataForPair(pair, trailingOpts);
             return {
                 action: 'start_trading'
             };
@@ -234,7 +234,7 @@ export const ask_loss_profit_percents = async (pair) => {
                 loss_pourcent: parseFloat(answers.loss_pourcent)
             };
 
-            await BNBT.setDataForPair(pair, opts);
+            BNBT.setDataForPair(pair, opts);
             return {
                 action: 'start_trading'
             };
@@ -259,14 +259,14 @@ export const ask_fixed_buy_price = async (pair, sell_option) => {
 
         if (sell_option.includes("Trailing")) {
             opts.selling_method = 'Trailing';
-            await BNBT.setDataForPair(pair, opts);
+            BNBT.setDataForPair(pair, opts);
 
             return {
                 action: 'ask_trailing_percent'
             };
         } else {
             opts.selling_method = 'Profit';
-            await BNBT.setDataForPair(pair, opts);
+            BNBT.setDataForPair(pair, opts);
 
             return {
                 action: 'ask_loss_profit_percents'
