@@ -120,7 +120,7 @@ const run = async () => {
         await start_trading(pair);
 
     } catch (err) {
-       // rerun(err);
+       rerun(err);
     }
 };
 
