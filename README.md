@@ -1,11 +1,6 @@
-<h1 align="center">
-  <br>
-  <img src="nbt_demo.gif">
-</h1>
-
 <h4 align="center">Better-Node-Binance-Trader</h4>
 
-<h3 align="center">Use at own risk!</h3>
+<h4 align="center">Use at own risk!</h4>
 
 <h4 align="center">An efficient cryptocurrency trading bot command line framework for Binance using Node.js</h4>
 
