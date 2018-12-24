@@ -39,7 +39,7 @@ process.stdin.setEncoding('utf8');
 // update user with intro screen
 messages.showIntro();
 
-const stepOne = async () => {
+const questionOne = async () => {
     const pair = await ask_pair_budget();
     const pairIsKnown = await check_if_pair_is_known(pair);
     if (pairIsKnown) {
@@ -57,7 +57,7 @@ const stepOne = async () => {
     }
 }
 
-const stepTwo = async (pair) => {
+const questionTwo = async (pair) => {
     const {
         action,
         data = {}
@@ -68,7 +68,7 @@ const stepTwo = async (pair) => {
     };
 }
 
-const stepThree = async (pair, previousActionResult, previousActionData) => {
+const questionThree = async (pair, previousActionResult, previousActionData) => {
     const stepTwoActions = {
         ask_trailing_percent: () => ask_trailing_percent(pair),
         ask_loss_profit_percents: () => ask_loss_profit_percents(pair),
@@ -99,22 +99,22 @@ export const rerun = (err) => {
 
 const run = async () => {
     try {
-        // initial step get user input for trade (question 1).
-        const pair = await stepOne();
+        // Question One, initial steps get user input for trade.
+        const pair = await questionOne();
 
-        // secondary step get user input for sell / buy options (question 2).
+        // Question Two, get user input for sell / buy options.
         const {
-            action: step2ActionResult,
-            data: step2ActionResultData
-        } = await stepTwo(pair);
+            action: questionTwoAction,
+            data: questionTwoData
+        } = await questionTwo(pair);
 
-        // third step extra trade info (question 3).
+        // Question Three, extra trade info
         const {
-            action: step3ActionResult
-        } = await stepThree(pair, step2ActionResult, step2ActionResultData);
+            action: questionThreeAction
+        } = await questionThree(pair, questionTwoAction, questionTwoData);
 
         // conditional force restart
-        if (step3ActionResult === 'run') return rerun();
+        if (questionThreeAction === 'run') return rerun();
 
         // start trade.
         await start_trading(pair);
