@@ -1,4 +1,4 @@
-<h4 align="center">Better-Node-Binance-Trader</h4>
+# Better-Node-Binace-Trader
 
 <h4 align="center">Use at own risk!</h4>
 
@@ -66,12 +66,10 @@ yarn (must have yarn installed, if you prefer npm use npm)
 yarn start
 ```
 
-# Roadmap 🚧
+# Code Roadmap 🚧
 
--   ✔️ Stop Loss + Take Profit Trading Execution
--   ✔️ Trailing Stop Loss
--   Add TA signals
--   Add AI/ML "brain" signals and risk mgmt
+-   Cleanup code - 40% done
+-   Refactor code to make more stable - 25 % done
 
 # Disclaimer 📖
 
