@@ -225,14 +225,16 @@ const auto_trade = (pair) => {
             messages.printColor('grey', 'CANCEL STOP LOSS AND GO FOR PROFIT');
     
             await cancel_order(pair, pairData.order_id);
-    
-            const order = await do_order({
+
+            const order_data = {
                 symbol: pair,
                 side: 'SELL',
                 quantity: pairData.buy_amount,
                 price: pairData.sell_price,
                 recvWindow: 1000000,
-            });
+            };
+    
+            const order = await do_order(order_data);
     
             opts.step = 5;
             opts.order_id = order.orderId;
@@ -496,7 +498,7 @@ const set_stop_loss_order = async (pair) => {
 
     try {
         const opts = {};
-        const orderData = {
+        const order_data = {
             symbol: pair,
             side: 'SELL',
             type: 'STOP_LOSS_LIMIT',
@@ -505,7 +507,7 @@ const set_stop_loss_order = async (pair) => {
             price: loss_price,
             recvWindow: 1000000
         };
-        const order = await do_order(orderData);
+        const order = await do_order(order_data);
         opts.order_id = order.orderId;
 
         const log_report = chalk.grey(" STOP LOSS READY (" + tot_cancel + ") @ ") + chalk.cyan(stop_price);
