@@ -1,6 +1,7 @@
 # Node build artifacts
 node_modules
 npm-debug.log
+config.js
 
 # Local development
 *.env
