@@ -10,10 +10,22 @@
  * ============================================================ */
 
 import binance from 'binance-api-node';
+
+import mockExchange from './mocks/mock_exchange.js'
 import storage from 'node-persist';
 import { config } from './config';
 
 let pairs = {};
+
+const args = process.argv
+    .slice(2)
+    .map(arg => arg.split('='))
+    .reduce((args, [value, key]) => {
+        if (value === 'mock') {
+            args[value] = key;
+        }
+        return args;
+    }, {});
 
 class BNBT {
     constructor(){
@@ -25,7 +37,7 @@ class BNBT {
         return BNBT.instance;
     }
 
-    client = binance({ 
+    client = args.mock ? mockExchange : binance({ 
         apiKey: config.APIKEY,
         apiSecret: config.APISECRET,
         useServerTime: true 

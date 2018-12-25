@@ -37,7 +37,7 @@ const cancel_order = async (pair, orderId, cb) => {
     } catch (err) {
         if (cb) return cb(err);
         const log_report = chalk.magenta(" ERROR #547 ");
-        console.error(log_report + err);
+        throw new Error(`${log_report}  ${err}`);
     }
 };
 
@@ -48,7 +48,7 @@ const do_order = async (order, cb) => {
     } catch (err) {
         if (cb) return cb(err);
         const log_report = chalk.magenta(" ERROR #555 ");
-        console.error(log_report + err);
+        throw new Error(`${log_report}  ${err}`);
     }
 }
 
@@ -59,7 +59,7 @@ const get_order = async (order, cb) => {
     } catch (err) {
         if (cb) return cb(err);
         const log_report = chalk.magenta(" ERROR #8 ");
-        console.error(log_report + err);
+        throw new Error(`${log_report}  ${err}`);
     }
 }
 
@@ -98,6 +98,7 @@ export const get_prices = async (pair) => {
     const orderBookResults = await client.book({
         symbol: pair
     });
+
     const prices = {
         bid_price: parseFloat(orderBookResults.bids[0].price),
         ask_price: parseFloat(orderBookResults.asks[0].price)
@@ -146,7 +147,7 @@ export const start_trading = async (pair) => {
     }
 
     try {
-        let orderData = {
+        let order_data = {
             symbol: pair,
             side: 'BUY',
             quantity: opts.buy_amount,
@@ -155,12 +156,12 @@ export const start_trading = async (pair) => {
         };
 
         if (buying_method === 'Market') {
-            delete orderData.price
-            orderData.type = 'MARKET';
+            delete order_data.price
+            order_data.type = 'MARKET';
         }
 
-        messages.showOrderInfo(pair, orderData);
-        const order_result = await client.order(orderData);
+        messages.showOrderInfo(pair, order_data);
+        const order_result = await do_order(order_data);
 
         opts.order_id = order_result.orderId;
         opts.trade_active = !!order_result.orderId
@@ -174,6 +175,9 @@ export const start_trading = async (pair) => {
         rerun(err);
     }
 };
+
+// const user_input_driven_trade_actions = async (pair, opts, curr_trade, clean_trades, trade) => {
+// };
 
 const auto_trade = (pair) => {
     const opts = {
@@ -200,10 +204,10 @@ const auto_trade = (pair) => {
             step,
             ...pairData
         } = BNBT.getDataForPair(pair);
-
+    
         if (curr_trade !== pairData.trade_count) clean_trades();
         report.text = add_status_to_trade_report(pair, trade, '');
-
+    
         // CHECK IF INITIAL BUY ORDER IS EXECUTED
         if (pairData.order_id && (step === 1)) {
             opts.step = 99;
@@ -215,13 +219,13 @@ const auto_trade = (pair) => {
             pairData.order_id &&
             (step === 3) &&
             (trade.price > pairData.switch_price)) {
-
+    
             opts.step = 99
             BNBT.setDataForPair(pair, opts);
             messages.printColor('grey', 'CANCEL STOP LOSS AND GO FOR PROFIT');
-
+    
             await cancel_order(pair, pairData.order_id);
-
+    
             const order = await do_order({
                 symbol: pair,
                 side: 'SELL',
@@ -229,57 +233,57 @@ const auto_trade = (pair) => {
                 price: pairData.sell_price,
                 recvWindow: 1000000,
             });
-
+    
             opts.step = 5;
             opts.order_id = order.orderId;
             BNBT.setDataForPair(pair, opts);
             messages.print(" SELL ORDER READY ");
         }
-
+    
         // INCREASE THE TRAILING STOP LOSS PRICE
         if ((pairData.selling_method === "Trailing") &&
             pairData.order_id &&
             (step === 3) &&
             (trade.price > pairData.switch_price)) {
-
+    
             opts.step = 99;
             opts.tot_cancel = pairData.tot_cancel + 1;
             BNBT.setDataForPair(pair, opts);
-
+    
             messages.printColor('grey', 'CANCEL CURRENT STOP LOSS');
             await cancel_order(pair, pairData.order_id);
-
+    
             opts.stop_price = (parseFloat(pairData.stop_price) + (parseFloat(pairData.stop_price) * pairData.trailing_pourcent / 100.00))
                 .toFixed(pairData.tickSize);
             messages.printColor('green',`NEW Stop price set @: ${opts.stop_price}`);
-
+    
             opts.loss_price = (parseFloat(opts.stop_price) - (parseFloat(opts.stop_price) * 0.040))
                 .toFixed(pairData.tickSize);
             messages.printColor('green',`NEW Loss price set @: ${opts.loss_price}`);
-
+    
             BNBT.setDataForPair(pair, opts);
             await set_stop_loss_order(pair);
-
+    
             opts.switch_price = (parseFloat(pairData.switch_price) + (parseFloat(pairData.switch_price) * pairData.trailing_pourcent / 100.00))
                 .toFixed(pairData.tickSize)
             messages.printColor('green',`New Switch price set @ ${opts.switch_price}`);
             opts.step = 3;
-
+    
             BNBT.setDataForPair(pair, opts);
         }
-
+    
         // PRICE BELLOW BUY PRICE SETTING UP STOP LOSS ORDER
         if ((pairData.selling_method === 'Profit') &&
             pairData.order_id &&
             (step === 5) &&
             (trade.price < pairData.buy_price)) {
-
+    
             opts.step = 99;
             messages.printColor('grey','CANCEL PROFIT SETTING UP STOP LOSS');
             opts.tot_cancel = pairData.tot_cancel + 1;
-
+    
             BNBT.setDataForPair(pair, opts);
-
+    
             await cancel_order(pair, pairData.order_id, () => {
                 opts.pnl = 100.00 * (pairData.buy_price - trade.price) / pairData.buy_price;
                 BNBT.setDataForPair(pair, opts);
@@ -288,52 +292,52 @@ const auto_trade = (pair) => {
                 reset_trade(pair);
                 setTimeout(() => rerun(), 1000);
             });
-
+    
             await set_stop_loss_order(pair);
         }
-
+    
         // CURRENT PRICE REACHED SELL PRICE
         if ((pairData.selling_method === "Profit") &&
             pairData.order_id &&
             (step === 5) &&
             (trade.price >= pairData.sell_price)) {
-
+    
             opts.step = 99;
             BNBT.setDataForPair(pair, opts);
-
+    
             const order_result = await get_order({
                 symbol: pair,
                 orderId: pairData.order_id,
                 recvWindow: 1000000,
             });
-
+    
             if (parseFloat(order_result.executedQty) < parseFloat(order_result.origQty)) {
                 const log_report = chalk.grey(" PROFIT PRICE REACHED BUT NOT ALL EXECUTED " + order_result.executedQty);
                 report.text = add_status_to_trade_report(pair, trade, log_report);
                 opts.step = 5;
-
+    
                 BNBT.setDataForPair(pair, opts);
             } else {
                 clean_trades();
-
+    
                 ops.pnl = 100.00 * (trade.price - pairData.buy_price) / pairData.buy_price;
                 BNBT.setDataForPair(pair, opts);
-
+    
                 const log_report = chalk.greenBright(" 🐬 !!! WE HAVE A WINNER !!! 🐬 ");
                 report.text = add_status_to_trade_report(pair, trade, log_report);
-
+    
                 reset_trade(pair);
                 report.succeed();
-
+    
                 setTimeout(() => rerun(), 1000);
             }
         }
-
+    
         // CURRENT PRICE REACHED STOP PRICE
         if (pairData.order_id && (step === 3) && (trade.price <= pairData.stop_price)) {
             opts.step = 99;
             BNBT.setDataForPair(pair, opts);
-
+    
             const order_result = await get_order({
                 symbol: pair,
                 orderId: pairData.order_id,
@@ -341,40 +345,40 @@ const auto_trade = (pair) => {
             }, (err) => {
                 console.error(" API ERROR #9 " + err);
                 clean_trades();
-
+    
                 opts.pnl = 100.00 * (pairData.buy_price - trade.price) / pairData.buy_price;
                 BNBT.setDataForPair(pair, opts);
-
+    
                 const log_report = chalk.magenta("TRADE STOPPED");
                 report.text = add_status_to_trade_report(pair, trade, log_report);
-
+    
                 reset_trade(pair);
                 report.fail();
-
+    
                 setTimeout(() => rerun(), 1400);
             });
-
+    
             if (parseFloat(order_result.executedQty) < parseFloat(order_result.origQty)) {
                 const log_report = chalk.grey(" STOP PRICE REACHED BUT NOT ALL EXECUTED " + order_result.executedQty);
                 report.text = add_status_to_trade_report(pair, trade, log_report);
                 opts.step = 5;
-
+    
                 BNBT.setDataForPair(pair, opts);
             } else {
                 clean_trades();
                 opts.pnl = 100.00 * (pairData.buy_price - trade.price) / pairData.buy_price;
                 BNBT.setDataForPair(pair, opts);
-
+    
                 const log_report = chalk.magenta(" STOP LOSS ALL EXECUTED");
                 report.text = await add_status_to_trade_report(pair, trade, log_report);
-
+    
                 reset_trade(pair);
                 report.succeed();
-
+    
                 setTimeout(() => rerun(), 1400);
             }
         }
-    });
+    }, 'up');
 }
 
 const sell_at_market_price = async (pair) => {
@@ -453,16 +457,22 @@ const checkBuyOrderStatus = async (pair) => {
             } else {
                 opts.stop_price = (opts.buy_price - (opts.buy_price * loss_pourcent / 100.00))
                     .toFixed(tickSize);
+                messages.printColor('green',`Stop price set @: ${opts.stop_price}`);
+                
                 opts.loss_price = (opts.stop_price - (opts.stop_price * 0.040))
                     .toFixed(tickSize);
+                messages.printColor('green',`Loss price set @: ${opts.loss_price}`);
 
                 BNBT.setDataForPair(pair, opts);
                 await set_stop_loss_order(pair);
 
-                opts.witch_price = (opts.buy_price + (opts.buy_price * profit_pourcent / 200.00))
+                opts.switch_price = (opts.buy_price + (opts.buy_price * profit_pourcent / 200.00))
                     .toFixed(tickSize);
+                messages.printColor('green',`Switch price set @: ${opts.switch_price}`);
+
                 opts.sell_price = (opts.buy_price + (opts.buy_price * profit_pourcent / 100.00))
                     .toFixed(tickSize);
+                    messages.printColor('green',`Sell price set @: ${opts.sell_price}`);
             }
         } else {
             messages.printColor('gray', 'BUY ORDER NOT YET FULLY EXECUTED');

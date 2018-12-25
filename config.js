@@ -2,7 +2,7 @@
  * node-binance-trader
  * https://github.com/nillo/better-node-binance-trader
  * ============================================================
- * Copyright 2019, Nillo Felix - bbnillotrader@gmail.com
+ * Copyright 2019, Nillo Felix - bbnillo@gmail.com
  * Forked from node-binance-trader ( v0.0.7 - 🐬 delphines 🐬 ) by Herve Fulchiron - herve76@gmail.com
  * Released under the MIT License
  * better-node-biance-trader v0.0.1 - unicorn
@@ -15,8 +15,8 @@
 // REPLACE xxx with your own API key key and secret.
 //
 export const config = {
-    APIKEY: 'xxx',
-    APISECRET: 'xxx'
+    APIKEY: 'I0jz2Lc9oEfObCvFS9JUpgqmDlhP4kXYHmzOs7lEubx1hLDw78nA5UHX5VcBuag6',
+    APISECRET: 'LS3j91sWKqwn5IAHynRMQp87J9sDmxzdVzOJAAr1xf6XKKhphg6K7y1StVUQ0Cxd'
 };
 
 export const defaults = {
