@@ -15,8 +15,8 @@
 // REPLACE xxx with your own API key key and secret.
 //
 export const config = {
-    APIKEY: 'I0jz2Lc9oEfObCvFS9JUpgqmDlhP4kXYHmzOs7lEubx1hLDw78nA5UHX5VcBuag6',
-    APISECRET: 'LS3j91sWKqwn5IAHynRMQp87J9sDmxzdVzOJAAr1xf6XKKhphg6K7y1StVUQ0Cxd'
+    APIKEY: 'xxx',
+    APISECRET: 'xxx'
 };
 
 export const defaults = {
