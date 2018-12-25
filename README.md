@@ -1,4 +1,4 @@
-# Better-Node-Binace-Trader
+# better-node-binance-trader
 
 <h4 align="center">Use at own risk!</h4>
 
