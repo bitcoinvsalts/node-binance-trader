@@ -126,7 +126,7 @@ ask_pair_budget = () => {
       if (_.filter(results.symbols, {symbol: pair}).length > 0) {
         setTitle('🐬 ' + pair + ' 🐬 ')
         tickSize = _.filter(results.symbols, {symbol: pair})[0].filters[0].tickSize.indexOf("1") - 1
-        stepSize = _.filter(results.symbols, {symbol: pair})[0].filters[1].stepSize
+        stepSize = _.filter(results.symbols, {symbol: pair})[0].filters[2].stepSize
         // GET ORDER BOOK
         client.book({ symbol: pair }).then(results => {
           // SO WE CAN TRY TO BUY AT THE 1ST BID PRICE + %0.02:
