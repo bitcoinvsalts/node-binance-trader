@@ -15,11 +15,6 @@ app.listen(process.env.PORT || 8003, () => console.log('NBT trader running.'))
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const BINANCE_APIKEY = ''
-const BINANCE_APISECRET = ''
-
-//////////////////////////////////////////////////////////////////////////////////
-
 let trading_pairs = {}
 let prices = {}
 let api_last_call_ts = 0
@@ -27,10 +22,7 @@ let buy_prices = {}
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const binance_client = binance({
-    apiKey: BINANCE_APIKEY,
-    apiSecret: BINANCE_APISECRET,
-})
+const binance_client = binance()
 
 socket.on('connect', () => {
     console.log("Trader connected.")
