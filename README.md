@@ -17,7 +17,7 @@ NBT includes 3 main scripts:
 * a script to run the **client / trader**:
   * to follow and compute the PnL for each signals received via web socket from the server.
 
-* a script to **backtest** your signals.
+* a script to **backtest** your signals on the recorded historical data.
 
 # Requirements
 
