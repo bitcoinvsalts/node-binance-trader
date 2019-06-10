@@ -1,10 +1,6 @@
-<h4 align="center">Node-Binance-Trader</h4>
+<h1 align="center">Node Binance Trader a.k.a. NBT</h1>
 
-<p align="center">
-  <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="Discord_button.png" /></a>
-</p>
-
-<h4 align="center">An efficient cryptocurrency trading bot command line framework for Binance using Node.js</h4>
+<h4 align="center">An efficient cryptocurrency trading bot development framework for Binance using Node.js</h4>
 
 <h4 align="center">
 🙏  If you’re feeling generous or simply want show your support 🙏 <br>
