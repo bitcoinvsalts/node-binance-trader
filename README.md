@@ -11,11 +11,6 @@
 
 <h4 align="center">An efficient cryptocurrency trading bot command line framework for Binance using Node.js</h4>
 
-<p align="center">
-  <img alt="Discord chat" src="Screenshot.png" />
-  Screenshot of my trading setup: the Binance Desktop app plus NBT on a floating iTerm2 console.
-</p>
-
 <h4 align="center">
 🙏  If you’re feeling generous or simply want show your support 🙏 <br>
  you can buy me a 🍻  by sending me a quick <a href="https://www.paypal.me/jsappme">PayPal</a> payment.
