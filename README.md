@@ -1,6 +1,7 @@
 <h1 align="center">Node Binance Trader a.k.a. NBT</h1>
 
 <h6 align="center">New Version</h6>
+<h6 align="center">Currently this open source version does not auto trade for you.</h6>
 
 <h4 align="center">NBT is an open cryptocurrency trading bot development framework for the Binance exchange.</h4>
 
