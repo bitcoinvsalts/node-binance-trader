@@ -16,7 +16,7 @@
   "license": "ISC",
   "scripts": {
     "start": "node server.js",
-    "trade": "node trader.js",
+    "trader": "node trader.js",
     "bt": "node backtest.js"
   },
   "dependencies": {

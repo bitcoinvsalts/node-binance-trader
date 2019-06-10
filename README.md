@@ -1,30 +1,12 @@
 <h1 align="center">Node Binance Trader a.k.a. NBT</h1>
 
-<h4 align="center">An efficient cryptocurrency trading bot development framework for Binance using Node.js</h4>
-
-# Time to upgrade your crypto trading 🤔
-
-My name is Herve Fulchiron, I’m a passionate full stack JS engineer and a cryptocurrency enthusiast/trader. I mostly use <a href="https://www.binance.com/?ref=10177791" target="_blank">Binance</a> for my cryptocurrency trading. Like most of the people I used to trade manually via the Binance website. I was slow to execute and beating the market gets more difficult every days.  It was time to upgrade my trading execution. Console apps run on the Terminal (or Command Prompt), and they provide an easy and efficient way to execute difficult tasks like **low latency cryptocurrency trading**. The minimalism of the graphical interface give them an edge on the speed of execution vs. manual retail trading.
-
-Here is the article that comes with this repository: <a href="https://jsapp.me/how-to-build-an-efficient-trading-bot-for-binance-using-node-js-43d5fd174f8b" target="_blank">How to build an efficient trading bot for Binance using Node.js</a>
-
-# What is Node-Binance-Trader? 📡
-
-Today NBT is a trading bot console app that will:
-
-* ask which currency you want to use to buy the wanted currency
-* ask for the budget for the trade
-* ask which currency you want to buy
-* ask for buying method: market price, bid price or fixed buy price
-* ask for selling method: trailing stop loss or maximum loss n profit percentages.
-* automatically auto trade the whole operation as fast and efficient as possible.
-* stop the trade and sell everything at the current market price if the user pressed q or CTRL+c.
+<h4 align="center">NBT is an open cryptocurrency trading bot development framework for the Binance exchange.</h4>
 
 # Requirements
 
 * A Binance Account with some BNB available to pay for the trading fees.
 * [Git](https://git-scm.com/download/)
-* [Node.JS v8 min.](http://nodejs.org)
+* [Node.JS](http://nodejs.org)
 
 # Installation 📦
 
@@ -32,36 +14,24 @@ Today NBT is a trading bot console app that will:
 git clone https://github.com/jsappme/node-binance-trader
 cd node-binance-trader
 npm i
-npm i -g
 ```
-
-# Configuration 🛠️
-
-1. Signup Binance ( Referral url: https://www.binance.com/?ref=10177791 )
-2. Enable Two-factor Authentication    
-3. Go API Center, https://www.binance.com/userCenter/createApi.html
-4. Create New Key
-        [✓] Read Info [✓] Enable Trading [X] Enable Withdrawals
-5. Copy the API key and secret to index.js
 
 # Usage ⚡️
 
+To start the server that will record pair data and generate the trading signals:
 ```
-node index.js
+npm run start
 ```
-or simply:
+To start the trader client that will computer the signals received by the trader:
 
 ```
-nbt
+npm run trader
 ```
+To backtest your signals using the data recorded by the server:
 
-# Roadmap 🚧
-
-* ✔️  Stop Loss + Take Profit Trading Execution
-* ✔️  Trailing Stop Loss
-* Add TA signals
-* Add AI/ML "brain" signals and risk mgmt
-
+```
+npm run bt
+```
 
 # Disclaimer 📖
 
@@ -82,3 +52,7 @@ If this repo helped you in any way, you can always leave me a BNB tip at 0xf0c49
 # GETTING IN TOUCH 💬
 
 * **Discord**: [Invite Link](https://discord.gg/4EQrEgj)
+
+<p align="center">
+  <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="Discord_button.png" /></a>
+</p>
