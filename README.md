@@ -9,14 +9,14 @@ NBT includes 3 main scripts:
 * a script to run the **server**:
 
   * to track a selection of asset pairs and record all their binance data (candles, depths, trades) into text files
-  * if a buy signal condition is detected, the server will emit a web socket signal to:
+  * if a buy or sell signal condition is detected, the server will emit a web socket signal to:
     * the concurrent running trader client.
     * (optional) the NBT Hub a.k.a. [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to rank your signals.
 
 * a script to run the **client / trader**:
-  * to follow and compute the PnL for each received signals
+  * to follow and compute the PnL for each signals received via web socket from the server.
 
-* a script to **backtest** your signals
+* a script to **backtest** your signals.
 
 # Requirements
 
