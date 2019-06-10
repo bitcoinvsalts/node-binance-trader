@@ -67,7 +67,7 @@ socket.on('sell_signal', async (signal) => {
             moment().format().grey.padStart(30), 
             colors.red("SELL").padStart(20),
             signal.pair.white.padStart(20),
-            colors.cyan(pnl.decimalPlaces(2).toString()).padStart(35),
+            colors.cyan(pnl.minus(0.1).decimalPlaces(2).toString()).padStart(35),
             signal.signal_name.padStart(30),
         )
     }
