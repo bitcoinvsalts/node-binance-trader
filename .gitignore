@@ -8,6 +8,5 @@ npm-debug.log
 
 .DS_Store
 *.lock
-
-track.js
-test.js
+*.txt
+*.log
