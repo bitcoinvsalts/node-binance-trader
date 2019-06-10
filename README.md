@@ -1,8 +1,3 @@
-<h1 align="center">
-  <br>
-  <img src="nbt_demo.gif">
-</h1>
-
 <h4 align="center">Node-Binance-Trader</h4>
 
 <p align="center">
