@@ -32,6 +32,6 @@
     "socket.io": "^2.2.0",
     "socket.io-client": "^2.2.0",
     "sound-player": "^1.0.13",
-    "technicalindicators": "^2.0.8"
+    "talib": "^1.1.2"
   }
 }

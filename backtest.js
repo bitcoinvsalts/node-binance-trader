@@ -4,7 +4,7 @@ var colors = require('colors')
 const plotly = require('plotly')('ploty_username', 'ploty_key') // use your own info https://plot.ly/api_signup
 const _ = require('lodash')
 const moment = require('moment')
-const StochRSI = require('technicalindicators').stochasticrsi
+const talib = require('talib')
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -78,14 +78,17 @@ async function backtest(lines) {
 
         let srsi = new BigNumber(0)
         try {
-            const srsi_res = StochRSI({
-                values: prices.y,
-                rsiPeriod: 100,
-                stochasticPeriod: 100,
-                kPeriod: 1,
-                dPeriod: 1,
+            var srsi_result = talib.execute({
+                name: 'STOCHRSI',
+                startIdx:  0 ,
+                endIdx: prices.y.length -1,
+                inReal: prices.y,
+                optInTimePeriod: 100,  //RSI 14 default
+                optInFastK_Period: 100, // K 5 default
+                optInFastD_Period: 1, // D 3 default
+                optInFastD_MAType: 0 // type of Fast D default 0 
             })
-            srsi = BigNumber(srsi_res[srsi_res.length-1].k)
+            srsi = BigNumber(srsi_result.result.outFastK[srsi_result.result.outFastK.length-1])
         }
         catch (e) {
             srsi = BigNumber(0)

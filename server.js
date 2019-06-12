@@ -2,7 +2,7 @@ const express = require('express')
 const socketIO = require('socket.io')
 const io_client = require('socket.io-client')
 const path = require('path')
-const StochRSI = require('technicalindicators').stochasticrsi
+const talib = require('talib')
 const binance = require('binance-api-node').default
 const moment = require('moment')
 const BigNumber = require('bignumber.js')
@@ -33,6 +33,8 @@ console.log("sound_alert: ", sound_alert)
 console.log("insert_into_files: ", insert_into_files)
 console.log("send_signal_to_bva: ", send_signal_to_bva)
 
+/////////////////////////////////////////////////////////////////////////////////
+
 let socket_client = {}
 if (send_signal_to_bva) { 
     // create a socket client connection to send your signals to NBT Hub (http://bitcoinvsaltcoins.com)
@@ -61,9 +63,12 @@ let volumes = {}
 let trades = {}
 let makers = {}
 let interv_vols_sum = {}
-let candle_prices = {}
+let candle_opens = {}
+let candle_closes = {}
 let candle_lowes = {}
 let candle_highs = {}
+let candle_volumes = {}
+let candle_ohlcv = {}
 let srsi = {}
 let signaled_pairs = {}
 let buy_prices = {}
@@ -126,7 +131,7 @@ async function get_pairs() {
 async function trackData() {
 	for (var i = 0, len = pairs.length; i < len; i++) {
         await trackPairData(pairs[i])
-		await sleep(wait_time)
+		await sleep(wait_time)         //let's be safe with the api biance calls
 	}
 }
 
@@ -142,9 +147,12 @@ async function trackPairData(pair) {
     volumes[pair] = []
     makers[pair] = []
     trades[pair] = []
-    candle_prices[pair] = []
+    candle_opens[pair] = []
+    candle_closes[pair] = []
     candle_highs[pair] = []
     candle_lowes[pair] = []
+    candle_volumes[pair] = []
+    candle_ohlcv[pair] = []
     prev_price = new BigNumber(0)
     prev_bid = new BigNumber(0)
     prev_ask = new BigNumber(0)
@@ -153,32 +161,69 @@ async function trackPairData(pair) {
 
     const candles_15 = await binance_client.candles({ symbol: pair, interval: '15m' })
     for (var i = 0, len = candles_15.length; i < len; i++) {
-        candle_prices[pair].push(Number(candles_15[i].close))
+        candle_closes[pair].push(Number(candles_15[i].close))
         candle_lowes[pair].push(Number(candles_15[i].low))
         candle_highs[pair].push(Number(candles_15[i].high))
+        candle_volumes[pair].push(Number(candles_15[i].volume))
+        candle_volumes[pair].push(Number(candles_15[i].volume))
+        candle_ohlcv[pair].push([
+            Number(candles_15[i].closeTime),
+            Number(candles_15[i].open),
+            Number(candles_15[i].high),
+            Number(candles_15[i].low),
+            Number(candles_15[i].close),
+            Number(candles_15[i].volume),
+        ])
     }
 
     await sleep(wait_time)
 
     const candles_clean = binance_client.ws.candles(pair, '15m', async candle => {
         if (candle.isFinal) {
-            candle_prices[pair].push(Number(candle.close))
+            candle_opens[pair].push(Number(candle.open))
+            candle_closes[pair].push(Number(candle.close))
             candle_lowes[pair].push(Number(candle.low))
             candle_highs[pair].push(Number(candle.high))
+            candle_volumes[pair].push(Number(candle.volume))
+            candle_ohlcv[pair].push([
+                Number(candle.closeTime),
+                Number(candle.open),
+                Number(candle.high),
+                Number(candle.low),
+                Number(candle.close),
+                Number(candle.volume),
+            ])
         }
         else {
-            candle_prices[pair][candle_prices[pair].length-1] = Number(candle.close)
+            candle_opens[pair][candle_opens[pair].length-1] = Number(candle.open)
+            candle_closes[pair][candle_closes[pair].length-1] = Number(candle.close)            
             candle_lowes[pair][candle_lowes[pair].length-1] = Number(candle.low)
             candle_highs[pair][candle_highs[pair].length-1] = Number(candle.high)
+            candle_volumes[pair][candle_volumes[pair].length-1] = Number(candle.volume)
+            candle_ohlcv[pair].push([
+                Number(candle.closeTime),
+                Number(candle.open),
+                Number(candle.high),
+                Number(candle.low),
+                Number(candle.close),
+                Number(candle.volume),
+            ])
         }
-        const srsi_res = StochRSI({
-            values: candle_prices[pair],
-            rsiPeriod: 100,
-            stochasticPeriod: 100,
-            kPeriod: 1,
-            dPeriod: 1,
+
+        //var function_desc = talib.explain("STOCHRSI")
+        //console.dir(function_desc)
+        
+        var srsi_result = talib.execute({
+            name: 'STOCHRSI',
+            startIdx:  0 ,
+            endIdx: candle_closes[pair].length -1,
+            inReal: candle_closes[pair],
+            optInTimePeriod: 100,  //RSI 14 default
+            optInFastK_Period: 100, // K 5 default
+            optInFastD_Period: 1, // D 3 default
+            optInFastD_MAType: 0 // type of Fast D default 0 
         })
-        srsi[pair] = BigNumber(srsi_res[srsi_res.length-1].k)
+        srsi[pair] = BigNumber(srsi_result.result.outFastK[srsi_result.result.outFastK.length-1])
 
         const max_sum_asks_bn = new BigNumber(_.max(sum_asks[pair]))
         const min_sum_asks_bn = new BigNumber(_.min(sum_asks[pair]))
@@ -227,7 +272,7 @@ async function trackPairData(pair) {
         //////// SELL SIGNAL DECLARATION ///////
         curr_price = BigNumber(first_bid_price[pair])
         pnl = curr_price.minus(buy_prices[pair+signal_key]).times(100).dividedBy(buy_prices[pair+signal_key])
-        if ( candle_prices[pair][candle_prices[pair].length-1] < candle_prices[pair][candle_prices[pair].length-2]
+        if ( candle_closes[pair][candle_closes[pair].length-1] < candle_closes[pair][candle_closes[pair].length-2]
             && (pnl.isLessThan(stop_loss_pnl) || pnl.isGreaterThan(stop_profit_pnl))
             && signaled_pairs[pair+signal_key]
         ) {
@@ -301,7 +346,8 @@ async function trackPairData(pair) {
         const makers_total = new BigNumber(makers[pair].length)
         const maker_ratio = makers_count > 0 ? makers_count.dividedBy(makers_total).times(100) : new BigNumber(0)
 
-        report.text = moment().format().grey.padStart(20) +
+        if (pair === "BTCUSDT") {
+            report.text = moment().format().grey.padStart(20) +
             pair.white.padStart(20) +
             (prev_price.isEqualTo(prices[pair]) ? colors.grey(prices[pair]).padStart(30) : prev_price.isLessThan(prices[pair]) ? colors.green(prices[pair]).padStart(30) : colors.red(prices[pair]).padStart(30)) + 
             colors.white(interv_vols_sum[pair].decimalPlaces(3).toString()).padStart(30) +
@@ -311,6 +357,7 @@ async function trackPairData(pair) {
             colors.grey(last_sum_bids_bn.toFormat(2)).padStart(30) +
             colors.grey(last_sum_asks_bn.toFormat(2)).padStart(30) +
             colors.cyan(srsi[pair].decimalPlaces(2).toFormat(2)).padStart(20)
+        }
 
         if (BigNumber.isBigNumber(srsi[pair]) && prices[pair].isGreaterThan(0) && last_sum_bids_bn.isGreaterThan(0) && last_sum_asks_bn.isGreaterThan(0)) {
                 
