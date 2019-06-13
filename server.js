@@ -233,8 +233,6 @@ async function trackPairData(pair) {
         let stratname, signal_key
 
 
-
-
         //////////////////////////////// SIGNAL DECLARATION - START /////////////////////////////////
         //////////////////////////////// THIS IS WHERE YOU CODE YOUR STRATEGY ///////////////////////
         /////////////////////////////////////////////////////////////////////////////////////////////
@@ -247,8 +245,8 @@ async function trackPairData(pair) {
             && srsi[pair].isGreaterThan(69)
             && trades[pair].length >= 333
             && first_ask_price[pair].dividedBy(first_bid_price[pair]).minus(1.0).isLessThan(0.003)
-            && candle_prices[pair][candle_prices[pair].length-1] > 0.0001
-            && candle_prices[pair][candle_prices[pair].length-1] > _.mean(candle_prices[pair].slice(-3, candle_prices[pair].length-1))
+            && candle_closes[pair][candle_closes[pair].length-1] > 0.0001
+            && candle_closes[pair][candle_closes[pair].length-1] > _.mean(candle_closes[pair].slice(-3, candle_closes[pair].length-1))
             && trades[pair][trades[pair].length-1] > 99
             && _.mean(trades[pair].slice(-3, trades[pair].length-1)) > 27
             && trades[pair][trades[pair].length-1] > _.mean(trades[pair].slice(-333)) * 9
@@ -297,6 +295,7 @@ async function trackPairData(pair) {
 
         //////////////////////////////// SIGNAL DECLARATION - END /////////////////////////////////
         ///////////////////////////////////////////////////////////////////////////////////////////
+
 
     })
 
