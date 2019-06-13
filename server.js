@@ -18,7 +18,7 @@ const INDEX = path.join(__dirname, 'index.html')
 //////////////////////////////////////////////////////////////////////////////////
 
 const sound_alert = false              // if true a sound alert will be played for each signals
-const insert_into_files = true        // to save pair data to txt files in the data sub-folder 
+const insert_into_files = false        // to save pair data to txt files in the data sub-folder 
 const send_signal_to_bva = false       // to monitor your strategies and send your signals to NBT Hub a.k.a http://bitcoinvsaltcoins.com
 const bva_ws_key = ""                 // if send_signal_to_bva true, please enter your ws key that you will find after signing up at http://bitcoinvsaltcoins.com
 
@@ -26,7 +26,7 @@ const tracked_max = 200             // max of pairs to be tracked (useful for te
 const wait_time = 800               // to time out binance api calls (a lower number than 800 can result in api rstriction)
 
 const stop_loss_pnl = -0.41         // to set your stop loss per trade
-const stop_profit_pnl = 0.81        // to set your stop profit per trade
+const stop_profit_pnl = 1.81        // to set your stop profit per trade
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -232,18 +232,30 @@ async function trackPairData(pair) {
         let pnl = new BigNumber(0)
         let stratname, signal_key
 
+
+
+
         //////////////////////////////// SIGNAL DECLARATION - START /////////////////////////////////
+        //////////////////////////////// THIS IS WHERE YOU CODE YOUR STRATEGY ///////////////////////
+        /////////////////////////////////////////////////////////////////////////////////////////////
 
         stratname = "NBT SIGNAL TEST"                   // enter the name of your strategy
         signal_key = stratname.replace(/\s+/g, '')
         
         //////// BUY SIGNAL DECLARATION ///////
         if ( interv_vols_sum[pair].times(first_ask_price[pair]).isGreaterThan(1.0) 
-            && srsi[pair].isGreaterThan(69) 
+            && srsi[pair].isGreaterThan(69)
+            && trades[pair].length >= 333
+            && first_ask_price[pair].dividedBy(first_bid_price[pair]).minus(1.0).isLessThan(0.003)
+            && candle_prices[pair][candle_prices[pair].length-1] > 0.0001
+            && candle_prices[pair][candle_prices[pair].length-1] > _.mean(candle_prices[pair].slice(-3, candle_prices[pair].length-1))
+            && trades[pair][trades[pair].length-1] > 99
+            && _.mean(trades[pair].slice(-3, trades[pair].length-1)) > 27
+            && trades[pair][trades[pair].length-1] > _.mean(trades[pair].slice(-333)) * 9
             && !signaled_pairs[pair+signal_key]
         ) {
             signaled_pairs[pair+signal_key] = true
-            buy_prices[pair+signal_key] = new BigNumber(first_ask_price[pair])
+            buy_prices[pair+signal_key] = first_ask_price[pair]
             report.stop()
             console.log(pair.green + " BUY =>   " + stratname.green 
                 + " " + interv_vols_sum[pair].times(first_ask_price[pair]).toFormat(2))
@@ -284,6 +296,8 @@ async function trackPairData(pair) {
         }
 
         //////////////////////////////// SIGNAL DECLARATION - END /////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////
+
     })
 
     await sleep(wait_time)
