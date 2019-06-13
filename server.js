@@ -2,12 +2,10 @@ const express = require('express')
 const socketIO = require('socket.io')
 const io_client = require('socket.io-client')
 const path = require('path')
-const talib = require('talib')
 const binance = require('binance-api-node').default
 const moment = require('moment')
 const BigNumber = require('bignumber.js')
 const colors = require("colors")
-const soundplayer = require('sound-player')
 const _ = require('lodash')
 const fs = require('fs')
 const ora = require('ora')
@@ -17,7 +15,6 @@ const INDEX = path.join(__dirname, 'index.html')
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const sound_alert = false              // if true a sound alert will be played for each signals
 const insert_into_files = false        // to save pair data to txt files in the data sub-folder 
 const send_signal_to_bva = false       // to monitor your strategies and send your signals to NBT Hub a.k.a http://bitcoinvsaltcoins.com
 const bva_ws_key = ""                 // if send_signal_to_bva true, please enter your ws key that you will find after signing up at http://bitcoinvsaltcoins.com
@@ -30,7 +27,6 @@ const stop_profit_pnl = 1.81        // to set your stop profit per trade
 
 /////////////////////////////////////////////////////////////////////////////////
 
-console.log("sound_alert: ", sound_alert)
 console.log("insert_into_files: ", insert_into_files)
 console.log("send_signal_to_bva: ", send_signal_to_bva)
 
@@ -41,12 +37,6 @@ if (send_signal_to_bva) {
     console.log("Connection to NBT HUB...")
     // create a socket client connection to send your signals to NBT Hub (http://bitcoinvsaltcoins.com)
     socket_client = io_client('https://nbt-hub.herokuapp.com', { query: "key=" + bva_ws_key }) 
-}
-
-let alert_sound = {}
-if (sound_alert) {
-    // quick sound alert test at the beginning
-    alert_sound = new soundplayer({ filename: "alert.mp3", gain: 1})
 }
 
 /////////////////////
@@ -71,7 +61,6 @@ let candle_lowes = {}
 let candle_highs = {}
 let candle_volumes = {}
 let candle_ohlcv = {}
-let srsi = {}
 let signaled_pairs = {}
 let buy_prices = {}
 
@@ -101,7 +90,6 @@ report.start()
 report.text = ""
 
 async function run() {
-    if (sound_alert) { alert_sound.play() }
     pairs = await get_pairs()
     pairs = pairs.slice(0, tracked_max)
     pairs.unshift('BTCUSDT')
@@ -155,7 +143,6 @@ async function trackPairData(pair) {
     prev_bid = new BigNumber(0)
     prev_ask = new BigNumber(0)
     interv_vols_sum[pair] = new BigNumber(0)
-    srsi[pair] = new BigNumber(0)
 
     const candles_15 = await binance_client.candles({ symbol: pair, interval: '15m' })
     for (var i = 0, len = candles_15.length; i < len; i++) {
@@ -208,21 +195,6 @@ async function trackPairData(pair) {
             ])
         }
 
-        //var function_desc = talib.explain("STOCHRSI")
-        //console.dir(function_desc)
-        
-        var srsi_result = talib.execute({
-            name: 'STOCHRSI',
-            startIdx:  0 ,
-            endIdx: candle_closes[pair].length -1,
-            inReal: candle_closes[pair],
-            optInTimePeriod: 100,  //RSI 14 default
-            optInFastK_Period: 100, // K 5 default
-            optInFastD_Period: 1, // D 3 default
-            optInFastD_MAType: 0 // type of Fast D default 0 
-        })
-        srsi[pair] = BigNumber(srsi_result.result.outFastK[srsi_result.result.outFastK.length-1])
-
         const max_sum_asks_bn = new BigNumber(_.max(sum_asks[pair]))
         const min_sum_asks_bn = new BigNumber(_.min(sum_asks[pair]))
 
@@ -242,7 +214,6 @@ async function trackPairData(pair) {
         
         //////// BUY SIGNAL DECLARATION ///////
         if ( interv_vols_sum[pair].times(first_ask_price[pair]).isGreaterThan(1.0) 
-            && srsi[pair].isGreaterThan(69)
             && trades[pair].length >= 333
             && first_ask_price[pair].dividedBy(first_bid_price[pair]).minus(1.0).isLessThan(0.003)
             && candle_closes[pair][candle_closes[pair].length-1] > 0.0001
@@ -269,7 +240,6 @@ async function trackPairData(pair) {
             }
             io.emit('buy_signal', buy_signal)
             if (send_signal_to_bva) { socket_client.emit("buy_signal", buy_signal) }
-            if (sound_alert) { alert_sound.play() }
         }
         //////// SELL SIGNAL DECLARATION ///////
         curr_price = BigNumber(first_bid_price[pair])
@@ -290,7 +260,6 @@ async function trackPairData(pair) {
             }
             io.emit('sell_signal', sell_signal)
             if (send_signal_to_bva) { socket_client.emit("sell_signal", sell_signal) }
-            if (sound_alert) { alert_sound.play() }
         }
 
         //////////////////////////////// SIGNAL DECLARATION - END /////////////////////////////////
@@ -353,21 +322,20 @@ async function trackPairData(pair) {
         //if (pair === "BTCUSDT") {
             report.text = moment().format().grey.padStart(20) +
             pair.white.padStart(20) +
-            (prev_price.isEqualTo(prices[pair]) ? colors.grey(prices[pair]).padStart(30) : prev_price.isLessThan(prices[pair]) ? colors.green(prices[pair]).padStart(30) : colors.red(prices[pair]).padStart(30)) + 
+            (prev_price.isEqualTo(prices[pair]) ? colors.grey(prices[pair].toString()).padStart(30) : prev_price.isLessThan(prices[pair].toString()) ? colors.green(prices[pair].toString()).padStart(30) : colors.red(prices[pair].toString()).padStart(30)) + 
             colors.white(interv_vols_sum[pair].decimalPlaces(3).toString()).padStart(30) +
             colors.blue(trades[pair][trades[pair].length-1]).padStart(20) +
             colors.yellow(maker_ratio.decimalPlaces(2).toString() + "%").padStart(20) +
             depth_report_colored.padStart(20) +
             colors.grey(last_sum_bids_bn.toFormat(2)).padStart(30) +
-            colors.grey(last_sum_asks_bn.toFormat(2)).padStart(30) +
-            colors.cyan(srsi[pair].decimalPlaces(2).toFormat(2)).padStart(20)
+            colors.grey(last_sum_asks_bn.toFormat(2)).padStart(30)
         //}
 
-        if (BigNumber.isBigNumber(srsi[pair]) && prices[pair].isGreaterThan(0) && last_sum_bids_bn.isGreaterThan(0) && last_sum_asks_bn.isGreaterThan(0)) {
+        if (prices[pair].isGreaterThan(0) && last_sum_bids_bn.isGreaterThan(0) && last_sum_asks_bn.isGreaterThan(0)) {
                 
             const insert_values = [
                 Date.now(), 
-                Number(prices[pair]), 
+                Number(prices[pair].toString()), 
                 Number(interv_vols_sum[pair].decimalPlaces(3).toString()), 
                 Number(volumes[pair].length), //trades
                 Number(maker_ratio.decimalPlaces(2).toString()),
@@ -377,8 +345,7 @@ async function trackPairData(pair) {
                 Number(first_bid_price[pair]), 
                 Number(first_ask_price[pair]), 
                 Number(first_bid_qty[pair]), 
-                Number(first_ask_qty[pair]),
-                Number(srsi[pair].decimalPlaces(2).toString()),
+                Number(first_ask_qty[pair])
             ]
 
             io.emit(pair, insert_values)
@@ -387,7 +354,7 @@ async function trackPairData(pair) {
             if (insert_into_files) {
                 const log_report = moment().format().padStart(30) +
                         pair.padStart(20) +
-                        String(prices[pair]).padStart(30) +
+                        prices[pair].toString().padStart(30) +
                         interv_vols_sum[pair].decimalPlaces(3).toString().padStart(30) +
                         String(volumes[pair].length).padStart(20) +
                         maker_ratio.decimalPlaces(2).toString().padStart(20) +
@@ -397,8 +364,7 @@ async function trackPairData(pair) {
                         first_bid_price[pair].toString().padStart(30) +
                         first_bid_qty[pair].decimalPlaces(6).toString().padStart(30) +
                         first_ask_qty[pair].decimalPlaces(6).toString().padStart(30) +
-                        first_ask_price[pair].toString().padStart(30) +
-                        srsi[pair].decimalPlaces(3).toString().padStart(30)
+                        first_ask_price[pair].toString().padStart(30)
                 fs.appendFileSync( "data/" + nbt_prefix + pair + ".txt", log_report + "\n" )
             }
         }
@@ -409,7 +375,7 @@ async function trackPairData(pair) {
         sum_asks[pair] = sum_asks[pair].slice(sum_asks[pair].length - 33, 33)
         sum_bids[pair] = sum_bids[pair].slice(sum_bids[pair].length - 33, 33)
 
-        prev_price = BigNumber(prices[pair])
+        prev_price = BigNumber(prices[pair].toString())
 
     }, 1000)
 }
