@@ -4,7 +4,7 @@
 
 <img src="nbt_diagram.png">
 
-<h6 align="center">Currently this open source version does not auto trade real money.</h6>
+<h6 align="center">Currently this open source version is a work in progress and does not auto trade real money.</h6>
 
 <h4 align="center">NBT is an open cryptocurrency trading bot development framework for the Binance exchange.</h4>
 
@@ -13,14 +13,15 @@ NBT includes 3 main scripts:
 * a script to run the **server**:
 
   * to track a selection of asset pairs and record all their binance data (candles, depths, trades) into text files
+  * 
   * if a buy or sell signal condition is detected, the server will emit a web socket signal to:
     * the concurrent running trader client.
-    * (optional) the NBT Hub a.k.a. [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to rank your signals.
+    * (optional) the NBT Hub a.k.a. [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to monitor your strategies and signals.
 
 * a script to run the **client / trader**:
-  * to follow and compute the PnL for each signals received via web socket from the server.
+  * to follow and compute the PnL for each strategy and signal received via web socket from the server.
 
-* a script to **backtest** your signals on the recorded historical data.
+* a script to **backtest** your strategies on the recorded historical data.
 
 # Requirements
 
@@ -39,16 +40,16 @@ npm i
 
 Execute the following commands in their own terminal.
 
-**To start the server** to record pair data and generate the trading signals:
+**To start the server** to record pair data, define strategies and emit trading signals:
 ```
 npm run start
 ```
-**To start the trader/client** to compute the signals received by the trader:
+**To start the trader/client** to monitor strategies and signals received by the trader:
 
 ```
 npm run trader
 ```
-**To backtest** signals using the data recorded by the server:
+**To backtest** strategies using the data recorded by the server:
 
 ```
 npm run bt

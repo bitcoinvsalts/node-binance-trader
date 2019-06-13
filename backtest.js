@@ -12,7 +12,7 @@ const test_pair = "BTCUSDT"
 const stop_loss_pnl = -0.81      
 const stop_profit_pnl = 1.81
 
-const nbt_prefix = "oasis_"
+const nbt_prefix = "nbt_"
 const max_rows = 9000000
 const plot_result = false
 

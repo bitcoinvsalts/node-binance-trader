@@ -1,6 +1,6 @@
 {
   "name": "node-binance-trader",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An efficient cryptocurrency trading bot framework for Binance using Node.js",
   "main": "server.js",
   "keywords": [
