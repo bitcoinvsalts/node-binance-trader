@@ -35,7 +35,7 @@ let user_payload = []
 
 const binance_client = binance()
 
-const socket = io('https://nbt-hub.herokuapp.com', { query: "key=" + bva_key })
+const socket = io('https://nbt-hub.herokuapp.com', { query: "type=client&key=" + bva_key })
 
 socket.on('connect', () => {
     console.log("Auto Trader connected.")

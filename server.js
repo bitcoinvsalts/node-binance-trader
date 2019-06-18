@@ -36,7 +36,7 @@ let socket_client = {}
 if (send_signal_to_bva) { 
     console.log("Connection to NBT HUB...")
     // create a socket client connection to send your signals to NBT Hub (http://bitcoinvsaltcoins.com)
-    socket_client = io_client('https://nbt-hub.herokuapp.com', { query: "key=" + bva_ws_key }) 
+    socket_client = io_client('https://nbt-hub.herokuapp.com', { query: "type=server&key=" + bva_ws_key }) 
 }
 
 /////////////////////
