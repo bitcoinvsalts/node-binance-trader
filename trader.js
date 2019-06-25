@@ -51,12 +51,8 @@ socket.on('message', (message) => {
 
 socket.on('buy_signal', async (signal) => {
     console.log(colors.grey('NBT HUB => Buy signal received :: ', signal.stratname, signal.stratid, signal.pair))
-    console.log(trading_pairs[signal.pair+signal.stratid])
-    console.log(user_payload)
     const tresult = _.findIndex(user_payload, (o) => { return o.stratid == signal.stratid })
-    console.log(tresult)
     if ( (trading_pairs[signal.pair+signal.stratid] === undefined || trading_pairs[signal.pair+signal.stratid] === false) && (tresult > -1) ) {
-        console.log(user_payload)
         await getPrices()
         buy_prices[signal.pair+signal.stratid] = new BigNumber(prices[signal.pair])
         trading_pairs[signal.pair+signal.stratid] = true
