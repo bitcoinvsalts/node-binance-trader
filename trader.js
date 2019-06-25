@@ -20,7 +20,7 @@ const fs = require('fs')
 
 const app = express()
 app.get('/', (req, res) => res.send(""))
-app.listen(process.env.PORT || 8003, () => console.log('NBT auto trader running.'))
+app.listen(process.env.PORT || 8003, () => console.log('NBT auto trader running.'.grey))
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -28,34 +28,35 @@ let trading_pairs = {}
 let prices = {}
 let api_last_call_ts = 0
 let buy_prices = {}
-
 let user_payload = []
 
 //////////////////////////////////////////////////////////////////////////////////
 
 const binance_client = binance()
 
-const socket = io('https://nbt-hub.herokuapp.com', { query: "type=client&key=" + bva_key })
+const nbt_vers = "0.1.2"
+const socket = io('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=client&key=" + bva_key })
 
 socket.on('connect', () => {
-    console.log("Auto Trader connected.")
+    console.log("Auto Trader connected.".grey)
 })
 
 socket.on('disconnect', () => {
-    console.log("Auto Trader disconnected.")
+    console.log("Auto Trader disconnected.".grey)
 })
 
 socket.on('message', (message) => {
-    console.log("NBT Message: " + message)
+    console.log(colors.magenta("NBT Message: " + message))
 })
 
 socket.on('buy_signal', async (signal) => {
-    console.log(colors.green('NBT HUB => BUY SIGNAL', signal))
+    console.log(colors.grey('NBT HUB => Buy signal received :: ', signal.stratname, signal.stratid, signal.pair))
+    console.log(trading_pairs[signal.pair+signal.stratid])
+    console.log(user_payload)
     const tresult = _.findIndex(user_payload, (o) => { return o.stratid == signal.stratid })
-    if ( (trading_pairs[signal.pair+signal.stratid] === undefined || trading_pairs[signal.pair+signal.stratid] === false)
-        && (tresult > -1) ) 
-    {
-        console.log(colors.green('NBT HUB => TRADING RESULT ', user_payload[tresult]))
+    console.log(tresult)
+    if ( (trading_pairs[signal.pair+signal.stratid] === undefined || trading_pairs[signal.pair+signal.stratid] === false) && (tresult > -1) ) {
+        console.log(user_payload)
         await getPrices()
         buy_prices[signal.pair+signal.stratid] = new BigNumber(prices[signal.pair])
         trading_pairs[signal.pair+signal.stratid] = true
@@ -70,10 +71,9 @@ socket.on('buy_signal', async (signal) => {
 })
 
 socket.on('sell_signal', async (signal) => {
-    console.log(colors.red('NBT HUB => SELL SIGNAL', signal))
+    console.log(colors.grey('NBT HUB => Sell signal received :: ', signal.stratname, signal.pair))
     const tresult = _.findIndex(user_payload, (o) => { return o.stratid == signal.stratid })
     if ( (trading_pairs[signal.pair+signal.stratid]) && (tresult > -1) ) {
-        console.log(colors.red('NBT HUB => TRADING RESULT ', user_payload[tresult]))
         await getPrices()
         const sell_price = new BigNumber(prices[signal.pair])
         const pnl = sell_price.minus(buy_prices[signal.pair+signal.stratid]).times(100).dividedBy(buy_prices[signal.pair+signal.stratid])
@@ -89,7 +89,7 @@ socket.on('sell_signal', async (signal) => {
 })
 
 socket.on('user_payload', async (data) => {
-    console.log(colors.grey('NBT HUB => USER PAYLOAD', data))
+    console.log(colors.grey('NBT HUB => user strategies + trading setup updated'))
     user_payload = data
 })
 
