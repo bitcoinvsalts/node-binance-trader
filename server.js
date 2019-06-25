@@ -193,11 +193,7 @@ async function trackPairData(pair) {
         ) {
             signaled_pairs[pair+signal_key] = true
             buy_prices[pair+signal_key] = first_ask_price[pair]
-            console.log(pair.green + " BUY =>   " + stratname.green 
-                + " " + interv_vols_sum[pair].times(first_ask_price[pair]).toFormat(2))
-                + " " + trades[pair][trades[pair].length-1]
-                + " " + _.mean(trades[pair].slice(-6, trades[pair].length-1)
-            )
+            console.log(pair.green + " BUY =>   " + stratname.green)
             const buy_signal = {
                 key: bva_key,
                 stratname: stratname,
@@ -253,11 +249,7 @@ async function trackPairData(pair) {
         ) {
             signaled_pairs[pair+signal_key] = true
             buy_prices[pair+signal_key] = first_ask_price[pair]
-            console.log(pair.green + " BUY =>   " + stratname.green 
-                + " " + interv_vols_sum[pair].times(first_ask_price[pair]).toFormat(2))
-                + " " + trades[pair][trades[pair].length-1]
-                + " " + _.mean(trades[pair].slice(-6, trades[pair].length-1)
-            )
+            console.log(pair.green + " BUY =>   " + stratname.green)
             const buy_signal = {
                 key: bva_key,
                 stratname: stratname,
@@ -296,7 +288,6 @@ async function trackPairData(pair) {
 
     await sleep(wait_time)
 
-    //console.log(colors.grey('scanning '+pair+' depth...'))
     const depth_clean = binance_client.ws.partialDepth({ symbol: pair, level: 10 }, depth => {
         sum_bids[pair].push(_.sumBy(depth.bids, (o) => { return Number(o.quantity) }))
         sum_asks[pair].push(_.sumBy(depth.asks, (o) => { return Number(o.quantity) }))
@@ -308,7 +299,6 @@ async function trackPairData(pair) {
 
     await sleep(wait_time)
 
-    //console.log(colors.grey('scanning '+pair+' trades...'))
     const trades_clean = binance_client.ws.trades([pair], trade => {
         prices[pair] = BigNumber(trade.price)
         volumes[pair].unshift({
