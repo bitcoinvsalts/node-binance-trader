@@ -193,7 +193,7 @@ async function trackPairData(pair) {
         ) {
             signaled_pairs[pair+signal_key] = true
             buy_prices[pair+signal_key] = first_ask_price[pair]
-            console.log(pair.green + " BUY =>   " + stratname.green)
+            console.log(moment().format().padStart(30) + pair.green + " BUY =>   " + stratname.green)
             const buy_signal = {
                 key: bva_key,
                 stratname: stratname,
@@ -211,7 +211,7 @@ async function trackPairData(pair) {
             && signaled_pairs[pair+signal_key]
         ) {
             signaled_pairs[pair+signal_key] = false
-            console.log(pair.red + " SELL =>   " + stratname.red)
+            console.log(moment().format().padStart(30) + pair.red + " SELL =>   " + stratname.red)
             const sell_signal = {
                 key: bva_key,
                 stratname: stratname, 
@@ -249,7 +249,7 @@ async function trackPairData(pair) {
         ) {
             signaled_pairs[pair+signal_key] = true
             buy_prices[pair+signal_key] = first_ask_price[pair]
-            console.log(pair.green + " BUY =>   " + stratname.green)
+            console.log(moment().format().padStart(30) + pair.green + " BUY =>   " + stratname.green)
             const buy_signal = {
                 key: bva_key,
                 stratname: stratname,
@@ -267,7 +267,7 @@ async function trackPairData(pair) {
             && signaled_pairs[pair+signal_key]
         ) {
             signaled_pairs[pair+signal_key] = false
-            console.log(pair.red + " SELL =>   " + stratname.red)
+            console.log(moment().format().padStart(30) + pair.red + " SELL =>   " + stratname.red)
             const sell_signal = {
                 key: bva_key,
                 stratname: stratname, 
