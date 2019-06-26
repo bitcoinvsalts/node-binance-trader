@@ -9,12 +9,13 @@ const fs = require('fs')
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
-//         PLEASE EDIT WITH YOUR BITCOINvsALTCOINS.com KEY HERE BELLOW
+//         PLEASE EDIT WITH YOUR BitcoinVsAltcoins.com KEY HERE BELLOW
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
                 const bva_key = "replace_with_your_BvA_key" 
 
+//////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -34,7 +35,7 @@ let user_payload = []
 
 const binance_client = binance()
 
-const nbt_vers = "0.1.2"
+const nbt_vers = "0.1.3"
 const socket = io('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=client&key=" + bva_key })
 
 socket.on('connect', () => {
@@ -53,9 +54,18 @@ socket.on('buy_signal', async (signal) => {
     console.log(colors.grey('NBT HUB => Buy signal received :: ', signal.stratname, signal.stratid, signal.pair))
     const tresult = _.findIndex(user_payload, (o) => { return o.stratid == signal.stratid })
     if ( (trading_pairs[signal.pair+signal.stratid] === undefined || trading_pairs[signal.pair+signal.stratid] === false) && (tresult > -1) ) {
+        trading_pairs[signal.pair+signal.stratid] = true
         await getPrices()
         buy_prices[signal.pair+signal.stratid] = new BigNumber(prices[signal.pair])
-        trading_pairs[signal.pair+signal.stratid] = true
+        const traded_buy_signal = {
+            key: bva_key,
+            userid: signal.userid,
+            stratname: signal.stratname,
+            stratid: signal.stratid,
+            pair: signal.pair, 
+            buy_price: Number(buy_prices[signal.pair+signal.stratid].toString()),
+        }
+        socket.emit("traded_buy_signal", traded_buy_signal)
         console.log( 
             moment().format().grey.padStart(30), 
             colors.green("BUY").padStart(20),
@@ -70,10 +80,20 @@ socket.on('sell_signal', async (signal) => {
     console.log(colors.grey('NBT HUB => Sell signal received :: ', signal.stratname, signal.pair))
     const tresult = _.findIndex(user_payload, (o) => { return o.stratid == signal.stratid })
     if ( (trading_pairs[signal.pair+signal.stratid]) && (tresult > -1) ) {
+        trading_pairs[signal.pair+signal.stratid] = false
         await getPrices()
         const sell_price = new BigNumber(prices[signal.pair])
         const pnl = sell_price.minus(buy_prices[signal.pair+signal.stratid]).times(100).dividedBy(buy_prices[signal.pair+signal.stratid])
-        trading_pairs[signal.pair+signal.stratid] = false
+        const traded_sell_signal = {
+            key: bva_key,
+            userid: signal.userid,
+            stratname: signal.stratname,
+            stratid: signal.stratid,
+            pair: signal.pair, 
+            sell_price: Number(sell_price.toString()),
+            pnl: Number(pnl.minus(0.1).decimalPlaces(2).toString()),
+        }
+        socket.emit("traded_sell_signal", traded_sell_signal)
         console.log( 
             moment().format().grey.padStart(30), 
             colors.red("SELL").padStart(20),

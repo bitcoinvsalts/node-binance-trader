@@ -13,10 +13,14 @@ const PORT = process.env.PORT || 4000
 const INDEX = path.join(__dirname, 'index.html')
 
 //////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+//         PLEASE EDIT THE FOLLOWING VARIABLES JUST BELLOW
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
 
-const insert_into_files = false        // to save pair data to txt files in the data sub-folder 
-const send_signal_to_bva = false       // to monitor your strategies and send your signals to NBT Hub a.k.a http://bitcoinvsaltcoins.com
-const bva_key = ""                 // if send_signal_to_bva true, please enter your ws key that you will find after signing up at http://bitcoinvsaltcoins.com
+const insert_into_files = false                 // to back up pair data to txt files in the data sub-folder 
+const send_signal_to_bva = false                // to monitor your strategies and send your signals to NBT Hub a.k.a http://bitcoinvsaltcoins.com
+const bva_key = "replace_with_your_BvA_key"     // if send_signal_to_bva true, please enter your ws key that you will find after signing up at http://bitcoinvsaltcoins.com
 
 const tracked_max = 200             // max of pairs to be tracked (useful for testing)
 const wait_time = 800               // to time out binance api calls (a lower number than 800 can result in api rstriction)
@@ -24,7 +28,9 @@ const wait_time = 800               // to time out binance api calls (a lower nu
 const stop_loss_pnl = -0.41         // to set your stop loss per trade
 const stop_profit_pnl = 1.81        // to set your stop profit per trade
 
-/////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
 
 console.log("insert_into_files: ", insert_into_files)
 console.log("send_signal_to_bva: ", send_signal_to_bva)
@@ -34,7 +40,7 @@ console.log("send_signal_to_bva: ", send_signal_to_bva)
 let socket_client = {}
 if (send_signal_to_bva) { 
     console.log("Connection to NBT HUB...")
-    const nbt_vers = "0.1.2"
+    const nbt_vers = "0.1.3"
     // create a socket client connection to send your signals to NBT Hub (http://bitcoinvsaltcoins.com)
     socket_client = io_client('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=server&key=" + bva_key }) 
 }
@@ -193,7 +199,7 @@ async function trackPairData(pair) {
         ) {
             signaled_pairs[pair+signal_key] = true
             buy_prices[pair+signal_key] = first_ask_price[pair]
-            console.log(moment().format().padStart(30) + pair.green + " BUY =>   " + stratname.green)
+            console.log(moment().format().padEnd(30)+ " BUY => " + pair.green + " " + stratname.green)
             const buy_signal = {
                 key: bva_key,
                 stratname: stratname,
@@ -211,7 +217,7 @@ async function trackPairData(pair) {
             && signaled_pairs[pair+signal_key]
         ) {
             signaled_pairs[pair+signal_key] = false
-            console.log(moment().format().padStart(30) + pair.red + " SELL =>   " + stratname.red)
+            console.log(moment().format().padEnd(30)+ " SELL => " + pair.red + " " + stratname.red + " " + pnl.toFormat(2) + "%")
             const sell_signal = {
                 key: bva_key,
                 stratname: stratname, 
@@ -249,7 +255,7 @@ async function trackPairData(pair) {
         ) {
             signaled_pairs[pair+signal_key] = true
             buy_prices[pair+signal_key] = first_ask_price[pair]
-            console.log(moment().format().padStart(30) + pair.green + " BUY =>   " + stratname.green)
+            console.log(moment().format().padEnd(30)+ " BUY => " + pair.green + " " + stratname.green)
             const buy_signal = {
                 key: bva_key,
                 stratname: stratname,
@@ -267,7 +273,7 @@ async function trackPairData(pair) {
             && signaled_pairs[pair+signal_key]
         ) {
             signaled_pairs[pair+signal_key] = false
-            console.log(moment().format().padStart(30) + pair.red + " SELL =>   " + stratname.red)
+            console.log(moment().format().padEnd(30)+ " SELL => " + pair.red + " " + stratname.red + " " + pnl.toFormat(2) + "%")
             const sell_signal = {
                 key: bva_key,
                 stratname: stratname, 
