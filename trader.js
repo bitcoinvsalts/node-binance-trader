@@ -35,7 +35,7 @@ let user_payload = []
 
 const binance_client = binance()
 
-const nbt_vers = "0.1.3"
+const nbt_vers = "0.1.4"
 const socket = io('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=client&key=" + bva_key })
 
 socket.on('connect', () => {
@@ -61,6 +61,7 @@ socket.on('buy_signal', async (signal) => {
             key: bva_key,
             stratname: signal.stratname,
             stratid: signal.stratid,
+            trading_type: user_payload[tresult].trading_type,
             pair: signal.pair, 
             buy_price: Number(buy_prices[signal.pair+signal.stratid].toString()),
         }
@@ -87,6 +88,7 @@ socket.on('sell_signal', async (signal) => {
             key: bva_key,
             stratname: signal.stratname,
             stratid: signal.stratid,
+            trading_type: user_payload[tresult].trading_type,
             pair: signal.pair, 
             sell_price: Number(sell_price.toString()),
             pnl: Number(pnl.minus(0.1).decimalPlaces(2).toString()),
