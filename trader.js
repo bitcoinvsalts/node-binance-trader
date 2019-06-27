@@ -59,7 +59,6 @@ socket.on('buy_signal', async (signal) => {
         buy_prices[signal.pair+signal.stratid] = new BigNumber(prices[signal.pair])
         const traded_buy_signal = {
             key: bva_key,
-            userid: signal.userid,
             stratname: signal.stratname,
             stratid: signal.stratid,
             pair: signal.pair, 
@@ -86,7 +85,6 @@ socket.on('sell_signal', async (signal) => {
         const pnl = sell_price.minus(buy_prices[signal.pair+signal.stratid]).times(100).dividedBy(buy_prices[signal.pair+signal.stratid])
         const traded_sell_signal = {
             key: bva_key,
-            userid: signal.userid,
             stratname: signal.stratname,
             stratid: signal.stratid,
             pair: signal.pair, 
