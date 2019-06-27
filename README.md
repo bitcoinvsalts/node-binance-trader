@@ -1,4 +1,4 @@
-<h1 align="center">Node Binance Trader a.k.a. NBT</h1>
+<h1 align="center">Node Binance Trader NBT</h1>
 
 <h6 align="center">New Version</h6>
 
@@ -8,18 +8,17 @@
 
 <h4 align="center">NBT is an open cryptocurrency trading bot development framework for the Binance exchange.</h4>
 
-NBT includes 3 main scripts:
+NBT includes 3 main JS scripts:
 
-* a script to run the **server**:
+* a script to run the **server** (OPTIONAL):
 
-  * to track a selection of asset pairs and record all their binance data (candles, depths, trades) into text files
-  * 
+  * to track a selection of asset pairs and record all their binance data (candles, depths, trades) into text files.
   * if a buy or sell signal condition is detected, the server will emit a web socket signal to:
     * the concurrent running trader client.
-    * (optional) the NBT Hub a.k.a. [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to monitor your strategies and signals.
+    * (optional) the NBT Hub / [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to monitor your strategies and signals.
 
-* a script to run the **client / trader**:
-  * to follow and compute the PnL for each strategy and signal received via web socket from the server.
+* a script to run the **auto trader**:
+  * to follow and compute the performances for each strategy and signal received via web socket from the server or the NBT Hub.
 
 * a script to **backtest** your strategies on the recorded historical data.
 
@@ -42,17 +41,17 @@ First please sign up at [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) an
 
 then you can execute the following commands in their own terminal:
 
-**To start the server** to record pair data, define strategies and emit trading signals:
+**To start the server** to save pair data, define strategies and emit trading signals:
 ```
 npm run start
 ```
-**To start the trader/client** to monitor strategies and signals received by the trader:
 
+**To start the auto trader** to monitor strategies and signals received from the server or the NBT Hub:
 ```
 npm run trader
 ```
-**To backtest** strategies using the data recorded by the server:
 
+**To backtest** strategies using the data recorded by the server:
 ```
 npm run bt
 ```
