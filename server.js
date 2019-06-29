@@ -40,7 +40,7 @@ console.log("send_signal_to_bva: ", send_signal_to_bva)
 let socket_client = {}
 if (send_signal_to_bva) { 
     console.log("Connection to NBT HUB...")
-    const nbt_vers = "0.1.3"
+    const nbt_vers = "0.1.4"
     // create a socket client connection to send your signals to NBT Hub (http://bitcoinvsaltcoins.com)
     socket_client = io_client('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=server&key=" + bva_key }) 
 }
@@ -182,10 +182,8 @@ async function trackPairData(pair) {
         //////////////////////////////// SIGNAL DECLARATION - START /////////////////////////////////
         //////////////////////////////// THIS IS WHERE YOU CODE YOUR STRATEGY ///////////////////////
         /////////////////////////////////////////////////////////////////////////////////////////////
-
         stratname = "NBT SIGNAL DEMO"                   // enter the name of your strategy
         signal_key = stratname.replace(/\s+/g, '')
-        
         //////// BUY SIGNAL DECLARATION ///////
         if ( interv_vols_sum[pair].times(first_ask_price[pair]).isGreaterThan(1.0) 
             && trades[pair].length >= 666
@@ -227,7 +225,6 @@ async function trackPairData(pair) {
             io.emit('sell_signal', sell_signal)
             if (send_signal_to_bva) { socket_client.emit("sell_signal", sell_signal) }
         }
-
         ///////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////// SIGNAL DECLARATION - END /////////////////////////////////
         ///////////////////////////////////////////////////////////////////////////////////////////
@@ -235,18 +232,16 @@ async function trackPairData(pair) {
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////// ANOTHER SIGNAL DECLARATION - START /////////////////////////////////
+        //////////////////////////////// ANOTHER SIGNAL DECLARATION - START /////////////////////////
         //////////////////////////////// THIS IS WHERE YOU CODE YOUR STRATEGY ///////////////////////
         /////////////////////////////////////////////////////////////////////////////////////////////
-
-        stratname = "NBT SIGNAL DEMO"                   // enter the name of your strategy
+        stratname = "NBT SIGNAL DEMO 2"                   // enter the name of your strategy
         signal_key = stratname.replace(/\s+/g, '')
-        
         //////// BUY SIGNAL DECLARATION ///////
         if ( interv_vols_sum[pair].times(first_ask_price[pair]).isGreaterThan(1.0) 
             && trades[pair].length >= 666
-            && first_ask_price[pair].dividedBy(first_bid_price[pair]).minus(1.0).isLessThan(0.003)
-            && candle_closes[pair][candle_closes[pair].length-1] > 0.0001
+            && first_ask_price[pair].dividedBy(first_bid_price[pair]).minus(1.0).isLessThan(0.002)
+            && candle_closes[pair][candle_closes[pair].length-1] > 0.001
             && candle_closes[pair][candle_closes[pair].length-1] > _.mean(candle_closes[pair].slice(-3, candle_closes[pair].length-1))
             && trades[pair][trades[pair].length-1] > 99
             && _.mean(trades[pair].slice(-3, trades[pair].length-1)) > 17
@@ -283,12 +278,13 @@ async function trackPairData(pair) {
             io.emit('sell_signal', sell_signal)
             if (send_signal_to_bva) { socket_client.emit("sell_signal", sell_signal) }
         }
-
         ///////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////// SIGNAL DECLARATION - END /////////////////////////////////
         ///////////////////////////////////////////////////////////////////////////////////////////
 
-        // ADD MORE SIGNAL DECLARATIONS HERE //
+
+
+        // ADD MORE SIGNAL DECLARATIONS HERE BY COPY/PASTE/EDIT FROM ONE DECLARATION FROM ABOVE. //
 
     })
 
