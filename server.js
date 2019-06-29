@@ -190,7 +190,7 @@ async function trackPairData(pair) {
             && first_ask_price[pair].dividedBy(first_bid_price[pair]).minus(1.0).isLessThan(0.003)
             && candle_closes[pair][candle_closes[pair].length-1] > 0.0001
             && candle_closes[pair][candle_closes[pair].length-1] > _.mean(candle_closes[pair].slice(-3, candle_closes[pair].length-1))
-            && trades[pair][trades[pair].length-1] > 99
+            && trades[pair][trades[pair].length-1] > 33
             && _.mean(trades[pair].slice(-3, trades[pair].length-1)) > 17
             && trades[pair][trades[pair].length-1] > _.mean(trades[pair].slice(-666)) * 6.666
             && !signaled_pairs[pair+signal_key]
@@ -243,7 +243,7 @@ async function trackPairData(pair) {
             && first_ask_price[pair].dividedBy(first_bid_price[pair]).minus(1.0).isLessThan(0.002)
             && candle_closes[pair][candle_closes[pair].length-1] > 0.001
             && candle_closes[pair][candle_closes[pair].length-1] > _.mean(candle_closes[pair].slice(-3, candle_closes[pair].length-1))
-            && trades[pair][trades[pair].length-1] > 99
+            && trades[pair][trades[pair].length-1] > 66
             && _.mean(trades[pair].slice(-3, trades[pair].length-1)) > 17
             && trades[pair][trades[pair].length-1] > _.mean(trades[pair].slice(-666)) * 6.666
             && !signaled_pairs[pair+signal_key]
