@@ -8,6 +8,7 @@ const BigNumber = require('bignumber.js')
 const colors = require("colors")
 const _ = require('lodash')
 const fs = require('fs')
+const axios = require('axios')
 
 const PORT = process.env.PORT || 4000
 const INDEX = path.join(__dirname, 'index.html')
@@ -35,16 +36,6 @@ const stop_profit_pnl = 1.81        // to set your stop profit per trade
 console.log("insert_into_files: ", insert_into_files)
 console.log("send_signal_to_bva: ", send_signal_to_bva)
 
-/////////////////////////////////////////////////////////////////////////////////
-
-let socket_client = {}
-if (send_signal_to_bva) { 
-    console.log("Connection to NBT HUB...")
-    const nbt_vers = "0.1.4"
-    // create a socket client connection to send your signals to NBT Hub (http://bitcoinvsaltcoins.com)
-    socket_client = io_client('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=server&key=" + bva_key }) 
-}
-
 /////////////////////
 
 let pairs = []
@@ -70,6 +61,27 @@ let signaled_pairs = {}
 let buy_prices = {}
 
 //////////////////////////////////////////////////////////////////////////////////
+
+let socket_client = {}
+if (send_signal_to_bva) { 
+    console.log("Connection to NBT HUB...")
+    const nbt_vers = "0.1.5"
+    // retrieve previous open signals //
+    axios.get('https://bitcoinvsaltcoins.com/api/useropensignals?key=' + bva_key)
+    .then( (response) => {
+        response.data.rows.map( s => {
+            signaled_pairs[s.pair+s.stratname.replace(/\s+/g, '')] = true
+        })
+        console.log("Open Trades:", _.values(signaled_pairs).length)
+    })
+    .catch( (e) => {
+        console.log(e.response.data)
+    })
+    // create a socket client connection to send your signals to NBT Hub (http://bitcoinvsaltcoins.com)
+    socket_client = io_client('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=server&key=" + bva_key }) 
+}
+
+/////////////////////////////////////////////////////////////////////////////////
 
 const server = express()
     .use((req, res) => res.sendFile(INDEX) )
@@ -102,6 +114,8 @@ async function run() {
     await sleep(wait_time)
     await trackData()
 }
+
+//////////////////////////////////////////////////////////////////////////////////
 
 async function get_pairs() {
     const exchange_info = await binance_client.exchangeInfo()

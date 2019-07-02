@@ -6,6 +6,7 @@ const _ = require('lodash')
 const colors = require("colors")
 const BigNumber = require('bignumber.js')
 const fs = require('fs')
+const axios = require('axios')
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -35,7 +36,21 @@ let user_payload = []
 
 const binance_client = binance()
 
-const nbt_vers = "0.1.4"
+//////////////////////////////////////////////////////////////////////////////////
+const nbt_vers = "0.1.5"
+// Retrieve previous open trades //
+axios.get('https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=' + bva_key )
+.then( (response) => {
+    response.data.rows.map( s => {
+        trading_pairs[s.pair+s.stratid] = true
+    })
+    console.log("Open Trades:", _.values(trading_pairs).length)
+})
+.catch( (e) => {
+    console.log(e.response.data)
+})
+//////////////////////////////////////////////////////////////////////////////////
+
 const socket = io('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=client&key=" + bva_key })
 
 socket.on('connect', () => {
@@ -108,6 +123,8 @@ socket.on('user_payload', async (data) => {
     console.log(colors.grey('NBT HUB => user strategies + trading setup updated'))
     user_payload = data
 })
+
+//////////////////////////////////////////////////////////////////////////////////
 
 async function getPrices() {
     if (api_last_call_ts < Date.now() - 1000) {
