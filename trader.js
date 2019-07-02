@@ -43,6 +43,7 @@ axios.get('https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=' + bva_k
 .then( (response) => {
     response.data.rows.map( s => {
         trading_pairs[s.pair+s.stratid] = true
+        buy_prices[s.pair+s.stratid] = new BigNumber(s.buy_price)
     })
     console.log("Open Trades:", _.values(trading_pairs).length)
 })

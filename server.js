@@ -71,6 +71,7 @@ if (send_signal_to_bva) {
     .then( (response) => {
         response.data.rows.map( s => {
             signaled_pairs[s.pair+s.stratname.replace(/\s+/g, '')] = true
+            buy_prices[s.pair+s.stratname.replace(/\s+/g, '')] = new BigNumerb(s.buy_price)
         })
         console.log("Open Trades:", _.values(signaled_pairs).length)
     })
