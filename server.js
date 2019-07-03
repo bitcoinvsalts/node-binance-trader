@@ -223,22 +223,23 @@ async function trackPairData(pair) {
                 io.emit('buy_signal', buy_signal)
                 if (send_signal_to_bva) { socket_client.emit("buy_signal", buy_signal) }
             }
-            //////// SELL SIGNAL DECLARATION ///////
-            curr_price = BigNumber(first_bid_price[pair])
-            pnl = curr_price.minus(buy_prices[pair+signal_key]).times(100).dividedBy(buy_prices[pair+signal_key])
-            if ( (pnl.isLessThan(stop_loss_pnl) || pnl.isGreaterThan(stop_profit_pnl))
-                && signaled_pairs[pair+signal_key]
-            ) {
-                signaled_pairs[pair+signal_key] = false
-                console.log(moment().format().padEnd(30)+ " SELL => " + pair.red + " " + stratname.red + " " + pnl.toFormat(2) + "%")
-                const sell_signal = {
-                    key: bva_key,
-                    stratname: stratname, 
-                    pair: pair, 
-                    sell_price: first_bid_price[pair]
+            else if (signaled_pairs[pair+signal_key]) 
+            {
+                //////// SELL SIGNAL DECLARATION ///////
+                curr_price = BigNumber(first_bid_price[pair])
+                pnl = curr_price.minus(buy_prices[pair+signal_key]).times(100).dividedBy(buy_prices[pair+signal_key])
+                if ( pnl.isLessThan(stop_loss_pnl) || pnl.isGreaterThan(stop_profit_pnl) ) {
+                    signaled_pairs[pair+signal_key] = false
+                    console.log(moment().format().padEnd(30)+ " SELL => " + pair.red + " " + stratname.red + " " + pnl.toFormat(2) + "%")
+                    const sell_signal = {
+                        key: bva_key,
+                        stratname: stratname, 
+                        pair: pair, 
+                        sell_price: first_bid_price[pair]
+                    }
+                    io.emit('sell_signal', sell_signal)
+                    if (send_signal_to_bva) { socket_client.emit("sell_signal", sell_signal) }
                 }
-                io.emit('sell_signal', sell_signal)
-                if (send_signal_to_bva) { socket_client.emit("sell_signal", sell_signal) }
             }
             ///////////////////////////////////////////////////////////////////////////////////////////
             //////////////////////////////// SIGNAL DECLARATION - END /////////////////////////////////
@@ -275,22 +276,23 @@ async function trackPairData(pair) {
                 io.emit('buy_signal', buy_signal)
                 if (send_signal_to_bva) { socket_client.emit("buy_signal", buy_signal) }
             }
-            //////// SELL SIGNAL DECLARATION ///////
-            curr_price = BigNumber(first_bid_price[pair])
-            pnl = curr_price.minus(buy_prices[pair+signal_key]).times(100).dividedBy(buy_prices[pair+signal_key])
-            if ( (pnl.isLessThan(stop_loss_pnl) || pnl.isGreaterThan(stop_profit_pnl+2))
-                && signaled_pairs[pair+signal_key]
-            ) {
-                signaled_pairs[pair+signal_key] = false
-                console.log(moment().format().padEnd(30)+ " SELL => " + pair.red + " " + stratname.red + " " + pnl.toFormat(2) + "%")
-                const sell_signal = {
-                    key: bva_key,
-                    stratname: stratname, 
-                    pair: pair, 
-                    sell_price: first_bid_price[pair]
+            else if (signaled_pairs[pair+signal_key]) 
+            {
+                //////// SELL SIGNAL DECLARATION ///////
+                curr_price = BigNumber(first_bid_price[pair])
+                pnl = curr_price.minus(buy_prices[pair+signal_key]).times(100).dividedBy(buy_prices[pair+signal_key])
+                if ( pnl.isLessThan(stop_loss_pnl) || pnl.isGreaterThan(stop_profit_pnl+2) ) {
+                    signaled_pairs[pair+signal_key] = false
+                    console.log(moment().format().padEnd(30)+ " SELL => " + pair.red + " " + stratname.red + " " + pnl.toFormat(2) + "%")
+                    const sell_signal = {
+                        key: bva_key,
+                        stratname: stratname, 
+                        pair: pair, 
+                        sell_price: first_bid_price[pair]
+                    }
+                    io.emit('sell_signal', sell_signal)
+                    if (send_signal_to_bva) { socket_client.emit("sell_signal", sell_signal) }
                 }
-                io.emit('sell_signal', sell_signal)
-                if (send_signal_to_bva) { socket_client.emit("sell_signal", sell_signal) }
             }
             ///////////////////////////////////////////////////////////////////////////////////////////
             //////////////////////////////// SIGNAL DECLARATION - END /////////////////////////////////
