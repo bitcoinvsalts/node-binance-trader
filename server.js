@@ -65,7 +65,7 @@ let buy_prices = {}
 let socket_client = {}
 if (send_signal_to_bva) { 
     console.log("Connection to NBT HUB...")
-    const nbt_vers = "0.1.5"
+    const nbt_vers = "0.1.6"
     // retrieve previous open signals //
     axios.get('https://bitcoinvsaltcoins.com/api/useropensignals?key=' + bva_key)
     .then( (response) => {
@@ -192,7 +192,7 @@ async function trackPairData(pair) {
         let stratname, signal_key
 
         // make sure we have all the data ready to find buy or Sell signals
-        if (first_bid_price[pair] && first_ask_price[pair] && prices[pair] && candle_opens[pair]) {
+        if (first_bid_price[pair]>0 && first_ask_price[pair]>0 && prices[pair]>0 && candle_opens[pair]) {
 
             /////////////////////////////////////////////////////////////////////////////////////////////
             //////////////////////////////// SIGNAL DECLARATION - START /////////////////////////////////
@@ -298,6 +298,9 @@ async function trackPairData(pair) {
 
             // ADD MORE SIGNAL DECLARATIONS HERE BY COPY/PASTE/EDIT FROM ONE DECLARATION FROM ABOVE. //
         }
+        else {
+            console.log("Data not ready",pair,first_bid_price[pair],first_ask_price[pair],prices[pair],candle_opens[pair].length)
+        }
     })
 
     await sleep(wait_time)
@@ -392,6 +395,12 @@ async function trackPairData(pair) {
         volumes[pair] = _.filter(volumes[pair], (v) => { return (v.timestamp >= (Date.now()-interv_time)) })
         sum_asks[pair] = sum_asks[pair].slice(sum_asks[pair].length - 33, 33)
         sum_bids[pair] = sum_bids[pair].slice(sum_bids[pair].length - 33, 33)
+        
+        candle_opens[pair] = candle_opens[pair].slice(candle_opens[pair].length - 1000, 1000)
+        candle_closes[pair] = candle_closes[pair].slice(candle_closes[pair].length - 1000, 1000)
+        candle_highs[pair] = candle_highs[pair].slice(candle_highs[pair].length - 1000, 1000)
+        candle_lowes[pair] = candle_lowes[pair].slice(candle_lowes[pair].length - 1000, 1000)
+        candle_volumes[pair] = candle_volumes[pair].slice(candle_volumes[pair].length - 1000, 1000)
 
         prev_price = BigNumber(prices[pair].toString())
 
