@@ -156,7 +156,8 @@ socket.on('close_traded_signal', async (data) => {
 
 async function getBuyPrice(pair) {
     try {
-        return await binance_client.book({ symbol: pair }).asks[0].price
+        const book = await binance_client.book({ symbol: pair })
+        return book.asks[0].price
     } catch (e) {
         console.log(e)
         return 0
@@ -165,7 +166,8 @@ async function getBuyPrice(pair) {
 
 async function getSellPrice(pair) {
     try {
-        return await binance_client.book({ symbol: pair }).bids[0].price
+        const book = await binance_client.book({ symbol: pair })
+        return await book.bids[0].price
     } catch (e) {
         console.log(e)
         return 0
