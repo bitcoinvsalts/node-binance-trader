@@ -298,9 +298,6 @@ async function trackPairData(pair) {
 
             // ADD MORE SIGNAL DECLARATIONS HERE BY COPY/PASTE/EDIT FROM ONE DECLARATION FROM ABOVE. //
         }
-        else {
-            console.log("Data not ready",pair,first_bid_price[pair],first_ask_price[pair],prices[pair],candle_opens[pair].length)
-        }
     })
 
     await sleep(wait_time)
