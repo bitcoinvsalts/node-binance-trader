@@ -127,8 +127,8 @@ async function backtest(lines) {
                 opacity: 0.8
             })
         }
-
-        if (trading) {
+        else if (trading) 
+        {
             const end_price = new BigNumber(price)
             pnl = end_price.minus(start_price).times(100).dividedBy(start_price)
 
