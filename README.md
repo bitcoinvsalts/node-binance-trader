@@ -1,6 +1,6 @@
 <h1 align="center">Node Binance Trader NBT</h1>
 
-<h6 align="center">New Version</h6>
+<h6 align="center">Version 0.2.0</h6>
 
 <img src="nbt_diagram.png">
 
