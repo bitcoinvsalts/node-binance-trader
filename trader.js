@@ -5,18 +5,16 @@ const binance = require('binance-api-node').default
 const _ = require('lodash')
 const colors = require("colors")
 const BigNumber = require('bignumber.js')
-const fs = require('fs')
 const axios = require('axios')
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
-//         PLEASE EDIT WITH YOUR BitcoinVsAltcoins.com KEY HERE BELLOW
+//         PLEASE EDIT WITH YOUR BITCOINvsALTCOINS.com KEY HERE BELLOW
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-const bva_key = "replace_with_your_BvA_key" 
+                const bva_key = "replace_with_your_BvA_key" 
 
-//////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -32,10 +30,13 @@ let user_payload = []
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const binance_client = binance()
+const binance_client = binance({
+    apiKey: 'replace_with_your_Binance_apiKey',
+    apiSecret: 'replace_with_your_Binance_apiSecret',
+})
 
 //////////////////////////////////////////////////////////////////////////////////
-const nbt_vers = "0.1.7"
+const nbt_vers = "0.2.0"
 // Retrieve previous open trades //
 axios.get('https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=' + bva_key )
 .then( (response) => {
@@ -65,12 +66,31 @@ socket.on('message', (message) => {
 })
 
 socket.on('buy_signal', async (signal) => {
-    console.log(colors.grey('NBT HUB => Buy signal received :: ', signal.stratname, signal.stratid, signal.pair))
     const tresult = _.findIndex(user_payload, (o) => { return o.stratid == signal.stratid })
     if ( (trading_pairs[signal.pair+signal.stratid] === undefined || trading_pairs[signal.pair+signal.stratid] === false) && (tresult > -1) ) {
+        console.log(colors.grey('NBT HUB => Buy signal received :: ', signal.stratname, signal.stratid, signal.pair))
         trading_pairs[signal.pair+signal.stratid] = true
         const price = await getBuyPrice(signal.pair)
         buy_prices[signal.pair+signal.stratid] = new BigNumber(price)
+        if (user_payload[tresult].trading_type === "real") {
+            binance_client.order({
+                symbol: signal.pair,
+                side: 'BUY',
+                quantity: Number(user_payload[tresult].buy_amount),
+                type: 'MARKET',
+            })
+            .then( (order_result) => {
+                console.log("BUY ORDER RESULT", signal.pair)
+                console.log(order_result)
+                if (order_result.status === 'FILLED') {
+                    console.log("BUY PRICE: ", order_result.fills[0].price)
+                }
+            })
+            .catch( (error) => {
+                console.log("ERROR 7868678")
+                console.error(JSON.stringify(error))
+            })
+        }
         const traded_buy_signal = {
             key: bva_key,
             stratname: signal.stratname,
@@ -91,13 +111,31 @@ socket.on('buy_signal', async (signal) => {
 })
 
 socket.on('sell_signal', async (signal) => {
-    console.log(colors.grey('NBT HUB => Sell signal received :: ', signal.stratname, signal.pair))
     const tresult = _.findIndex(user_payload, (o) => { return o.stratid == signal.stratid })
     if ( (trading_pairs[signal.pair+signal.stratid]) && (tresult > -1) ) {
+        console.log(colors.grey('NBT HUB => Sell signal received :: ', signal.stratname, signal.pair))
         trading_pairs[signal.pair+signal.stratid] = false
         const price = await getSellPrice(signal.pair)
         const sell_price = new BigNumber(price)
         const pnl = sell_price.minus(buy_prices[signal.pair+signal.stratid]).times(100).dividedBy(buy_prices[signal.pair+signal.stratid])
+        if (user_payload[tresult].trading_type === "real") {
+            binance_client.order({
+                symbol: signal.pair,
+                side: 'SELL',
+                quantity: Number(user_payload[tresult].buy_amount),
+                type: 'MARKET',
+            })
+            .then( (order_result) => {
+                console.log("SELL ORDER RESULT", signal.pair)
+                console.log(order_result)
+                if (order_result.status === 'FILLED') {
+                    console.log("SELL PRICE: ", order_result.fills[0].price)
+                }
+            })
+            .catch( (error) => {
+                console.error(JSON.stringify(error))
+            })
+        }
         const traded_sell_signal = {
             key: bva_key,
             stratname: signal.stratname,
@@ -118,12 +156,6 @@ socket.on('sell_signal', async (signal) => {
     }
 })
 
-socket.on('user_payload', async (data) => {
-    console.log(colors.grey('NBT HUB => user strategies + trading setup updated'))
-    user_payload = data
-})
-
-
 socket.on('close_traded_signal', async (data) => {
     console.log(colors.grey('NBT HUB =====> close_traded_signal', data.stratid, data.pair, data.trading_type))
     const tresult = _.findIndex(user_payload, (o) => { return o.stratid == data.stratid })
@@ -132,6 +164,24 @@ socket.on('close_traded_signal', async (data) => {
         const price = await getSellPrice(data.pair)
         const sell_price = new BigNumber(price)
         const pnl = sell_price.minus(buy_prices[data.pair+data.stratid]).times(100).dividedBy(buy_prices[data.pair+data.stratid])
+        if (user_payload[tresult].trading_type === "real") {
+            binance_client.order({
+                symbol: data.pair,
+                side: 'SELL',
+                quantity: Number(user_payload[tresult].buy_amount),
+                type: 'MARKET',
+            })
+            .then( (order_result) => {
+                console.log("CLOSE ORDER RESULT", data.pair)
+                console.log(order_result)
+                if (order_result.status === 'FILLED') {
+                    console.log("CLOSE PRICE: ", order_result.fills[0].price)
+                }
+            })
+            .catch( (error) => {
+                console.error(JSON.stringify(error))
+            })
+        }
         const traded_sell_signal = {
             key: bva_key,
             stratname: "closing traded signal",
@@ -150,6 +200,12 @@ socket.on('close_traded_signal', async (data) => {
             "closing traded signal".padStart(30),
         )
     }
+})
+
+socket.on('user_payload', async (data) => {
+    console.log(colors.grey('NBT HUB => user strategies + trading setup updated'))
+    //console.log(data)
+    user_payload = data
 })
 
 //////////////////////////////////////////////////////////////////////////////////
