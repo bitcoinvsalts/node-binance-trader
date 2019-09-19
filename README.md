@@ -4,23 +4,23 @@
 
 <img src="nbt_diagram.png">
 
-<h6 align="center">Currently this open source version is a work in progress and does not auto trade real money.</h6>
-
 <h4 align="center">NBT is an open cryptocurrency trading bot development framework for the Binance exchange.</h4>
 
 NBT includes 3 main JS scripts:
 
-* a script to run the **server** (OPTIONAL):
+* the **server**:
 
-  * to track a selection of asset pairs and record all their binance data (candles, depths, trades) into text files.
-  * if a buy or sell signal condition is detected, the server will emit a web socket signal to:
-    * the concurrent running trader client.
-    * (optional) the NBT Hub / [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to monitor your strategies and signals.
+  * to track a selection of asset pairs and record all binance api data (candles, depths, trades) into a Postgres database.
+  * to detect buy or sell signals
+  * (optional) to send trading signals to the NBT Hub / [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to monitor performances and auto trade those signals (virtually or for real).
 
-* a script to run the **auto trader**:
-  * to follow and compute the performances for each strategy and signal received via web socket from the server or the NBT Hub.
+* the **trader**:
 
-* a script to **backtest** your strategies on the recorded historical data.
+  * this script allows you to auto trade the signals received from the NBT hub or your own server.
+
+* the **backtest** :
+
+  * to backtest your strategies on the historical tick data (Postgres database) recorded by the server.
 
 # Requirements
 
