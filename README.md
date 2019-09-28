@@ -37,9 +37,6 @@ npm i
 
 # Usage ⚡️
 
-First please sign up at [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) and add your BvA key in each scripts,
-
-then you can execute the following commands in their own terminal:
 
 **To start the server** to save pair data, define strategies and emit trading signals:
 ```
