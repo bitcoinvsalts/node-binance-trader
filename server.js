@@ -295,6 +295,7 @@ async function trackPairData(pair) {
             if (insert_into_db) {
                 const insert_values = [
                     Date.now(), 
+                    moment(Date.now()).format(),
                     Number(prices[pair].toString()), 
                     price_open,
                     price_high,
@@ -313,8 +314,8 @@ async function trackPairData(pair) {
                     ( (srsi[pair] === null) ? null : Number(srsi[pair].decimalPlaces(2).toString()) ),
                 ]
                 const insert_query = 'INSERT INTO ' + nbt_prefix + pair 
-                    + '(eventtime, price, candle_open, candle_high, candle_low, candle_close, sum_interv_vols, trades, makers_count, depth_report, sum_bids, sum_asks, first_bid_price, first_ask_price, first_bid_qty, first_ask_qty, srsi)' 
-                    + ' VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING * '
+                    + '(eventtime, datetime, price, candle_open, candle_high, candle_low, candle_close, sum_interv_vols, trades, makers_count, depth_report, sum_bids, sum_asks, first_bid_price, first_ask_price, first_bid_qty, first_ask_qty, srsi)' 
+                    + ' VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING * '
                 pg_client.query(insert_query, insert_values)
                 .then(res => {})
                 .catch( e => { console.log(e) } )
@@ -423,7 +424,7 @@ async function trackPairData(pair) {
 }
 
 async function createPgPairTable(pair) {
-    return pg_client.query('CREATE TABLE '+nbt_prefix+pair+'(id bigserial primary key, eventtime bigint NOT NULL, price decimal, candle_open decimal, candle_high decimal, candle_low decimal, candle_close decimal, sum_interv_vols decimal, trades integer, makers_count real, depth_report decimal, sum_bids real, sum_asks real, first_bid_price decimal, first_ask_price decimal, first_bid_qty decimal, first_ask_qty decimal, srsi real)')
+    return pg_client.query('CREATE TABLE '+nbt_prefix+pair+'(id bigserial primary key, eventtime bigint NOT NULL, datetime varchar(200), price decimal, candle_open decimal, candle_high decimal, candle_low decimal, candle_close decimal, sum_interv_vols decimal, trades integer, makers_count real, depth_report decimal, sum_bids real, sum_asks real, first_bid_price decimal, first_ask_price decimal, first_bid_qty decimal, first_ask_qty decimal, srsi real)')
     .then(res => {
         console.log("TABLE "+nbt_prefix+pair+" CREATION SUCCESS")
     })
