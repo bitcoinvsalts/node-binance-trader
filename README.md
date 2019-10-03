@@ -32,7 +32,7 @@ NBT includes 3 main JS scripts:
 ```
 git clone https://github.com/jsappme/node-binance-trader
 cd node-binance-trader
-npm i
+npm i --unsafe-perm
 ```
 
 # Usage ⚡️
