@@ -2,9 +2,9 @@
 
 <h6 align="center">Version 0.2.0</h6>
 
-<h4 align="center">
+<div align="center">
 [![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://safe.nimiq.com/#_request/NQ19KM8LP7SGUMFBNHSL4MV4D8M2ULBS4JSF_)
-</h4>
+</div>
 
 <img src="nbt_diagram.png">
 
