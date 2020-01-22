@@ -2,6 +2,8 @@
 
 <h6 align="center">Version 0.2.0</h6>
 
+[![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-big.svg)](https://safe.nimiq.com/#_request/NQ19KM8LP7SGUMFBNHSL4MV4D8M2ULBS4JSF_)
+
 <img src="nbt_diagram.png">
 
 <h4 align="center">NBT is an open cryptocurrency trading bot development framework for the Binance exchange.</h4>
