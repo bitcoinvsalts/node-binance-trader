@@ -1,6 +1,6 @@
 <h1 align="center">Node Binance Trader NBT</h1>
 
-<h6 align="center">Version 0.2.2</h6>
+<h6 align="center">Version 0.2.3</h6>
 
 [![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://safe.nimiq.com/#_request/NQ19KM8LP7SGUMFBNHSL4MV4D8M2ULBS4JSF_)
 
