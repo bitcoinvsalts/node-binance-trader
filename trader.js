@@ -8,17 +8,13 @@ const axios = require('axios')
 const Binance = require('node-binance-api')
 const binance = require('binance-api-node').default
 const nodemailer = require('nodemailer')
-const TeleBot = require('telebot')
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 //         PLEASE EDIT PREFERENCES BELOW
 //////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
 
-const enable_margin = false //ENABLE OR DISABLE MARGIN TRADING
-const send_email = false // USE SEND MAIL ---- true = YES; false = NO
-const use_telegram = false //USE TELEGRAM 
+const send_email = true
 const gmail_address = ''
 const gmail_app_password = ''
 const gmailEmail = encodeURIComponent(gmail_address)
@@ -102,6 +98,7 @@ const bnb_client = new Binance().options({
     APISECRET: ''
 })
 
+////////
 
 const binance_client = binance({
     apiKey: '',
@@ -110,7 +107,7 @@ const binance_client = binance({
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const nbt_vers = "0.2.3"
+const nbt_vers = "0.2.2"
 const socket = io('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=client&key=" + bva_key })
 
 socket.on('connect', () => {
@@ -147,12 +144,6 @@ socket.on('buy_signal', async (signal) => {
                         }).catch(error => { console.error('There was an error while sending the email: stop trying') })
                     }, 2000 )
                 })
-            }
-            //SEND TELEGRAM MSG
-            if (use_telegram) {
-                let msg = "BUY_SIGNAL :: ENTER LONG TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
-                msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telChanel, msg)
             }
             //////
             trading_pairs[signal.pair+signal.stratid] = true
@@ -200,7 +191,7 @@ socket.on('buy_signal', async (signal) => {
                     socket.emit("traded_buy_signal", traded_buy_signal)
                     ////
                     if (user_payload[tresult].trading_type === "real") {
-                        if (margin_pairs.includes(alt+"BTC") && enable_margin === true) {
+                        if (margin_pairs.includes(alt+"BTC")) {
                             bnb_client.mgMarketBuy(alt+"BTC", Number(qty), (error, response) => {
                                 if ( error ) { console.log("ERROR 3355333", error.body) }
                                 else console.log("SUCCESS 222444222")
@@ -243,12 +234,6 @@ socket.on('buy_signal', async (signal) => {
                         }).catch(error => { console.error('There was an error while sending the email: stop trying') })
                     }, 2000 )
                 })
-            }
-            //SEND TELEGRAM MSG
-            if (use_telegram) {
-                let msg = "BUY_SIGNAL :: BUY TO COVER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
-                msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telChanel, msg)
             }
             //////
             console.log(signal.pair, ' ---> BUY', Number(trading_qty[signal.pair+signal.stratid]))
@@ -350,12 +335,6 @@ socket.on('sell_signal', async (signal) => {
                     }, 2000 )
                 })
             }
-            //SEND TELEGRAM MSG
-            if (use_telegram) {
-                let msg = "SELL_SIGNAL :: ENTER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
-                msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telChanel, msg)
-            }
             //////
             trading_pairs[signal.pair+signal.stratid] = true
             trading_types[signal.pair+signal.stratid] = "SHORT"
@@ -446,13 +425,6 @@ socket.on('sell_signal', async (signal) => {
                     }, 2000 )
                 })
             }
-            //SEND TELEGRAM MSG
-            if (use_telegram) {
-                let msg = "SELL_SIGNAL :: SELL TO EXIT LONG TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
-                msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telChanel, msg)
-            }
-            
             //////
             console.log(signal.pair, ' ---> SELL', Number(trading_qty[signal.pair+signal.stratid]))
             if (signal.pair == 'BTCUSDT') {
@@ -487,7 +459,7 @@ socket.on('sell_signal', async (signal) => {
                     socket.emit("traded_sell_signal", traded_sell_signal)
                     ///
                     if (user_payload[tresult].trading_type === "real") {
-                        if (margin_pairs.includes(alt+"BTC") && enable_margin === true) {
+                        if (margin_pairs.includes(alt+"BTC")) {
                             console.log("QTY =======mgMarketSell======> " + qty + " - " + alt + "BTC")
                             bnb_client.mgMarketSell(alt+"BTC", Number(qty), (error, response) => {
                                 if (error) { console.log("ERROR 722211117", alt, Number(qty), JSON.stringify(error)) }
@@ -656,7 +628,7 @@ socket.on('stop_traded_signal', async (signal) => {
 
 socket.on('user_payload', async (data) => {
     console.log(colors.grey('NBT HUB => user strategies + trading setup updated'))
-    // console.log(data.length)
+    console.log(data.length)
     user_payload = data
 })
 
