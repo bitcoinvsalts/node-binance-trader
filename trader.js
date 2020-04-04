@@ -34,6 +34,20 @@ const mailTransport = nodemailer.createTransport(`smtps://${gmailEmail}:${gmailP
 const bva_key = "replace_with_your_BvA_key" 
 
 //////////////////////////////////////////////////////////////////////////////////
+//         VARIABLES TO KEEP TRACK OF BOT POSITIONS AND ACTIVITY
+//////////////////////////////////////////////////////////////////////////////////
+
+let trading_pairs = {}
+let open_trades = {}
+let trading_types = {}
+let trading_qty = {}
+let buy_prices = {}
+let sell_prices = {}
+let user_payload = []
+
+let minimums = {}    
+
+//////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
 const app = express()
@@ -75,17 +89,6 @@ if(use_telegram){
     }
     });    
 }
-
-let trading_pairs = {}
-let open_trades = {}
-let trading_types = {}
-let trading_qty = {}
-let buy_prices = {}
-let sell_prices = {}
-let user_payload = []
-
-let minimums = {}
-
 //////////////////////////////////////////////////////////////////////////////////
 
 const margin_pairs = ['ADABTC', 'ATOMBTC','BATBTC','BCHBTC','BNBBTC','DASHBTC','EOSBTC','ETCBTC',
