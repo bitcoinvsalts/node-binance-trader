@@ -57,8 +57,10 @@ npm run bt
 
 # Web Socket API specifications 📡
 
+Connect your Node.js script to the NBT hub to monitor the performance of your signals and strategies. 
+You can also communicate via the NBT hub to your auto trader to track your traded signals.
 
-**Send a Buy Signal** to save pair data, define strategies and emit trading signals:
+**Send a Buy Signal** to the NBT hub:
 ```
 const buy_signal = {
     key: bva_key,
