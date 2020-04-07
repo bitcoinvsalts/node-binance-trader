@@ -55,6 +55,23 @@ npm run trader
 npm run bt
 ```
 
+# Web Socket API specifications 📡
+
+
+**Send a Buy Signal** to save pair data, define strategies and emit trading signals:
+```
+const buy_signal = {
+    key: bva_key,
+    stratname: stratname,
+    pair: pair, 
+    buy_price: first_ask_price[pair],
+    message: Date.now(),
+    stop_profit: Number(stop_profit[pair+signal_key]),
+    stop_loss: Number(stop_loss[pair+signal_key]),
+}
+socket_client.emit("buy_signal", buy_signal)
+```
+
 # Disclaimer 📖
 
 ```
