@@ -57,7 +57,7 @@ npm run bt
 
 # Web Socket API specifications 📡
 
-Feel free to connect your Node.js scripts to the NBT hub Websocket server to monitor the performance of your signals and strategies. 
+Feel free to connect your Node.js scripts to the NBT hub Websocket server to monitor the performance of your signals and strategies on [BvA](https://bitcoinvsaltcoins.com)
 
 ***From your NBT Server, you can:***
 
