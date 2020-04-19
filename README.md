@@ -39,6 +39,7 @@ npm i --unsafe-perm
 
 # Usage ⚡️
 
+Before everything please review the source code of the JS scripts and add your key information (BvA, Binance, etc...)
 
 **To start the server** to save pair data, define strategies and emit trading signals:
 ```
