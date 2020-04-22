@@ -16,7 +16,6 @@ const TeleBot = require('telebot')
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-const enable_margin = false //ENABLE OR DISABLE MARGIN TRADING
 const send_email = false // USE SEND MAIL ---- true = YES; false = NO
 const use_telegram = false //USE TELEGRAM 
 const gmail_address = ''
@@ -200,7 +199,7 @@ socket.on('buy_signal', async (signal) => {
                     socket.emit("traded_buy_signal", traded_buy_signal)
                     ////
                     if (user_payload[tresult].trading_type === "real") {
-                        if (margin_pairs.includes(alt+"BTC") && enable_margin === true) {
+                        if (margin_pairs.includes(alt+"BTC")) {
                             bnb_client.mgMarketBuy(alt+"BTC", Number(qty), (error, response) => {
                                 if ( error ) { console.log("ERROR 3355333", error.body) }
                                 else console.log("SUCCESS 222444222")
@@ -487,7 +486,7 @@ socket.on('sell_signal', async (signal) => {
                     socket.emit("traded_sell_signal", traded_sell_signal)
                     ///
                     if (user_payload[tresult].trading_type === "real") {
-                        if (margin_pairs.includes(alt+"BTC") && enable_margin === true) {
+                        if (margin_pairs.includes(alt+"BTC")) {
                             console.log("QTY =======mgMarketSell======> " + qty + " - " + alt + "BTC")
                             bnb_client.mgMarketSell(alt+"BTC", Number(qty), (error, response) => {
                                 if (error) { console.log("ERROR 722211117", alt, Number(qty), JSON.stringify(error)) }
