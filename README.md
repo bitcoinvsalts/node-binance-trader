@@ -47,12 +47,12 @@ npm run start
 ```
 
 **To start the auto trader** to monitor strategies and signals received from the server or the NBT Hub:
-```
-npm run trader
-```
 
 <i>Important note: Always make sure to have some BNB available on your corresponding wallet to pay for the fees.</i>
 
+```
+npm run trader
+```
 
 **To backtest** strategies using the data recorded by the server:
 ```
