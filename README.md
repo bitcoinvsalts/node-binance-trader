@@ -51,6 +51,9 @@ npm run start
 npm run trader
 ```
 
+Important note: Always make sure to have some BNB available on your corresponding wallet to pay for the fees.
+
+
 **To backtest** strategies using the data recorded by the server:
 ```
 npm run bt
