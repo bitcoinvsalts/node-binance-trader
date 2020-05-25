@@ -109,7 +109,7 @@ const binance_client = binance({
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const nbt_vers = "0.2.3"
+const nbt_vers = "0.2.4"
 const socket = io('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=client&key=" + bva_key })
 
 socket.on('connect', () => {
@@ -206,9 +206,9 @@ socket.on('buy_signal', async (signal) => {
                             })
                         }
                         else {
-                            bnb_client.marketBuy(alt+"USDT", Number(qty), (error, response) => {
-                                if (error) { console.log("ERROR 7991117 marketBuy", alt+"USDT", Number(qty), error.body) }
-                                else { console.log("SUCESS 99111 marketBuy", alt+"USDT", Number(qty)) }
+                            bnb_client.marketBuy(alt+"BTC", Number(qty), (error, response) => {
+                                if (error) { console.log("ERROR 7991117 marketBuy", alt+"BTC", Number(qty), error.body) }
+                                else { console.log("SUCESS 99111 marketBuy", alt+"BTC", Number(qty)) }
                             })
                         }
                     }
@@ -494,10 +494,10 @@ socket.on('sell_signal', async (signal) => {
                             })
                         }
                         else {
-                            console.log("QTY =======marketSell======> " + qty + " - " + alt + "USDT")
-                            bnb_client.marketSell(alt+"USDT", Number(qty), (error, response) => {
-                                if (error) { console.log("ERROR 7213331117 marketSell", alt+"USDT", Number(qty), JSON.stringify(error)) }
-                                else { console.log("SUCESS 711000111 marketSell", alt+"USDT", Number(qty)) }
+                            console.log("QTY =======marketSell======> " + qty + " - " + alt + "BTC")
+                            bnb_client.marketSell(alt+"BTC", Number(qty), (error, response) => {
+                                if (error) { console.log("ERROR 7213331117 marketSell", alt+"BTC", Number(qty), JSON.stringify(error)) }
+                                else { console.log("SUCESS 711000111 marketSell", alt+"BTC", Number(qty)) }
                             })
                         }
                     }
