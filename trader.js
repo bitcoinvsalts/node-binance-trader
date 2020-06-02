@@ -123,7 +123,7 @@ socket.on('buy_signal', async (signal) => {
             if (use_telegram) {
                 let msg = "BUY_SIGNAL :: ENTER LONG TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telChanel, msg)
+                telBot.sendMessage(telBot.telChanel, msg)
             }
             //////
             trading_pairs[signal.pair+signal.stratid] = true
@@ -219,7 +219,7 @@ socket.on('buy_signal', async (signal) => {
             if (use_telegram) {
                 let msg = "BUY_SIGNAL :: BUY TO COVER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telChanel, msg)
+                telBot.sendMessage(telBot.telChanel, msg)
             }
             //////
             console.log(signal.pair, ' ---> BUY', Number(trading_qty[signal.pair+signal.stratid]))
@@ -325,7 +325,7 @@ socket.on('sell_signal', async (signal) => {
             if (use_telegram) {
                 let msg = "SELL_SIGNAL :: ENTER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telChanel, msg)
+                telBot.sendMessage(telBot.telChanel, msg)
             }
             //////
             trading_pairs[signal.pair+signal.stratid] = true
@@ -421,7 +421,7 @@ socket.on('sell_signal', async (signal) => {
             if (use_telegram) {
                 let msg = "SELL_SIGNAL :: SELL TO EXIT LONG TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telChanel, msg)
+                telBot.sendMessage(telBot.telChanel, msg)
             }
             
             //////
