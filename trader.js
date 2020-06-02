@@ -6,23 +6,8 @@ const colors = require("colors")
 const BigNumber = require('bignumber.js')
 const axios = require('axios')
 const Binance = require('node-binance-api')
-const binance = require('binance-api-node').default
 const nodemailer = require('nodemailer')
 const TeleBot = require('telebot')
-
-//////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
-//         PLEASE EDIT PREFERENCES BELOW
-//////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
-
-const send_email = false // USE SEND MAIL ---- true = YES; false = NO
-const use_telegram = false //USE TELEGRAM 
-const gmail_address = ''
-const gmail_app_password = ''
-const gmailEmail = encodeURIComponent(gmail_address)
-const gmailPassword = encodeURIComponent(gmail_app_password)
-const mailTransport = nodemailer.createTransport(`smtps://${gmailEmail}:${gmailPassword}@smtp.gmail.com`)
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -31,6 +16,25 @@ const mailTransport = nodemailer.createTransport(`smtps://${gmailEmail}:${gmailP
 //////////////////////////////////////////////////////////////////////////////////
 
 const bva_key = "replace_with_your_BvA_key" 
+
+
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+//         PLEASE EDIT PREFERENCES BELOW
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+
+const bnb_api_key = 'replace_with_your_binace_api_key' // Type your Binace API KEY
+const bnb_api_secret = 'replace_with_your_binace_api__secret_key' // Type your Binace SECRET KEY
+const telegramToken = 'replaceWith:your_BOT_token' //BOT TOKEN -> ask BotFather Please if not use set default value to->> replaceWith:your_BOT_token
+const telChanel = -12345678910 //Replace with your Chanel ID. Type /chanel in your telegram chanel
+const use_telegram = false //USE TELEGRAM  ---- true = YES; false = NO
+const send_email = false // USE SEND MAIL ---- true = YES; false = NO
+const gmail_address = ''
+const gmail_app_password = ''
+const gmailEmail = encodeURIComponent(gmail_address)
+const gmailPassword = encodeURIComponent(gmail_app_password)
+const mailTransport = nodemailer.createTransport(`smtps://${gmailEmail}:${gmailPassword}@smtp.gmail.com`)
 
 //////////////////////////////////////////////////////////////////////////////////
 //         VARIABLES TO KEEP TRACK OF BOT POSITIONS AND ACTIVITY
@@ -43,6 +47,7 @@ let trading_qty = {}
 let buy_prices = {}
 let sell_prices = {}
 let user_payload = []
+let available_balances = []
 
 let minimums = {}    
 
@@ -53,41 +58,6 @@ const app = express()
 app.get('/', (req, res) => res.send(""))
 app.listen(process.env.PORT || 8003, () => console.log('NBT auto trader running.'.grey))
 
-
-//////////////////////////////////////////////////////////////////////////////////
-//              TELEGRAM BOT 
-//////////////////////////////////////////////////////////////////////////////////
-if(use_telegram){
-    const telegramToken = 'replace_with_your_BOT_token' //BOT TOKEN -> ask BotFather
-    let telChanel = -123456789 //Replace with your Chanel ID. if needed help go uncoment LINES 723 and 724
-    
-    const telBot = new TeleBot({
-    token: telegramToken, // Required. Telegram Bot API token.
-    polling: { // Optional. Use polling.
-    interval: 700, // Optional. How often check updates (in ms).
-    timeout: 0, // Optional. Update polling timeout (0 - short polling).
-    limit: 100, // Optional. Limits the number of updates to be retrieved.
-    retryTimeout: 5000, // Optional. Reconnecting timeout (in ms).
-    // proxy: 'http://username:password@yourproxy.com:8080' // Optional. An HTTP proxy to be used.
-    },
-    // webhook: { // Optional. Use webhook instead of polling.
-    //     key: 'key.pem', // Optional. Private key for server.
-    //     cert: 'cert.pem', // Optional. Public key.
-    //     url: 'https://....', // HTTPS url to send updates to.
-    //     host: '0.0.0.0', // Webhook server host.
-    //     port: 443, // Server port.
-    //     maxConnections: 40 // Optional. Maximum allowed number of simultaneous HTTPS connections to the webhook for update delivery
-    // },
-    allowedUpdates: [], // Optional. List the types of updates you want your bot to receive. Specify an empty list to receive all updates.
-    usePlugins: ['askUser'], // Optional. Use user plugins from pluginFolder.
-    pluginFolder: '../plugins/', // Optional. Plugin folder location.
-    pluginConfig: { // Optional. Plugin configuration.
-    // myPluginName: {
-    //   data: 'my custom value'
-    // }
-    }
-    });    
-}
 //////////////////////////////////////////////////////////////////////////////////
 
 const margin_pairs = ['ADABTC', 'ATOMBTC','BATBTC','BCHBTC','BNBBTC','DASHBTC','EOSBTC','ETCBTC',
@@ -97,15 +67,10 @@ const margin_pairs = ['ADABTC', 'ATOMBTC','BATBTC','BCHBTC','BNBBTC','DASHBTC','
 //////////////////////////////////////////////////////////////////////////////////
 
 const bnb_client = new Binance().options({
-    APIKEY: '',
-    APISECRET: ''
+    APIKEY: bnb_api_key,
+    APISECRET: bnb_api_secret
 })
 
-
-const binance_client = binance({
-    apiKey: '',
-    apiSecret: '',
-})
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -692,6 +657,23 @@ async function ExchangeInfo() {
     })
 }
 
+//Get Binace Spot Balance
+async function BalancesInfo() {
+    return new Promise((resolve, reject) => {
+        bnb_client.balance((error, balances) => {
+            if ( error ) console.error(error)
+            console.log("LOADING BINANCE SPOT BALANCE")
+            for ( let asset in balances ) {
+                if(balances[asset].available > 0.0){
+                    available_balances.push({asset: asset, available: balances[asset].available , onOrder: balances[asset].onOrder})
+                }
+            }
+            console.log("DONE")
+            resolve(true)
+        })
+    })
+}
+
 async function UpdateOpenTrades() {
     return new Promise((resolve, reject) => {
         // Retrieve previous open trades //
@@ -718,6 +700,7 @@ async function UpdateOpenTrades() {
 async function run() {
     await ExchangeInfo()
     await UpdateOpenTrades()
+    await BalancesInfo()
 }
 
 run()
@@ -725,16 +708,58 @@ run()
 //////////////////////////////////////////////////////////////////////////////////
 //                      TELEGRAM BOT
 /////////////////////////////////////////////////////////////////////////////////
+    
+const telBot = new TeleBot({
+    token: telegramToken, // Required. Telegram Bot API token.
+    polling: { // Optional. Use polling.
+    interval: 700, // Optional. How often check updates (in ms).
+    timeout: 0, // Optional. Update polling timeout (0 - short polling).
+    limit: 100, // Optional. Limits the number of updates to be retrieved.
+    retryTimeout: 5000, // Optional. Reconnecting timeout (in ms).
+    // proxy: 'http://username:password@yourproxy.com:8080' // Optional. An HTTP proxy to be used.
+    },
+    // webhook: { // Optional. Use webhook instead of polling.
+    //     key: 'key.pem', // Optional. Private key for server.
+    //     cert: 'cert.pem', // Optional. Public key.
+    //     url: 'https://....', // HTTPS url to send updates to.
+    //     host: '0.0.0.0', // Webhook server host.
+    //     port: 443, // Server port.
+    //     maxConnections: 40 // Optional. Maximum allowed number of simultaneous HTTPS connections to the webhook for update delivery
+    // },
+    allowedUpdates: [], // Optional. List the types of updates you want your bot to receive. Specify an empty list to receive all updates.
+    usePlugins: ['askUser'], // Optional. Use user plugins from pluginFolder.
+    pluginFolder: '../plugins/', // Optional. Plugin folder location.
+    pluginConfig: { // Optional. Plugin configuration.
+    // myPluginName: {
+    //   data: 'my custom value'
+    // }
+    }
+});    
 
-if(use_telegram){    
-// GET CHANEL ID
-telBot.on('/info', async (msg) => {       
-    let response = "Open Trades: "+ _.values(trading_pairs).length+"\n" 
-    // response += "Chanel ID : "+msg.chat.id+"\n"  //IF UNCOMENT SHOW CHANEL ID 
-    // telChanel = msg.chat.id
-    return telBot.sendMessage(telChanel, response)
-});
 
-telBot.start();
+if(use_telegram){ 
+    let msg = ''   
+    
+    // GET CHANEL ID
+    telBot.on('/chanel', async (msg) => {       
+        return telBot.sendMessage(msg.chat.id, "Chanel ID : "+msg.chat.id+"\n")
+    });
+
+    //Get Info. Open signals
+    telBot.on('/info', async (msg) => {       
+        response = "Open Trades: "+ _.values(trading_pairs).length+"\n" 
+        return telBot.sendMessage(telChanel, response)
+    });
+    
+    //Get Binace Spot Balance
+    telBot.on('/balance', async (msg) => {
+        let response = "-------SPOT BALANCE-----\n"
+        available_balances.forEach(c => {
+            response += c.asset+": "+c.available+"\n"
+        })
+        return telBot.sendMessage(telChanel, response)
+    })
+    
+    telBot.start();
 }
 //////////////////////////////////////////////////////////////////////////////////
