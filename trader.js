@@ -16,7 +16,6 @@ const TeleBot = require('telebot')
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-const enable_margin = false //ENABLE OR DISABLE MARGIN TRADING
 const send_email = false // USE SEND MAIL ---- true = YES; false = NO
 const use_telegram = false //USE TELEGRAM 
 const gmail_address = ''
@@ -110,7 +109,7 @@ const binance_client = binance({
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const nbt_vers = "0.2.3"
+const nbt_vers = "0.2.4"
 const socket = io('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=client&key=" + bva_key })
 
 socket.on('connect', () => {
@@ -200,16 +199,16 @@ socket.on('buy_signal', async (signal) => {
                     socket.emit("traded_buy_signal", traded_buy_signal)
                     ////
                     if (user_payload[tresult].trading_type === "real") {
-                        if (margin_pairs.includes(alt+"BTC") && enable_margin === true) {
+                        if (margin_pairs.includes(alt+"BTC")) {
                             bnb_client.mgMarketBuy(alt+"BTC", Number(qty), (error, response) => {
                                 if ( error ) { console.log("ERROR 3355333", error.body) }
                                 else console.log("SUCCESS 222444222")
                             })
                         }
                         else {
-                            bnb_client.marketBuy(alt+"USDT", Number(qty), (error, response) => {
-                                if (error) { console.log("ERROR 7991117 marketBuy", alt+"USDT", Number(qty), error.body) }
-                                else { console.log("SUCESS 99111 marketBuy", alt+"USDT", Number(qty)) }
+                            bnb_client.marketBuy(alt+"BTC", Number(qty), (error, response) => {
+                                if (error) { console.log("ERROR 7991117 marketBuy", alt+"BTC", Number(qty), error.body) }
+                                else { console.log("SUCESS 99111 marketBuy", alt+"BTC", Number(qty)) }
                             })
                         }
                     }
@@ -487,7 +486,7 @@ socket.on('sell_signal', async (signal) => {
                     socket.emit("traded_sell_signal", traded_sell_signal)
                     ///
                     if (user_payload[tresult].trading_type === "real") {
-                        if (margin_pairs.includes(alt+"BTC") && enable_margin === true) {
+                        if (margin_pairs.includes(alt+"BTC")) {
                             console.log("QTY =======mgMarketSell======> " + qty + " - " + alt + "BTC")
                             bnb_client.mgMarketSell(alt+"BTC", Number(qty), (error, response) => {
                                 if (error) { console.log("ERROR 722211117", alt, Number(qty), JSON.stringify(error)) }
@@ -495,10 +494,10 @@ socket.on('sell_signal', async (signal) => {
                             })
                         }
                         else {
-                            console.log("QTY =======marketSell======> " + qty + " - " + alt + "USDT")
-                            bnb_client.marketSell(alt+"USDT", Number(qty), (error, response) => {
-                                if (error) { console.log("ERROR 7213331117 marketSell", alt+"USDT", Number(qty), JSON.stringify(error)) }
-                                else { console.log("SUCESS 711000111 marketSell", alt+"USDT", Number(qty)) }
+                            console.log("QTY =======marketSell======> " + qty + " - " + alt + "BTC")
+                            bnb_client.marketSell(alt+"BTC", Number(qty), (error, response) => {
+                                if (error) { console.log("ERROR 7213331117 marketSell", alt+"BTC", Number(qty), JSON.stringify(error)) }
+                                else { console.log("SUCESS 711000111 marketSell", alt+"BTC", Number(qty)) }
                             })
                         }
                     }
