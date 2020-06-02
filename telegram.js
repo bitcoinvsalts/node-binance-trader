@@ -1,7 +1,7 @@
 const TeleBot = require('telebot')
 const _ = require('lodash')
 
-module.exports = function (use_telegram, telegramToken, telChanel) {
+module.exports = function (use_telegram, telegramToken, telChanel, trading_pairs) {
     if (!use_telegram) {
         return true;
     }

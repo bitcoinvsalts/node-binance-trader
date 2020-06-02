@@ -58,7 +58,7 @@ app.listen(process.env.PORT || 8003, () => console.log('NBT auto trader running.
 
 const telegramToken = 'replace_with_your_BOT_token' //BOT TOKEN -> ask BotFather
 let telChanel = -123456789 //Replace with your Chanel ID. if needed help go uncoment LINES 40 and 41 in telegram.js    
-const telBot = require('./telegram')(use_telegram, telegramToken, telChanel);
+const telBot = require('./telegram')(use_telegram, telegramToken, telChanel, trading_pairs);
 
 //////////////////////////////////////////////////////////////////////////////////
 
