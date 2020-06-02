@@ -59,34 +59,44 @@ app.listen(process.env.PORT || 8003, () => console.log('NBT auto trader running.
 //////////////////////////////////////////////////////////////////////////////////
 if(use_telegram){
     const telegramToken = 'replace_with_your_BOT_token' //BOT TOKEN -> ask BotFather
-    let telChanel = -123456789 //Replace with your Chanel ID. if needed help go uncoment LINES 723 and 724
+    let telChanel = -123456789 //Replace with your Chanel ID. if needed help go uncoment LINES 94 and 95
     
     const telBot = new TeleBot({
-    token: telegramToken, // Required. Telegram Bot API token.
-    polling: { // Optional. Use polling.
-    interval: 700, // Optional. How often check updates (in ms).
-    timeout: 0, // Optional. Update polling timeout (0 - short polling).
-    limit: 100, // Optional. Limits the number of updates to be retrieved.
-    retryTimeout: 5000, // Optional. Reconnecting timeout (in ms).
-    // proxy: 'http://username:password@yourproxy.com:8080' // Optional. An HTTP proxy to be used.
-    },
-    // webhook: { // Optional. Use webhook instead of polling.
-    //     key: 'key.pem', // Optional. Private key for server.
-    //     cert: 'cert.pem', // Optional. Public key.
-    //     url: 'https://....', // HTTPS url to send updates to.
-    //     host: '0.0.0.0', // Webhook server host.
-    //     port: 443, // Server port.
-    //     maxConnections: 40 // Optional. Maximum allowed number of simultaneous HTTPS connections to the webhook for update delivery
-    // },
-    allowedUpdates: [], // Optional. List the types of updates you want your bot to receive. Specify an empty list to receive all updates.
-    usePlugins: ['askUser'], // Optional. Use user plugins from pluginFolder.
-    pluginFolder: '../plugins/', // Optional. Plugin folder location.
-    pluginConfig: { // Optional. Plugin configuration.
-    // myPluginName: {
-    //   data: 'my custom value'
-    // }
-    }
-    });    
+        token: telegramToken, // Required. Telegram Bot API token.
+        polling: { // Optional. Use polling.
+            interval: 700, // Optional. How often check updates (in ms).
+            timeout: 0, // Optional. Update polling timeout (0 - short polling).
+            limit: 100, // Optional. Limits the number of updates to be retrieved.
+            retryTimeout: 5000, // Optional. Reconnecting timeout (in ms).
+            // proxy: 'http://username:password@yourproxy.com:8080' // Optional. An HTTP proxy to be used.
+        },
+        // webhook: { // Optional. Use webhook instead of polling.
+        //     key: 'key.pem', // Optional. Private key for server.
+        //     cert: 'cert.pem', // Optional. Public key.
+        //     url: 'https://....', // HTTPS url to send updates to.
+        //     host: '0.0.0.0', // Webhook server host.
+        //     port: 443, // Server port.
+        //     maxConnections: 40 // Optional. Maximum allowed number of simultaneous HTTPS connections to the webhook for update delivery
+        // },
+        allowedUpdates: [], // Optional. List the types of updates you want your bot to receive. Specify an empty list to receive all updates.
+        usePlugins: ['askUser'], // Optional. Use user plugins from pluginFolder.
+        pluginFolder: '../plugins/', // Optional. Plugin folder location.
+        pluginConfig: { // Optional. Plugin configuration.
+        // myPluginName: {
+        //   data: 'my custom value'
+        // }
+        }
+    });
+    
+    // GET CHANEL ID
+    telBot.on('/info', async (msg) => {       
+        let response = "Open Trades: "+ _.values(trading_pairs).length+"\n" 
+        // response += "Chanel ID : "+msg.chat.id+"\n"  //IF UNCOMENT SHOW CHANEL ID 
+        // telChanel = msg.chat.id
+        return telBot.sendMessage(telChanel, response)
+    });
+
+    telBot.start();
 }
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -721,20 +731,3 @@ async function run() {
 }
 
 run()
-
-//////////////////////////////////////////////////////////////////////////////////
-//                      TELEGRAM BOT
-/////////////////////////////////////////////////////////////////////////////////
-
-if(use_telegram){    
-// GET CHANEL ID
-telBot.on('/info', async (msg) => {       
-    let response = "Open Trades: "+ _.values(trading_pairs).length+"\n" 
-    // response += "Chanel ID : "+msg.chat.id+"\n"  //IF UNCOMENT SHOW CHANEL ID 
-    // telChanel = msg.chat.id
-    return telBot.sendMessage(telChanel, response)
-});
-
-telBot.start();
-}
-//////////////////////////////////////////////////////////////////////////////////
