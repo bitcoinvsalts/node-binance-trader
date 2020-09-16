@@ -665,6 +665,7 @@ async function ExchangeInfo() {
 }
 
 //Get Binace Spot Balance
+/*
 async function BalancesInfo() {
     return new Promise((resolve, reject) => {
         bnb_client.balance((error, balances) => {
@@ -680,6 +681,7 @@ async function BalancesInfo() {
         })
     })
 }
+*/
 
 async function UpdateOpenTrades() {
     return new Promise((resolve, reject) => {
@@ -707,7 +709,7 @@ async function UpdateOpenTrades() {
 async function run() {
     await ExchangeInfo()
     await UpdateOpenTrades()
-    await BalancesInfo()
+    //await BalancesInfo()
 }
 
 run()
