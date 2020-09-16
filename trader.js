@@ -7,7 +7,7 @@ const BigNumber = require('bignumber.js')
 const axios = require('axios')
 const Binance = require('node-binance-api')
 const nodemailer = require('nodemailer')
-const TeleBot = require('telebot')
+//const TeleBot = require('telebot')
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -26,9 +26,9 @@ const bva_key = "replace_with_your_BvA_key"
 
 const bnb_api_key = 'replace_with_your_binace_api_key' // Type your Binace API KEY
 const bnb_api_secret = 'replace_with_your_binace_api__secret_key' // Type your Binace SECRET KEY
-const telegramToken = 'replaceWith:your_BOT_token' //BOT TOKEN -> ask BotFather Please if not use set default value to->> replaceWith:your_BOT_token
-const telChanel = -12345678910 //Replace with your Chanel ID. Type /chanel in your telegram chanel
-const use_telegram = false //USE TELEGRAM  ---- true = YES; false = NO
+//const telegramToken = 'replaceWith:your_BOT_token' //BOT TOKEN -> ask BotFather Please if not use set default value to->> replaceWith:your_BOT_token
+//const telChanel = -12345678910 //Replace with your Chanel ID. Type /chanel in your telegram chanel
+//const use_telegram = false //USE TELEGRAM  ---- true = YES; false = NO
 const send_email = false // USE SEND MAIL ---- true = YES; false = NO
 const gmail_address = ''
 const gmail_app_password = ''
@@ -113,11 +113,13 @@ socket.on('buy_signal', async (signal) => {
                 })
             }
             //SEND TELEGRAM MSG
+            /*
             if (use_telegram) {
                 let msg = "BUY_SIGNAL :: ENTER LONG TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
                 telBot.sendMessage(telChanel, msg)
             }
+            */
             //////
             trading_pairs[signal.pair+signal.stratid] = true
             trading_types[signal.pair+signal.stratid] = "LONG"
@@ -209,11 +211,13 @@ socket.on('buy_signal', async (signal) => {
                 })
             }
             //SEND TELEGRAM MSG
+            /*
             if (use_telegram) {
                 let msg = "BUY_SIGNAL :: BUY TO COVER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
                 telBot.sendMessage(telChanel, msg)
             }
+            */
             //////
             console.log(signal.pair, ' ---> BUY', Number(trading_qty[signal.pair+signal.stratid]))
             if (signal.pair == 'BTCUSDT') {
@@ -315,11 +319,13 @@ socket.on('sell_signal', async (signal) => {
                 })
             }
             //SEND TELEGRAM MSG
+            /*
             if (use_telegram) {
                 let msg = "SELL_SIGNAL :: ENTER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
                 telBot.sendMessage(telChanel, msg)
             }
+            */
             //////
             trading_pairs[signal.pair+signal.stratid] = true
             trading_types[signal.pair+signal.stratid] = "SHORT"
@@ -411,12 +417,13 @@ socket.on('sell_signal', async (signal) => {
                 })
             }
             //SEND TELEGRAM MSG
+            /*
             if (use_telegram) {
                 let msg = "SELL_SIGNAL :: SELL TO EXIT LONG TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
                 telBot.sendMessage(telChanel, msg)
             }
-            
+            */
             //////
             console.log(signal.pair, ' ---> SELL', Number(trading_qty[signal.pair+signal.stratid]))
             if (signal.pair == 'BTCUSDT') {
@@ -708,7 +715,7 @@ run()
 //////////////////////////////////////////////////////////////////////////////////
 //                      TELEGRAM BOT
 /////////////////////////////////////////////////////////////////////////////////
-    
+/*
 const telBot = new TeleBot({
     token: telegramToken, // Required. Telegram Bot API token.
     polling: { // Optional. Use polling.
@@ -734,8 +741,7 @@ const telBot = new TeleBot({
     //   data: 'my custom value'
     // }
     }
-});    
-
+});
 
 if(use_telegram){ 
     let msg = ''   
@@ -762,4 +768,5 @@ if(use_telegram){
     
     telBot.start();
 }
+*/
 //////////////////////////////////////////////////////////////////////////////////
