@@ -28,7 +28,7 @@ const bva_key = "replace_with_your_BvA_key"
 
 const wait_time = 800
 
-const nbt_vers = "0.2.2"
+const nbt_vers = "0.2.4"
 
 const pairs = ['BTCUSDT'] //, 'ETHBTC', 'XRPBTC', 'XRPETH']
 

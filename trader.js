@@ -8,7 +8,7 @@ const axios = require('axios')
 const Binance = require('node-binance-api')
 const binance = require('binance-api-node').default
 const nodemailer = require('nodemailer')
-const TeleBot = require('telebot')
+//const TeleBot = require('telebot')  // to connect to Telegram
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -17,7 +17,7 @@ const TeleBot = require('telebot')
 //////////////////////////////////////////////////////////////////////////////////
 
 const send_email = false // USE SEND MAIL ---- true = YES; false = NO
-const use_telegram = false //USE TELEGRAM 
+//const use_telegram = false //USE TELEGRAM 
 const gmail_address = ''
 const gmail_app_password = ''
 const gmailEmail = encodeURIComponent(gmail_address)
@@ -57,6 +57,7 @@ app.listen(process.env.PORT || 8003, () => console.log('NBT auto trader running.
 //////////////////////////////////////////////////////////////////////////////////
 //              TELEGRAM BOT 
 //////////////////////////////////////////////////////////////////////////////////
+/*
 if(use_telegram){
     const telegramToken = 'replace_with_your_BOT_token' //BOT TOKEN -> ask BotFather
     let telChanel = -123456789 //Replace with your Chanel ID. if needed help go uncoment LINES 723 and 724
@@ -88,6 +89,7 @@ if(use_telegram){
     }
     });    
 }
+*/
 //////////////////////////////////////////////////////////////////////////////////
 
 const margin_pairs = ['ADABTC', 'ATOMBTC','BATBTC','BCHBTC','BNBBTC','DASHBTC','EOSBTC','ETCBTC',
@@ -244,11 +246,13 @@ socket.on('buy_signal', async (signal) => {
                 })
             }
             //SEND TELEGRAM MSG
+            /*
             if (use_telegram) {
                 let msg = "BUY_SIGNAL :: BUY TO COVER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
                 telBot.sendMessage(telChanel, msg)
             }
+            */
             //////
             console.log(signal.pair, ' ---> BUY', Number(trading_qty[signal.pair+signal.stratid]))
             if (signal.pair == 'BTCUSDT') {
@@ -350,11 +354,13 @@ socket.on('sell_signal', async (signal) => {
                 })
             }
             //SEND TELEGRAM MSG
+            /*
             if (use_telegram) {
                 let msg = "SELL_SIGNAL :: ENTER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
                 telBot.sendMessage(telChanel, msg)
             }
+            */
             //////
             trading_pairs[signal.pair+signal.stratid] = true
             trading_types[signal.pair+signal.stratid] = "SHORT"
@@ -446,12 +452,13 @@ socket.on('sell_signal', async (signal) => {
                 })
             }
             //SEND TELEGRAM MSG
+            /*
             if (use_telegram) {
                 let msg = "SELL_SIGNAL :: SELL TO EXIT LONG TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
                 msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
                 telBot.sendMessage(telChanel, msg)
             }
-            
+            */
             //////
             console.log(signal.pair, ' ---> SELL', Number(trading_qty[signal.pair+signal.stratid]))
             if (signal.pair == 'BTCUSDT') {
@@ -725,7 +732,7 @@ run()
 //////////////////////////////////////////////////////////////////////////////////
 //                      TELEGRAM BOT
 /////////////////////////////////////////////////////////////////////////////////
-
+/*
 if(use_telegram){    
 // GET CHANEL ID
 telBot.on('/info', async (msg) => {       
@@ -737,4 +744,5 @@ telBot.on('/info', async (msg) => {
 
 telBot.start();
 }
+*/
 //////////////////////////////////////////////////////////////////////////////////
