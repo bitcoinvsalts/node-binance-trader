@@ -8,6 +8,8 @@ const axios = require('axios')
 const Binance = require('node-binance-api')
 const nodemailer = require('nodemailer')
 //const TeleBot = require('telebot')
+const pushover = require ('pushover-notifications')
+
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -15,7 +17,7 @@ const nodemailer = require('nodemailer')
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-const bva_key = "replace_with_your_BvA_key" 
+const bva_key = const bva_key = "replace_with_your_BvA_key"  
 
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -29,6 +31,11 @@ const bnb_api_secret = 'replace_with_your_binace_api__secret_key' // Type your B
 //const telegramToken = 'replaceWith:your_BOT_token' //BOT TOKEN -> ask BotFather Please if not use set default value to->> replaceWith:your_BOT_token
 //const telChanel = -12345678910 //Replace with your Chanel ID. Type /chanel in your telegram chanel
 //const use_telegram = false //USE TELEGRAM  ---- true = YES; false = NO
+
+const usePushover = false //USE PUSHOVER NOTIFICATIONS ---- true = YES; false = NO
+const pushUser = 'replace_with_your_pushover_user_key' // Replace With Pushover User Key
+const pushToken = 'replace_with_your_pushover_app_token' // Replace With Pushover App Token
+
 const send_email = false // USE SEND MAIL ---- true = YES; false = NO
 const gmail_address = ''
 const gmail_app_password = ''
@@ -69,6 +76,14 @@ const margin_pairs = ['ADABTC', 'ATOMBTC','BATBTC','BCHBTC','BNBBTC','DASHBTC','
 const bnb_client = new Binance().options({
     APIKEY: bnb_api_key,
     APISECRET: bnb_api_secret
+})
+
+//////////////////////////////////////////////////////////////////////////////////
+
+
+const pushMessage = new pushover( {
+    user: pushUser,
+    token: pushToken,
 })
 
 
@@ -121,6 +136,34 @@ socket.on('buy_signal', async (signal) => {
             }
             */
             //////
+
+            // SEND PUSHOVER MESSAGE //
+            
+            if (usePushover) {
+                const pushMsg = {
+                // 'message' is required. All other values are optional.
+                    message:  "<b>Strategy: <font color=#f219f5>" + signal.stratname + "</font></b>" + "\n"
+                            + "<b>Entry Price: </b><font color=#3ce102> " + signal.price + "</font>" + "\n" 
+                            + (signal.score?"score: "+signal.score:'score: NA') + "\n"
+                            + "<a href=https://bitcoinvsaltcoins.com/>OPEN BvA HUB</a>",
+                    title: signal.pair + " LONG TRADE OPENED",
+                    sound: 'cashregister',
+                    device: 'devicename',
+                    priority: 0,
+                    html: 1
+                }
+
+                pushMessage.send( pushMsg, function( err, result ) {
+                    if ( err ) {
+                        throw err
+                    }
+                    // console.log( result )
+                })
+            }
+
+            // END PUSHOVER BLOCK //
+            
+
             trading_pairs[signal.pair+signal.stratid] = true
             trading_types[signal.pair+signal.stratid] = "LONG"
             open_trades[signal.pair+signal.stratid] = true
@@ -219,6 +262,34 @@ socket.on('buy_signal', async (signal) => {
             }
             */
             //////
+
+            // SEND PUSHOVER MESSAGE //
+
+            if (usePushover) {
+                const pushMsg = {
+                // 'message' is required. All other values are optional.
+                    message:  "<b>Strategy: <font color=#f219f5>" + signal.stratname + "</font></b>" + "\n"
+                            + "<b>Exit Price: </b><font color=#3ce102> " + signal.price + "</font>" + "\n" 
+                            + (signal.score?"score: "+signal.score:'score: NA') + "\n"
+                            + "<a href=https://bitcoinvsaltcoins.com/>OPEN BvA HUB</a>",
+                    title: signal.pair + " CLOSE SHORT TRADE",
+                    sound: 'bike',
+                    device: 'devicename',
+                    priority: 0,
+                    html: 1
+                }
+
+                pushMessage.send( pushMsg, function( err, result ) {
+                    if ( err ) {
+                        throw err
+                    }
+                    // console.log( result )
+                })
+            }
+
+            // END PUSHOVER BLOCK //
+
+
             console.log(signal.pair, ' ---> BUY', Number(trading_qty[signal.pair+signal.stratid]))
             if (signal.pair == 'BTCUSDT') {
                 /////
@@ -327,6 +398,34 @@ socket.on('sell_signal', async (signal) => {
             }
             */
             //////
+
+            // SEND PUSHOVER MESSAGE //
+
+            if (usePushover) {
+                const pushMsg = {
+                // 'message' is required. All other values are optional.
+                    message:  "<b>Strategy: <font color=#f219f5>" + signal.stratname + "</font></b>" + "\n"
+                            + "<b>Entry Price: </b><font color=#3ce102> " + signal.price + "</font>" + "\n" 
+                            + (signal.score?"score: "+signal.score:'score: NA') + "\n"
+                            + "<a href=https://bitcoinvsaltcoins.com/>OPEN BvA HUB</a>",
+                    title: signal.pair + " SHORT TRADE OPENED",
+                    sound: 'cashregister',
+                    device: 'devicename',
+                    priority: 0,
+                    html: 1
+                }
+
+                pushMessage.send( pushMsg, function( err, result ) {
+                    if ( err ) {
+                        throw err
+                    }
+                    // console.log( result )
+                })
+            }
+
+            // END PUSHOVER BLOCK //
+
+
             trading_pairs[signal.pair+signal.stratid] = true
             trading_types[signal.pair+signal.stratid] = "SHORT"
             open_trades[signal.pair+signal.stratid] = true
@@ -425,6 +524,34 @@ socket.on('sell_signal', async (signal) => {
             }
             */
             //////
+
+            // SEND PUSHOVER MESSAGE //
+
+            if (usePushover) {
+                const pushMsg = {
+                // 'message' is required. All other values are optional.
+                    message:  "<b>Strategy: <font color=#f219f5>" + signal.stratname + "</font></b>" + "\n"
+                            + "<b>Exit Price: </b><font color=#3ce102> " + signal.price + "</font>" + "\n" 
+                            + (signal.score?"score: "+signal.score:'score: NA') + "\n"
+                            + "<a href=https://bitcoinvsaltcoins.com/>OPEN BvA HUB</a>",
+                    title: signal.pair + " EXIT LONG TRADE",
+                    sound: 'bike',
+                    device: 'devicename',
+                    priority: 0,
+                    html: 1
+                }
+
+                pushMessage.send( pushMsg, function( err, result ) {
+                    if ( err ) {
+                        throw err
+                    }
+                    // console.log( result )
+                })
+            }
+
+            // END PUSHOVER BLOCK //
+
+
             console.log(signal.pair, ' ---> SELL', Number(trading_qty[signal.pair+signal.stratid]))
             if (signal.pair == 'BTCUSDT') {
                 const traded_sell_signal = {
@@ -665,7 +792,7 @@ async function ExchangeInfo() {
 }
 
 //Get Binace Spot Balance
-/*
+
 async function BalancesInfo() {
     return new Promise((resolve, reject) => {
         bnb_client.balance((error, balances) => {
@@ -681,7 +808,7 @@ async function BalancesInfo() {
         })
     })
 }
-*/
+
 
 async function UpdateOpenTrades() {
     return new Promise((resolve, reject) => {
