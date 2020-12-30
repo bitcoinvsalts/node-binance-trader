@@ -7,6 +7,7 @@ const BigNumber = require('bignumber.js')
 const axios = require('axios')
 const Binance = require('node-binance-api')
 const nodemailer = require('nodemailer')
+const pushover = require ('pushover-notifications')
 //const TeleBot = require('telebot')
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -35,6 +36,11 @@ const gmail_app_password = ''
 const gmailEmail = encodeURIComponent(gmail_address)
 const gmailPassword = encodeURIComponent(gmail_app_password)
 const mailTransport = nodemailer.createTransport(`smtps://${gmailEmail}:${gmailPassword}@smtp.gmail.com`)
+
+const usePushover = false //ACTIVATE PUSHOVER NOTIFICATIONS true/false
+const pushUser = 'replace_with_your_pushover_user_key' // Pushover User Key
+const pushToken = 'replace_with_your_pushover_app_token' // Pushover App Token
+
 
 //////////////////////////////////////////////////////////////////////////////////
 //         VARIABLES TO KEEP TRACK OF BOT POSITIONS AND ACTIVITY
@@ -71,6 +77,10 @@ const bnb_client = new Binance().options({
     APISECRET: bnb_api_secret
 })
 
+const pushMessage = new pushover( {
+    user: pushUser,
+    token: pushToken,
+})
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -94,7 +104,7 @@ socket.on('buy_signal', async (signal) => {
     if (tresult > -1) {
         if (!trading_pairs[signal.pair+signal.stratid] && signal.new) {
             console.log(colors.grey('BUY_SIGNAL :: ENTER LONG TRADE ::', signal.stratname, signal.stratid, signal.pair))
-            // SEND TRADE EMAIL
+            // SEND TRADE EMAIL 
             if (send_email) {
                 const mailOptions = {
                     from: '"🐬  BVA " <no-reply@gmail.com>',
@@ -110,6 +120,26 @@ socket.on('buy_signal', async (signal) => {
                         mailTransport.sendMail(mailOptions).then(() => {
                         }).catch(error => { console.error('There was an error while sending the email: stop trying') })
                     }, 2000 )
+                })
+            }
+            // SEND PUSHOVER
+            if (usePushover) {
+                const pushMsg = {
+                // 'message' is required. All other values are optional.
+                    message:  "<b>Strategy: " + signal.stratname + "</b>" + "\n"
+                            + "<b>Long Price: </b><font color=#3ce102> " + signal.price + "</font>" + "\n" 
+                            + (signal.score?"score: "+signal.score:'score: NA') + "\n",
+                    title: signal.pair + " OPEN LONG TRADE",
+                    sound: 'bike',
+                    device: 'devicename',
+                    priority: 0,
+                    html: 1
+                }
+
+                pushMessage.send( pushMsg, function( err, result ) {
+                    if ( err ) {
+                        throw err
+                    }
                 })
             }
             //SEND TELEGRAM MSG
@@ -208,6 +238,26 @@ socket.on('buy_signal', async (signal) => {
                         mailTransport.sendMail(mailOptions).then(() => {
                         }).catch(error => { console.error('There was an error while sending the email: stop trying') })
                     }, 2000 )
+                })
+            }
+            // SEND PUSH MESSAGE
+            if (usePushover) {
+                const pushMsg = {
+                // 'message' is required. All other values are optional.
+                    message:  "<b>Strategy: " + signal.stratname + "</b>" + "\n"
+                            + "<b>Entry Price: </b><font color=#3ce102> " + signal.price + "</font>" + "\n" 
+                            + (signal.score?"score: "+signal.score:'score: NA') + "\n",
+                    title: signal.pair + " BUY_SIGNAL :: BUY TO COVER SHORT TRADE",
+                    sound: 'cashregister',
+                    device: 'devicename',
+                    priority: 0,
+                    html: 1
+                }
+
+                pushMessage.send( pushMsg, function( err, result ) {
+                    if ( err ) {
+                        throw err
+                    }
                 })
             }
             //SEND TELEGRAM MSG
@@ -318,6 +368,26 @@ socket.on('sell_signal', async (signal) => {
                     }, 2000 )
                 })
             }
+        	// SEND PUSH MESSAGE
+            if (usePushover) {
+                const pushMsg = {
+                // 'message' is required. All other values are optional.
+                    message:  "<b>Strategy: " + signal.stratname + "</b>" + "\n"
+                            + "<b>Short Entry Price: </b><font color=#023DE0> " + signal.price + "</font>" + "\n" 
+                            + (signal.score?"score: "+signal.score:'score: NA') + "\n",
+                    title: signal.pair + " SELL_SIGNAL :: ENTER SHORT TRADE ",
+                    sound: 'cashregister',
+                    device: 'devicename',
+                    priority: 0,
+                    html: 1
+                }
+
+                pushMessage.send( pushMsg, function( err, result ) {
+                    if ( err ) {
+                        throw err
+                    }
+                })
+            }
             //SEND TELEGRAM MSG
             /*
             if (use_telegram) {
@@ -414,6 +484,26 @@ socket.on('sell_signal', async (signal) => {
                         mailTransport.sendMail(mailOptions).then(() => {
                         }).catch(error => { console.error('There was an error while sending the email: stop trying') })
                     }, 2000 )
+                })
+            }
+            // SEND PUSH MESSAGE
+            if (usePushover) {
+                const pushMsg = {
+                // 'message' is required. All other values are optional.
+                    message:  "<b>Strategy: " + signal.stratname + "</b>" + "\n"
+                            + "<b>Long Exit Price: </b><font color=#3ce102> " + signal.price + "</font>" + "\n" 
+                            + (signal.score?"score: "+signal.score:'score: NA') + "\n",
+                    title: signal.pair + " SELL_SIGNAL :: SELL TO EXIT LONG TRADE ",
+                    sound: 'cashregister',
+                    device: 'devicename',
+                    priority: 0,
+                    html: 1
+                }
+
+                pushMessage.send( pushMsg, function( err, result ) {
+                    if ( err ) {
+                        throw err
+                    }
                 })
             }
             //SEND TELEGRAM MSG
