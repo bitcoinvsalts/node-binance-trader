@@ -148,7 +148,7 @@ socket.on('buy_signal', async (signal) => {
             }
             else {
                 const alt = signal.pair.replace('BTC','')
-                if (minimums[alt+'BTC'].minQty) {
+                if (minimums[alt+'BTC'] && minimums[alt+'BTC'].minQty) {
                     const buy_amount = new BigNumber(user_payload[tresult].buy_amount)
                     const btc_qty = buy_amount.dividedBy(signal.price)
                     const qty = bnb_client.roundStep(btc_qty, minimums[alt+'BTC'].stepSize)
@@ -358,7 +358,7 @@ socket.on('sell_signal', async (signal) => {
             }
             else {
                 const alt = signal.pair.replace('BTC','')
-                if (minimums[alt+'BTC'].minQty) {
+                if (minimums[alt+'BTC'] && minimums[alt+'BTC'].minQty) {
                     const buy_amount = new BigNumber(user_payload[tresult].buy_amount)
                     const btc_qty = buy_amount.dividedBy(signal.price)
                     const qty = bnb_client.roundStep(btc_qty, minimums[alt+'BTC'].stepSize)
@@ -444,7 +444,7 @@ socket.on('sell_signal', async (signal) => {
             }
             else {
                 const alt = signal.pair.replace('BTC','')
-                if (minimums[alt+'BTC'].minQty) {
+                if (minimums[alt+'BTC'] && minimums[alt+'BTC'].minQty) {
                     const qty = trading_qty[signal.pair+signal.stratid]
                     ///
                     const traded_sell_signal = {
@@ -522,7 +522,7 @@ socket.on('close_traded_signal', async (signal) => {
                 }
                 else {
                     const alt = signal.pair.replace('BTC','')
-                    if (minimums[alt+'BTC'].minQty) {
+                    if (minimums[alt+'BTC'] && minimums[alt+'BTC'].minQty) {
                         const qty = signal.qty
                         ///
                         if (margin_pairs.includes(alt+"BTC")) {
@@ -583,7 +583,7 @@ socket.on('close_traded_signal', async (signal) => {
                 }
                 else {
                     const alt = signal.pair.replace('BTC','')
-                    if (minimums[alt+'BTC'].minQty) {
+                    if (minimums[alt+'BTC'] && minimums[alt+'BTC'].minQty) {
                         const qty = trading_qty[signal.pair+signal.stratid]
                         console.log("QTY ==> " + qty + " - " + alt + "BTC")
                         bnb_client.mgMarketBuy(alt + "BTC", Number(qty), (error, response) => {
