@@ -7,9 +7,9 @@ const env = require('./env')
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const test_pair = "ETHUSDT"
+const test_pair = env.BACKTEST_TEST_PAIR
 const pg_connectionString = env.DATABASE_URL
-const pg_connectionSSL = true
+const pg_connectionSSL = env.DATABASE_CONNECT_VIA_SSL
 
 const stop_loss_pnl = -1.0
 const stop_profit_pnl = 7.5

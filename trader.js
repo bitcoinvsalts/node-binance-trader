@@ -48,7 +48,7 @@ let minimums = {}
 
 const app = express()
 app.get('/', (req, res) => res.send(""))
-app.listen(env.PORT, () => console.log('NBT auto trader running.'.grey))
+app.listen(env.TRADER_PORT, () => console.log('NBT auto trader running.'.grey))
 
 //////////////////////////////////////////////////////////////////////////////////
 

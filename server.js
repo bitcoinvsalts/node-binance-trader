@@ -10,7 +10,7 @@ const axios = require('axios')
 const { Client } = require('pg')
 const env = require('./env')
 
-const PORT = env.PORT
+const PORT = env.SERVER_PORT
 const INDEX = path.join(__dirname, 'index.html')
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -19,16 +19,16 @@ const INDEX = path.join(__dirname, 'index.html')
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-const insert_into_db = false
+const insert_into_db = env.DATABASE_INSERT_PAIR_HISTORY
 const pg_connectionString = env.DATABASE_URL
-const pg_connectionSSL = true
+const pg_connectionSSL = env.DATABASE_CONNECT_VIA_SSL
 
 // to monitor your strategy you can send your buy and sell signals to http://bitcoinvsaltcoins.com
 const send_signal_to_bva = env.CONNECT_SERVER_TO_BVA
 const bva_key = env.BVA_API_KEY
 
 const wait_time = 800
-const timeframe = '15m'
+const timeframe = env.STRATEGY_TIMEFRAME
 
 const nbt_vers = env.VERSION
 
