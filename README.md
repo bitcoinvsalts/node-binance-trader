@@ -39,7 +39,15 @@ npm i --unsafe-perm
 
 # Usage ⚡️
 
-Before everything please review the source code of the JS scripts (server.js, trader.js) and add your key information (BvA, Binance, etc...)
+Before everything please review the source code of the JS scripts (server.js, trader.js) and then add your API keys to `.env`
+
+To kickstart you, just copy the `.env.example` and edit relevant values like API Keys for BvA, Binance, etc...:
+```bash
+cp .env.example .env
+$EDITOR .env
+```
+**Never check in your `.env` file!**
+It contains your most private information
 
 **To start the server** to save pair data, define strategies and emit trading signals:
 ```
@@ -70,7 +78,7 @@ Feel free to connect your Node.js scripts to the NBT hub Websocket server to mon
 const buy_signal = {
     key: bva_key,
     stratname: stratname,
-    pair: pair, 
+    pair: pair,
     buy_price: first_ask_price[pair], //optional
     message: Date.now(), //optional
     stop_profit: Number(stop_profit[pair+signal_key]), //optional
@@ -83,8 +91,8 @@ socket_client.emit("buy_signal", buy_signal)
 ```
 const sell_signal = {
     key: bva_key,
-    stratname: stratname, 
-    pair: pair, 
+    stratname: stratname,
+    pair: pair,
     sell_price: first_bid_price[pair] //optional
 }
 socket_client.emit("sell_signal", sell_signal)
@@ -127,7 +135,7 @@ const traded_buy_signal = {
     stratname: signal.stratname,
     stratid: signal.stratid,
     trading_type: user_payload[tresult].trading_type,
-    pair: signal.pair, 
+    pair: signal.pair,
     qty: Number(user_payload[tresult].buy_amount)
 }
 socket.emit("traded_buy_signal", traded_buy_signal)
@@ -140,7 +148,7 @@ const traded_sell_signal = {
     stratname: signal.stratname,
     stratid: signal.stratid,
     trading_type: user_payload[tresult].trading_type,
-    pair: signal.pair, 
+    pair: signal.pair,
     qty: Number(user_payload[tresult].buy_amount),
 }
 socket.emit("traded_sell_signal", traded_sell_signal)

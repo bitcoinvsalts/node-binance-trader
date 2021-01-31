@@ -24,7 +24,7 @@ const pg_connectionString = env.DATABASE_URL
 const pg_connectionSSL = true
 
 // to monitor your strategy you can send your buy and sell signals to http://bitcoinvsaltcoins.com
-const send_signal_to_bva = false
+const send_signal_to_bva = env.CONNECT_SERVER_TO_BVA
 const bva_key = env.BVA_API_KEY
 
 const wait_time = 800
