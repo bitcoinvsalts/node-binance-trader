@@ -8,15 +8,8 @@ const axios = require('axios')
 const Binance = require('node-binance-api')
 const nodemailer = require('nodemailer')
 //const TeleBot = require('telebot')
-
-//////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
-//         PLEASE EDIT WITH YOUR BITCOINvsALTCOINS.com KEY HERE BELLOW
-//////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
-
-const bva_key = "replace_with_your_BvA_key" 
-
+const env = require('./env')
+const { EnvError } = require('envalid')
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -24,8 +17,7 @@ const bva_key = "replace_with_your_BvA_key"
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-const bnb_api_key = 'replace_with_your_binace_api_key' // Type your Binace API KEY
-const bnb_api_secret = 'replace_with_your_binace_api__secret_key' // Type your Binace SECRET KEY
+const bva_key = env.BVA_API_KEY
 //const telegramToken = 'replaceWith:your_BOT_token' //BOT TOKEN -> ask BotFather Please if not use set default value to->> replaceWith:your_BOT_token
 //const telChanel = -12345678910 //Replace with your Chanel ID. Type /chanel in your telegram chanel
 //const use_telegram = false //USE TELEGRAM  ---- true = YES; false = NO
@@ -35,6 +27,7 @@ const gmail_app_password = ''
 const gmailEmail = encodeURIComponent(gmail_address)
 const gmailPassword = encodeURIComponent(gmail_app_password)
 const mailTransport = nodemailer.createTransport(`smtps://${gmailEmail}:${gmailPassword}@smtp.gmail.com`)
+
 
 //////////////////////////////////////////////////////////////////////////////////
 //         VARIABLES TO KEEP TRACK OF BOT POSITIONS AND ACTIVITY
@@ -56,7 +49,7 @@ let minimums = {}
 
 const app = express()
 app.get('/', (req, res) => res.send(""))
-app.listen(process.env.PORT || 8003, () => console.log('NBT auto trader running.'.grey))
+app.listen(env.PORT, () => console.log('NBT auto trader running.'.grey))
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -67,14 +60,13 @@ const margin_pairs = ['ADABTC', 'ATOMBTC','BATBTC','BCHBTC','BNBBTC','DASHBTC','
 //////////////////////////////////////////////////////////////////////////////////
 
 const bnb_client = new Binance().options({
-    APIKEY: bnb_api_key,
-    APISECRET: bnb_api_secret
+    APIKEY: env.BINANCE_API_KEY,
+    APISECRET: env.BINANCE_SECRET_KEY
 })
-
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const nbt_vers = "0.2.4"
+const nbt_vers = env.VERSION
 const socket = io('https://nbt-hub.herokuapp.com', { query: "v="+nbt_vers+"&type=client&key=" + bva_key })
 
 socket.on('connect', () => {
