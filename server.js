@@ -8,8 +8,9 @@ const _ = require('lodash')
 const tulind = require('tulind')
 const axios = require('axios')
 const { Client } = require('pg')
+const env = require('./env')
 
-const PORT = process.env.PORT || 4000
+const PORT = env.PORT
 const INDEX = path.join(__dirname, 'index.html')
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -19,16 +20,17 @@ const INDEX = path.join(__dirname, 'index.html')
 //////////////////////////////////////////////////////////////////////////////////
 
 const insert_into_db = false
-const pg_connectionString = 'postgres://postgres@127.0.0.1:5432/postgres'
-const pg_connectionSSL = false
+const pg_connectionString = env.DATABASE_URL
+const pg_connectionSSL = true
 
 // to monitor your strategy you can send your buy and sell signals to http://bitcoinvsaltcoins.com
 const send_signal_to_bva = false
-const bva_key = "replace_with_your_BvA_key"
+const bva_key = env.BVA_API_KEY
 
 const wait_time = 800
+const timeframe = '15m'
 
-const nbt_vers = "0.2.4"
+const nbt_vers = env.VERSION
 
 const pairs = ['BTCUSDT'] //, 'ETHBTC', 'XRPBTC', 'XRPETH']
 
@@ -178,14 +180,14 @@ async function trackPairData(pair) {
     initPairData(pair)
 
     // get start candles
-    const candles = await binance_client.candles({ symbol: pair, interval: '15m' })
+    const candles = await binance_client.candles({ symbol: pair, interval: timeframe })
     for (var i = 0, len = candles.length; i < len; i++) {
         addCandle(pair, candles[i])
     }
     await sleep(wait_time)
 
     // setup candle websocket
-    const candlesWs = binance_client.ws.candles(pair, '15m', async candle => {
+    const candlesWs = binance_client.ws.candles(pair, timeframe, async candle => {
 
         updateLastCandle(pair, candle)
         if (candle.isFinal) {
@@ -405,6 +407,7 @@ async function checkSignal(pair) {
         let macdOldest = macd[2][macd[2].length - 3]
         let macdOlder = macd[2][macd[2].length - 2]
         let macdNewest = macd[2][macd[2].length - 1]
+
 
         if (macdNewest >= 0 && macdOlder < 0 && macdOldest < 0 && rsiLatest < 0.3) {
             return { isBuy: true, takeProfit: 1, stopLoss: -1 }
