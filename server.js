@@ -19,7 +19,7 @@ const INDEX = path.join(__dirname, 'index.html')
 //////////////////////////////////////////////////////////////////////////////////
 
 const insert_into_db = false
-const pg_connectionString = 'postgres://postgres@127.0.0.1:5432/postgres'
+const pg_connectionString = 'postgres://postgres:postgres@127.0.0.1:5432/postgres'
 const pg_connectionSSL = false
 
 // to monitor your strategy you can send your buy and sell signals to http://bitcoinvsaltcoins.com
