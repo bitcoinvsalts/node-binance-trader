@@ -39,7 +39,7 @@ npm i --unsafe-perm
 
 # Usage ⚡️
 
-Before everything please review the source code of the JS scripts (server.js, trader.js) and then add your API keys to `.env`
+Before everything, please review the source code of the JS scripts (server.js, trader.js) and then add your secret data to `.env`.
 
 To kickstart, just duplicate the `.env.example`, name it  `.env` and insert your secret values:
 ```bash
