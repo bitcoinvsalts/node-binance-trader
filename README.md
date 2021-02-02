@@ -47,7 +47,7 @@ cp .env.example .env
 $EDITOR .env
 ```
 **Never check in your `.env` file!**
-It contains your most private information
+It contains your most private information.
 
 **To start the server** to save pair data, define strategies and emit trading signals:
 ```
