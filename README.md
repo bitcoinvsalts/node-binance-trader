@@ -41,7 +41,7 @@ npm i --unsafe-perm
 
 Before everything please review the source code of the JS scripts (server.js, trader.js) and then add your API keys to `.env`
 
-To kickstart you, just copy the `.env.example` and edit relevant values like API Keys for BvA, Binance, etc...:
+To kickstart, just duplicate the `.env.example`, name it  `.env` and insert your secret values:
 ```bash
 cp .env.example .env
 $EDITOR .env
