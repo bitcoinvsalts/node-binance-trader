@@ -19,8 +19,6 @@ const max_rows = 600000
 const showReport = true
 const trading_fees = 0.20
 
-console.log(pg_connectionString)
-
 //////////////////////////////////////////////////////////////////////////////////
 
 const pg_client = new Client({
