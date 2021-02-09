@@ -3,12 +3,13 @@ const colors = require("colors")
 const _ = require("lodash")
 const moment = require("moment")
 const { Client } = require("pg")
+const env = require('./env')
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const test_pair = "BTCUSDT"
-const pg_connectionString = "postgres://postgres:postgres@127.0.0.1:5432/postgres"
-const pg_connectionSSL = false
+const test_pair = env.BACKTEST_TEST_PAIR
+const pg_connectionString = env.DATABASE_URL
+const pg_connectionSSL = env.DATABASE_CONNECT_VIA_SSL
 
 const stop_loss_pnl = -1.0
 const stop_profit_pnl = 7.5
