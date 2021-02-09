@@ -220,7 +220,7 @@ socket.on("buy_signal", async (signal) => {
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"].minQty) {
+                if (minimums[alt + "BTC"] && minimums[alt+'BTC'].minQty) {
                     const buy_amount = new BigNumber(
                         user_payload[tresult].buy_amount
                     )
@@ -579,7 +579,7 @@ socket.on("sell_signal", async (signal) => {
             } else {
                 console.log("const alt = signal.pair.replace('BTC', '')")
                 const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"].minQty) {
+                if (minimums[alt + "BTC"] && minimums[alt+'BTC'].minQty) {
                     const buy_amount = new BigNumber(
                         user_payload[tresult].buy_amount
                     )
@@ -733,7 +733,7 @@ socket.on("sell_signal", async (signal) => {
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"].minQty) {
+                if (minimums[alt + "BTC"] && minimums[alt+'BTC'].minQty) {
                     const qty = trading_qty[signal.pair + signal.stratid]
                     ///
                     const traded_sell_signal = {
@@ -881,7 +881,7 @@ socket.on("close_traded_signal", async (signal) => {
                     )
                 } else {
                     const alt = signal.pair.replace("BTC", "")
-                    if (minimums[alt + "BTC"].minQty) {
+                    if (minimums[alt + "BTC"] && minimums[alt+'BTC'].minQty) {
                         const qty = signal.qty
                         ///
                         if (margin_pairs.includes(alt + "BTC")) {
@@ -1007,7 +1007,7 @@ socket.on("close_traded_signal", async (signal) => {
                     )
                 } else {
                     const alt = signal.pair.replace("BTC", "")
-                    if (minimums[alt + "BTC"].minQty) {
+                    if (minimums[alt + "BTC"] && minimums[alt+'BTC'].minQty) {
                         const qty = trading_qty[signal.pair + signal.stratid]
                         console.log("QTY ==> " + qty + " - " + alt + "BTC")
                         bnb_client.mgMarketBuy(
@@ -1212,20 +1212,20 @@ const telBot = new TeleBot({
     }
 });
 
-if(use_telegram){ 
-    let msg = ''   
-    
+if(use_telegram){
+    let msg = ''
+
     // GET CHANEL ID
-    telBot.on('/chanel', async (msg) => {       
+    telBot.on('/chanel', async (msg) => {
         return telBot.sendMessage(msg.chat.id, "Chanel ID : "+msg.chat.id+"\n")
     });
 
     //Get Info. Open signals
-    telBot.on('/info', async (msg) => {       
-        response = "Open Trades: "+ _.values(trading_pairs).length+"\n" 
+    telBot.on('/info', async (msg) => {
+        response = "Open Trades: "+ _.values(trading_pairs).length+"\n"
         return telBot.sendMessage(telChanel, response)
     });
-    
+
     //Get Binace Spot Balance
     telBot.on('/balance', async (msg) => {
         let response = "-------SPOT BALANCE-----\n"
@@ -1234,7 +1234,7 @@ if(use_telegram){
         })
         return telBot.sendMessage(telChanel, response)
     })
-    
+
     telBot.start();
 }
 */
