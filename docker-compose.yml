@@ -1,23 +1,31 @@
-version: "3.7"
+secrets:
+  postgres_db:
+  # The database's name.
+    file: ./secrets/postgres/db.secret
+  postgres_password:
+  # The database's password.
+    file: ./secrets/postgres/password.secret
+  postgres_user:
+  # The database's default user.
+    file: ./secrets/postgres/user.secret
 services:
+  postgres:
   # This runs the database that everything else connects to
-  postgres-db:
-    image: postgres:11.10
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      POSTGRES_DB_FILE: /run/secrets/postgres_db
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+    image: postgres:13.1-alpine@sha256:16af09e480c49226f8e7cd4d602ab27e59f434eb255d2b45bd0cfe1defb86fd7
     volumes:
-      - db-volume:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    restart: unless-stopped
-
-networks:
-  default:
-    # No metadata required right now.
-
+    secrets:
+    - postgres_db
+    - postgres_password
+    - postgres_user
+version: "3.7"
 volumes:
-  # Postgres' data
-  db-volume:
-    driver: local
+  postgres_data:
+  # The database's data.
+    {}
