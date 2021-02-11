@@ -15,7 +15,7 @@ module.exports = envalid.cleanEnv(process.env, {
     DATABASE_URL: envalid.str({default: 'DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/postgres'}),
     HOST: envalid.host({ default: 'localhost' }),
     SERVER_PORT: envalid.port({ default: 4000, desc: 'The port to start the server on' }),
-    TRADER_PORT: envalid.port({ default: 8004, desc: 'The port to trader webserver runs' }),
+    TRADER_PORT: envalid.port({ default: 8003, desc: 'The port to trader webserver runs' }),
     STRATEGY_TIMEFRAME: envalid.str({default:'15m'}),
     VERSION: envalid.str({ default: pjson.version }),
 })
