@@ -187,7 +187,6 @@ socket.on("buy_signal", async (signal) => {
                     pair: signal.pair,
                     qty: Number(user_payload[tresult].buy_amount),
                 }
-                socket.emit("traded_buy_signal", traded_buy_signal)
                 ////
                 if (user_payload[tresult].trading_type === "real") {
                     bnb_client.mgMarketBuy(
@@ -200,10 +199,15 @@ socket.on("buy_signal", async (signal) => {
                                     Number(user_payload[tresult].buy_amount),
                                     error.body
                                 )
-                            if (response)
+                            if (response) {
                                 console.log(" mgMarketBuy BTCUSDT SUCESS 3")
+                                socket.emit("traded_buy_signal", traded_buy_signal)
+                            }
                         }
                     )
+                } else {
+                    // VIRTUAL TRADE
+                    socket.emit("traded_buy_signal", traded_buy_signal)
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
@@ -227,7 +231,6 @@ socket.on("buy_signal", async (signal) => {
                         pair: signal.pair,
                         qty: qty,
                     }
-                    socket.emit("traded_buy_signal", traded_buy_signal)
                     ////
                     if (user_payload[tresult].trading_type === "real") {
                         if (margin_pairs.includes(alt + "BTC")) {
@@ -262,6 +265,9 @@ socket.on("buy_signal", async (signal) => {
                                 }
                             )
                         }
+                    } else {
+                        // VIRTUAL TRADE
+                        socket.emit("traded_buy_signal", traded_buy_signal)
                     }
                 } else {
                     console.log("PAIR UNKNOWN", alt)
@@ -342,7 +348,6 @@ socket.on("buy_signal", async (signal) => {
                     pair: signal.pair,
                     qty: Number(trading_qty[signal.pair + signal.stratid]),
                 }
-                socket.emit("traded_buy_signal", traded_buy_signal)
                 /////
                 if (user_payload[tresult].trading_type === "real") {
                     const qty = Number(
@@ -372,6 +377,9 @@ socket.on("buy_signal", async (signal) => {
                             }
                         }
                     )
+                } else {
+                    // VIRTUAL TRADE
+                    socket.emit("traded_buy_signal", traded_buy_signal)
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
@@ -391,7 +399,6 @@ socket.on("buy_signal", async (signal) => {
                         pair: signal.pair,
                         qty: qty,
                     }
-                    socket.emit("traded_buy_signal", traded_buy_signal)
                     /////
                     if (user_payload[tresult].trading_type === "real") {
                         bnb_client.mgMarketBuy(
@@ -425,6 +432,9 @@ socket.on("buy_signal", async (signal) => {
                                 }
                             }
                         )
+                    } else {
+                        // VIRTUAL TRADE
+                        socket.emit("traded_buy_signal", traded_buy_signal)
                     }
                 } else {
                     console.log("PAIR UNKNOWN", alt)
@@ -530,7 +540,7 @@ socket.on("sell_signal", async (signal) => {
                     pair: signal.pair,
                     qty: Number(user_payload[tresult].buy_amount),
                 }
-                socket.emit("traded_sell_signal", traded_sell_signal)
+                
                 if (user_payload[tresult].trading_type === "real") {
                     bnb_client.mgBorrow(
                         "BTC",
@@ -562,6 +572,9 @@ socket.on("sell_signal", async (signal) => {
                             }
                         }
                     )
+                } else {
+                    // VIRTUAL TRADE
+                    socket.emit("traded_sell_signal", traded_sell_signal)
                 }
             } else {
                 console.log("const alt = signal.pair.replace('BTC', '')")
@@ -587,7 +600,7 @@ socket.on("sell_signal", async (signal) => {
                         pair: signal.pair,
                         qty: qty,
                     }
-                    socket.emit("traded_sell_signal", traded_sell_signal)
+                    
                     if (user_payload[tresult].trading_type === "real") {
                         bnb_client.mgBorrow(
                             alt,
@@ -619,6 +632,9 @@ socket.on("sell_signal", async (signal) => {
                                 }
                             }
                         )
+                    } else {
+                        // VIRTUAL TRADE
+                        socket.emit("traded_sell_signal", traded_sell_signal)
                     }
                 } else {
                     console.log("PAIR UNKNOWN", alt)
@@ -698,7 +714,7 @@ socket.on("sell_signal", async (signal) => {
                     pair: signal.pair,
                     qty: Number(trading_qty[signal.pair + signal.stratid]),
                 }
-                socket.emit("traded_sell_signal", traded_sell_signal)
+                
                 if (user_payload[tresult].trading_type === "real") {
                     bnb_client.mgMarketSell(
                         "BTCUSDT",
@@ -717,6 +733,9 @@ socket.on("sell_signal", async (signal) => {
                             }
                         }
                     )
+                } else {
+                    // VIRTUAL TRADE
+                    socket.emit("traded_sell_signal", traded_sell_signal)
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
@@ -731,7 +750,6 @@ socket.on("sell_signal", async (signal) => {
                         pair: signal.pair,
                         qty: qty,
                     }
-                    socket.emit("traded_sell_signal", traded_sell_signal)
                     ///
                     if (user_payload[tresult].trading_type === "real") {
                         if (margin_pairs.includes(alt + "BTC")) {
@@ -791,6 +809,9 @@ socket.on("sell_signal", async (signal) => {
                                 }
                             )
                         }
+                    } else {
+                        // VIRTUAL TRADE
+                        socket.emit("traded_sell_signal", traded_sell_signal)
                     }
                     ///
                 } else {
@@ -848,7 +869,6 @@ socket.on("close_traded_signal", async (signal) => {
                 pair: signal.pair,
                 qty: signal.qty,
             }
-            socket.emit("traded_sell_signal", traded_sell_signal)
             //////
             if (user_payload[tresult].trading_type === "real") {
                 console.log(signal.pair, " ===---==> SELL ", signal.qty)
@@ -933,6 +953,9 @@ socket.on("close_traded_signal", async (signal) => {
                         console.log("PAIR UNKNOWN", alt)
                     }
                 }
+            } else {
+                // VIRTUAL TRADE
+                socket.emit("traded_sell_signal", traded_sell_signal)
             }
             //////
             delete trading_pairs[signal.pair + signal.stratid]
@@ -959,7 +982,6 @@ socket.on("close_traded_signal", async (signal) => {
                 pair: signal.pair,
                 qty: signal.qty,
             }
-            socket.emit("traded_buy_signal", traded_buy_signal)
             //////
             if (user_payload[tresult].trading_type === "real") {
                 console.log(signal.pair, " ---==---> BUY ", signal.qty)
@@ -1037,6 +1059,9 @@ socket.on("close_traded_signal", async (signal) => {
                         console.log("PAIR UNKNOWN", alt)
                     }
                 }
+            } else {
+                // VIRTUAL TRADE
+                socket.emit("traded_buy_signal", traded_buy_signal)
             }
             //////
             delete trading_pairs[signal.pair + signal.stratid]
