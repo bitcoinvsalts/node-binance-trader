@@ -8,7 +8,7 @@ const axios = require("axios")
 const Binance = require("node-binance-api")
 const nodemailer = require("nodemailer")
 //const TeleBot = require('telebot')
-const env = require('./env')
+const env = require("./env")
 
 const bva_key = env.BVA_API_KEY
 //const telegramToken = 'replaceWith:your_BOT_token' //BOT TOKEN -> ask BotFather Please if not use set default value to->> replaceWith:your_BOT_token
@@ -22,7 +22,6 @@ const gmailPassword = encodeURIComponent(gmail_app_password)
 const mailTransport = nodemailer.createTransport(
     `smtps://${gmailEmail}:${gmailPassword}@smtp.gmail.com`
 )
-
 
 //////////////////////////////////////////////////////////////////////////////////
 //         VARIABLES TO KEEP TRACK OF BOT POSITIONS AND ACTIVITY
@@ -44,9 +43,7 @@ let minimums = {}
 
 const app = express()
 app.get("/", (req, res) => res.send(""))
-app.listen(env.TRADER_PORT, () =>
-    console.log("NBT auto trader running.".grey)
-)
+app.listen(env.TRADER_PORT, () => console.log("NBT auto trader running.".grey))
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -138,7 +135,7 @@ socket.on("buy_signal", async (signal) => {
                 }
                 mailTransport
                     .sendMail(mailOptions)
-                    .then(() => { })
+                    .then(() => {})
                     .catch((error) => {
                         console.error(
                             "There was an error while sending the email ... trying again..."
@@ -146,7 +143,7 @@ socket.on("buy_signal", async (signal) => {
                         setTimeout(() => {
                             mailTransport
                                 .sendMail(mailOptions)
-                                .then(() => { })
+                                .then(() => {})
                                 .catch((error) => {
                                     console.error(
                                         "There was an error while sending the email: stop trying"
@@ -212,7 +209,7 @@ socket.on("buy_signal", async (signal) => {
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"] && minimums[alt + 'BTC'].minQty) {
+                if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
                     const buy_amount = new BigNumber(
                         user_payload[tresult].buy_amount
                     )
@@ -245,7 +242,10 @@ socket.on("buy_signal", async (signal) => {
                                     }
 
                                     console.log("SUCCESS 222444222")
-                                    socket.emit("traded_buy_signal", traded_buy_signal)
+                                    socket.emit(
+                                        "traded_buy_signal",
+                                        traded_buy_signal
+                                    )
                                 }
                             )
                         } else {
@@ -268,7 +268,10 @@ socket.on("buy_signal", async (signal) => {
                                         alt + "BTC",
                                         Number(qty)
                                     )
-                                    socket.emit("traded_buy_signal", traded_buy_signal)
+                                    socket.emit(
+                                        "traded_buy_signal",
+                                        traded_buy_signal
+                                    )
                                 }
                             )
                         }
@@ -314,7 +317,7 @@ socket.on("buy_signal", async (signal) => {
                 }
                 mailTransport
                     .sendMail(mailOptions)
-                    .then(() => { })
+                    .then(() => {})
                     .catch((error) => {
                         console.error(
                             "There was an error while sending the email ... trying again..."
@@ -322,7 +325,7 @@ socket.on("buy_signal", async (signal) => {
                         setTimeout(() => {
                             mailTransport
                                 .sendMail(mailOptions)
-                                .then(() => { })
+                                .then(() => {})
                                 .catch((error) => {
                                     console.error(
                                         "There was an error while sending the email: stop trying"
@@ -426,7 +429,10 @@ socket.on("buy_signal", async (signal) => {
                                     )
                                     return
                                 }
-                                socket.emit("traded_buy_signal", traded_buy_signal)
+                                socket.emit(
+                                    "traded_buy_signal",
+                                    traded_buy_signal
+                                )
 
                                 console.log("---+-- mgRepay ---+--")
                                 bnb_client.mgRepay(
@@ -507,7 +513,7 @@ socket.on("sell_signal", async (signal) => {
                 }
                 mailTransport
                     .sendMail(mailOptions)
-                    .then(() => { })
+                    .then(() => {})
                     .catch((error) => {
                         console.error(
                             "There was an error while sending the email ... trying again..."
@@ -515,7 +521,7 @@ socket.on("sell_signal", async (signal) => {
                         setTimeout(() => {
                             mailTransport
                                 .sendMail(mailOptions)
-                                .then(() => { })
+                                .then(() => {})
                                 .catch((error) => {
                                     console.error(
                                         "There was an error while sending the email: stop trying"
@@ -584,7 +590,10 @@ socket.on("sell_signal", async (signal) => {
                                     console.log(
                                         "mgMarketSell BTCUSDT SUCCESS 2222"
                                     )
-                                    socket.emit("traded_sell_signal", traded_sell_signal)
+                                    socket.emit(
+                                        "traded_sell_signal",
+                                        traded_sell_signal
+                                    )
                                 }
                             )
                         }
@@ -596,7 +605,7 @@ socket.on("sell_signal", async (signal) => {
             } else {
                 console.log("const alt = signal.pair.replace('BTC', '')")
                 const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"] && minimums[alt + 'BTC'].minQty) {
+                if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
                     const buy_amount = new BigNumber(
                         user_payload[tresult].buy_amount
                     )
@@ -647,7 +656,10 @@ socket.on("sell_signal", async (signal) => {
                                             return
                                         }
                                         console.log("SUCCESS 22222222")
-                                        socket.emit("traded_sell_signal", traded_sell_signal)
+                                        socket.emit(
+                                            "traded_sell_signal",
+                                            traded_sell_signal
+                                        )
                                     }
                                 )
                             }
@@ -694,7 +706,7 @@ socket.on("sell_signal", async (signal) => {
                 }
                 mailTransport
                     .sendMail(mailOptions)
-                    .then(() => { })
+                    .then(() => {})
                     .catch((error) => {
                         console.error(
                             "There was an error while sending the email ... trying again..."
@@ -702,7 +714,7 @@ socket.on("sell_signal", async (signal) => {
                         setTimeout(() => {
                             mailTransport
                                 .sendMail(mailOptions)
-                                .then(() => { })
+                                .then(() => {})
                                 .catch((error) => {
                                     console.error(
                                         "There was an error while sending the email: stop trying"
@@ -745,14 +757,17 @@ socket.on("sell_signal", async (signal) => {
                                     "ERROR 7220017 BTCUSDT",
                                     Number(
                                         trading_qty[
-                                        signal.pair + signal.stratid
+                                            signal.pair + signal.stratid
                                         ]
                                     ),
                                     JSON.stringify(error)
                                 )
                                 return
                             }
-                            socket.emit("traded_sell_signal", traded_sell_signal)
+                            socket.emit(
+                                "traded_sell_signal",
+                                traded_sell_signal
+                            )
                         }
                     )
                 } else {
@@ -761,7 +776,7 @@ socket.on("sell_signal", async (signal) => {
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"] && minimums[alt + 'BTC'].minQty) {
+                if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
                     const qty = trading_qty[signal.pair + signal.stratid]
                     ///
                     const traded_sell_signal = {
@@ -777,10 +792,10 @@ socket.on("sell_signal", async (signal) => {
                         if (margin_pairs.includes(alt + "BTC")) {
                             console.log(
                                 "QTY =======mgMarketSell======> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                                    qty +
+                                    " - " +
+                                    alt +
+                                    "BTC"
                             )
                             bnb_client.mgMarketSell(
                                 alt + "BTC",
@@ -800,16 +815,19 @@ socket.on("sell_signal", async (signal) => {
                                         alt,
                                         Number(qty)
                                     )
-                                    socket.emit("traded_sell_signal", traded_sell_signal)
+                                    socket.emit(
+                                        "traded_sell_signal",
+                                        traded_sell_signal
+                                    )
                                 }
                             )
                         } else {
                             console.log(
                                 "QTY =======marketSell======> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                                    qty +
+                                    " - " +
+                                    alt +
+                                    "BTC"
                             )
                             bnb_client.marketSell(
                                 alt + "BTC",
@@ -829,7 +847,10 @@ socket.on("sell_signal", async (signal) => {
                                         alt + "BTC",
                                         Number(qty)
                                     )
-                                    socket.emit("traded_sell_signal", traded_sell_signal)
+                                    socket.emit(
+                                        "traded_sell_signal",
+                                        traded_sell_signal
+                                    )
                                 }
                             )
                         }
@@ -909,21 +930,24 @@ socket.on("close_traded_signal", async (signal) => {
                                 )
                                 return
                             }
-                            socket.emit("traded_sell_signal", traded_sell_signal)
+                            socket.emit(
+                                "traded_sell_signal",
+                                traded_sell_signal
+                            )
                         }
                     )
                 } else {
                     const alt = signal.pair.replace("BTC", "")
-                    if (minimums[alt + "BTC"] && minimums[alt + 'BTC'].minQty) {
+                    if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
                         const qty = signal.qty
                         ///
                         if (margin_pairs.includes(alt + "BTC")) {
                             console.log(
                                 "CLOSE =========mgMarketSell=========> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                                    qty +
+                                    " - " +
+                                    alt +
+                                    "BTC"
                             )
                             bnb_client.mgMarketSell(
                                 alt + "BTC",
@@ -938,21 +962,20 @@ socket.on("close_traded_signal", async (signal) => {
                                         )
                                         return
                                     }
-                                    console.log(
-                                        "SUCESS44444",
-                                        alt,
-                                        Number(qty)
+                                    console.log("SUCESS44444", alt, Number(qty))
+                                    socket.emit(
+                                        "traded_sell_signal",
+                                        traded_sell_signal
                                     )
-                                    socket.emit("traded_sell_signal", traded_sell_signal)
                                 }
                             )
                         } else {
                             console.log(
                                 "CLOSE =========marketSell=========> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                                    qty +
+                                    " - " +
+                                    alt +
+                                    "BTC"
                             )
                             bnb_client.marketSell(
                                 alt + "BTC",
@@ -972,7 +995,10 @@ socket.on("close_traded_signal", async (signal) => {
                                         alt,
                                         Number(qty)
                                     )
-                                    socket.emit("traded_sell_signal", traded_sell_signal)
+                                    socket.emit(
+                                        "traded_sell_signal",
+                                        traded_sell_signal
+                                    )
                                 }
                             )
                         }
@@ -1048,7 +1074,7 @@ socket.on("close_traded_signal", async (signal) => {
                     )
                 } else {
                     const alt = signal.pair.replace("BTC", "")
-                    if (minimums[alt + "BTC"] && minimums[alt + 'BTC'].minQty) {
+                    if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
                         const qty = trading_qty[signal.pair + signal.stratid]
                         console.log("QTY ==> " + qty + " - " + alt + "BTC")
                         bnb_client.mgMarketBuy(
@@ -1066,7 +1092,10 @@ socket.on("close_traded_signal", async (signal) => {
                                     )
                                     return
                                 }
-                                socket.emit("traded_buy_signal", traded_buy_signal)
+                                socket.emit(
+                                    "traded_buy_signal",
+                                    traded_buy_signal
+                                )
 
                                 console.log("----- mgRepay -----")
                                 bnb_client.mgRepay(
@@ -1082,9 +1111,7 @@ socket.on("close_traded_signal", async (signal) => {
                                             )
                                             return
                                         }
-                                        console.log(
-                                            "SUCCESS 888888888888"
-                                        )
+                                        console.log("SUCCESS 888888888888")
                                     }
                                 )
                             }
@@ -1195,7 +1222,7 @@ async function UpdateOpenTrades() {
         axios
             .get(
                 "https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=" +
-                bva_key
+                    bva_key
             )
             .then((response) => {
                 response.data.rows.map((s) => {
