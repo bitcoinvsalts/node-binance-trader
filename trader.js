@@ -199,8 +199,7 @@ socket.on("buy_signal", async (signal) => {
                                     Number(user_payload[tresult].buy_amount),
                                     error.body
                                 )
-                            }
-                            if (response) {
+                            } else {
                                 console.log(" mgMarketBuy BTCUSDT SUCESS 3")
                                 socket.emit("traded_buy_signal", traded_buy_signal)
                             }
@@ -366,9 +365,7 @@ socket.on("buy_signal", async (signal) => {
                                 console.log("ERROR 5 BTCUST ", qty, error.body)
                             } else {
                                 socket.emit("traded_buy_signal", traded_buy_signal)
-                            }
 
-                            if (response) {
                                 console.log("----- mgRepay BTC 5 -----")
                                 bnb_client.mgRepay(
                                     "BTC",
@@ -425,9 +422,7 @@ socket.on("buy_signal", async (signal) => {
                                     )
                                 } else {
                                     socket.emit("traded_buy_signal", traded_buy_signal)
-                                }
-
-                                if (response) {
+  
                                     console.log("---+-- mgRepay ---+--")
                                     bnb_client.mgRepay(
                                         alt,
@@ -1027,9 +1022,7 @@ socket.on("close_traded_signal", async (signal) => {
                                 )
                             } else {
                                 socket.emit("traded_buy_signal", traded_buy_signal)
-                            }
 
-                            if (response) {
                                 console.log("----- mgRepay BTC -----")
                                 bnb_client.mgRepay(
                                     "BTC",
@@ -1070,7 +1063,6 @@ socket.on("close_traded_signal", async (signal) => {
                                 } else
                                     socket.emit("traded_buy_signal", traded_buy_signal)
 
-                                if (response) {
                                     console.log("----- mgRepay -----")
                                     bnb_client.mgRepay(
                                         alt,
