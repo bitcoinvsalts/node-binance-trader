@@ -422,7 +422,7 @@ socket.on("buy_signal", async (signal) => {
                                     )
                                 } else {
                                     socket.emit("traded_buy_signal", traded_buy_signal)
-  
+
                                     console.log("---+-- mgRepay ---+--")
                                     bnb_client.mgRepay(
                                         alt,
@@ -1060,7 +1060,7 @@ socket.on("close_traded_signal", async (signal) => {
                                         ),
                                         error.body
                                     )
-                                } else
+                                } else {
                                     socket.emit("traded_buy_signal", traded_buy_signal)
 
                                     console.log("----- mgRepay -----")
