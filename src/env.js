@@ -2,7 +2,7 @@
 require('dotenv').config()
 
 const envalid = require('envalid')
-var pjson = require('./package.json');
+var pjson = require('../package.json');
 
 module.exports = envalid.cleanEnv(process.env, {
     BACKTEST_TEST_PAIR: envalid.str({default: 'BTCUSDT'}),

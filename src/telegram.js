@@ -31,13 +31,13 @@ module.exports = function (use_telegram, telegramToken, telChanel, trading_pairs
         // }
         }
     });
-    
+
     telBot.telChanel = telChanel;
-    
+
     // GET CHANEL ID
-    telBot.on('/info', async (msg) => {       
-        let response = "Open Trades: "+ _.values(trading_pairs).length+"\n" 
-        // response += "Chanel ID : "+msg.chat.id+"\n"  //IF UNCOMENT SHOW CHANEL ID 
+    telBot.on('/info', async (msg) => {
+        let response = "Open Trades: "+ _.values(trading_pairs).length+"\n"
+        // response += "Chanel ID : "+msg.chat.id+"\n"  //IF UNCOMENT SHOW CHANEL ID
         // telBot.telChanel = msg.chat.id
         return telBot.sendMessage(telChanel, response)
     });
@@ -47,6 +47,3 @@ module.exports = function (use_telegram, telegramToken, telChanel, trading_pairs
     return telBot;
 
 }
-    
-    
-   
