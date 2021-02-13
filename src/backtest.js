@@ -3,7 +3,7 @@ const colors = require("colors")
 const _ = require("lodash")
 const moment = require("moment")
 const { Client } = require("pg")
-const env = require('./env')
+const env = require("./env")
 
 //////////////////////////////////////////////////////////////////////////////////
 

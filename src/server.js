@@ -8,7 +8,7 @@ const _ = require("lodash")
 const tulind = require("tulind")
 const axios = require("axios")
 const { Client } = require("pg")
-const env = require('./env')
+const env = require("./env")
 
 const PORT = env.SERVER_PORT
 const INDEX = path.join(__dirname, "index.html")
@@ -190,25 +190,29 @@ async function trackPairData(pair) {
     }
     await sleep(wait_time)
     // setup candle websocket
-    const candlesWs = binance_client.ws.candles(pair, timeframe, async (candle) => {
-        updateLastCandle(pair, candle)
-        if (candle.isFinal) {
-            addCandle(pair, candle)
-        }
+    const candlesWs = binance_client.ws.candles(
+        pair,
+        timeframe,
+        async (candle) => {
+            updateLastCandle(pair, candle)
+            if (candle.isFinal) {
+                addCandle(pair, candle)
+            }
 
-        try {
-            await tulind.indicators.stochrsi
-                .indicator([pairData[pair].candle_closes], [100])
-                .then((results) => {
-                    pairData[pair].srsi = BigNumber(
-                        results[0][results[0].length - 1] * 100
-                    )
-                })
-        } catch (e) {
-            console.log(pair, "SRSI ERROR!!!")
-            pairData[pair].srsi = null
+            try {
+                await tulind.indicators.stochrsi
+                    .indicator([pairData[pair].candle_closes], [100])
+                    .then((results) => {
+                        pairData[pair].srsi = BigNumber(
+                            results[0][results[0].length - 1] * 100
+                        )
+                    })
+            } catch (e) {
+                console.log(pair, "SRSI ERROR!!!")
+                pairData[pair].srsi = null
+            }
         }
-    })
+    )
 
     await sleep(wait_time)
 

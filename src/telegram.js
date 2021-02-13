@@ -1,13 +1,19 @@
-const TeleBot = require('telebot')
-const _ = require('lodash')
+const TeleBot = require("telebot")
+const _ = require("lodash")
 
-module.exports = function (use_telegram, telegramToken, telChanel, trading_pairs) {
+module.exports = function (
+    use_telegram,
+    telegramToken,
+    telChanel,
+    trading_pairs
+) {
     if (!use_telegram) {
-        return true;
+        return true
     }
-     const telBot = new TeleBot({
+    const telBot = new TeleBot({
         token: telegramToken, // Required. Telegram Bot API token.
-        polling: { // Optional. Use polling.
+        polling: {
+            // Optional. Use polling.
             interval: 700, // Optional. How often check updates (in ms).
             timeout: 0, // Optional. Update polling timeout (0 - short polling).
             limit: 100, // Optional. Limits the number of updates to be retrieved.
@@ -23,27 +29,27 @@ module.exports = function (use_telegram, telegramToken, telChanel, trading_pairs
         //     maxConnections: 40 // Optional. Maximum allowed number of simultaneous HTTPS connections to the webhook for update delivery
         // },
         allowedUpdates: [], // Optional. List the types of updates you want your bot to receive. Specify an empty list to receive all updates.
-        usePlugins: ['askUser'], // Optional. Use user plugins from pluginFolder.
-        pluginFolder: '../plugins/', // Optional. Plugin folder location.
-        pluginConfig: { // Optional. Plugin configuration.
-        // myPluginName: {
-        //   data: 'my custom value'
-        // }
-        }
-    });
+        usePlugins: ["askUser"], // Optional. Use user plugins from pluginFolder.
+        pluginFolder: "../plugins/", // Optional. Plugin folder location.
+        pluginConfig: {
+            // Optional. Plugin configuration.
+            // myPluginName: {
+            //   data: 'my custom value'
+            // }
+        },
+    })
 
-    telBot.telChanel = telChanel;
+    telBot.telChanel = telChanel
 
     // GET CHANEL ID
-    telBot.on('/info', async (msg) => {
-        let response = "Open Trades: "+ _.values(trading_pairs).length+"\n"
+    telBot.on("/info", async (msg) => {
+        let response = "Open Trades: " + _.values(trading_pairs).length + "\n"
         // response += "Chanel ID : "+msg.chat.id+"\n"  //IF UNCOMENT SHOW CHANEL ID
         // telBot.telChanel = msg.chat.id
         return telBot.sendMessage(telChanel, response)
-    });
+    })
 
-    telBot.start();
+    telBot.start()
 
-    return telBot;
-
+    return telBot
 }
