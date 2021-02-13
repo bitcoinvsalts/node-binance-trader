@@ -22,7 +22,7 @@ WORKDIR /srv/app/
 COPY --from=development /srv/app/ ./
 
 # Discard devDependencies.
-RUN yarn install
+RUN npm install
 
 
 #######################
