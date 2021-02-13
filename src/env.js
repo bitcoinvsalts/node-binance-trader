@@ -16,15 +16,17 @@ module.exports = envalid.cleanEnv(process.env, {
         default:
             "DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/postgres",
     }),
+    GMAIL_ADDRESS: envalid.str({ default: "" }),
+    GMAIL_APP_PASSWORD: envalid.str({ default: "" }),
     HOST: envalid.host({ default: "localhost" }),
     SERVER_PORT: envalid.port({
         default: 4000,
         desc: "The port to start the server on",
     }),
+    STRATEGY_TIMEFRAME: envalid.str({ default: "15m" }),
     TRADER_PORT: envalid.port({
         default: 8003,
         desc: "The port to trader webserver runs",
     }),
-    STRATEGY_TIMEFRAME: envalid.str({ default: "15m" }),
     VERSION: envalid.str({ default: pjson.version }),
 })

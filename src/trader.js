@@ -15,8 +15,8 @@ const bva_key = env.BVA_API_KEY
 //const telChanel = -12345678910 //Replace with your Chanel ID. Type /chanel in your telegram chanel
 //const use_telegram = false //USE TELEGRAM  ---- true = YES; false = NO
 const send_email = false // USE SEND MAIL ---- true = YES; false = NO
-const gmail_address = ""
-const gmail_app_password = ""
+const gmail_address = env.GMAIL_ADDRESS
+const gmail_app_password = env.GMAIL_APP_PASSWORD
 const gmailEmail = encodeURIComponent(gmail_address)
 const gmailPassword = encodeURIComponent(gmail_app_password)
 const mailTransport = nodemailer.createTransport(
