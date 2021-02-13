@@ -480,7 +480,6 @@ socket.on("buy_signal", async (signal) => {
 })
 
 socket.on("sell_signal", async (signal) => {
-    console.log("trader: on sell_signal", signal)
     const tresult = _.findIndex(user_payload, (o) => {
         return o.stratid == signal.stratid
     })
