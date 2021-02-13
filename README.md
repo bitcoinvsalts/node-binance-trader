@@ -4,7 +4,7 @@
 
 [![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://wallet.nimiq.com/nimiq:NQ38SDPGREC3USTALLCT87GQTCUYFH5L6PCQ)
 
-<img src="nbt_diagram.png">
+<img src="docs/images/nbt_diagram.png">
 
 <h4 align="center">NBT is an open cryptocurrency trading bot development framework for the Binance exchange.</h4>
 
@@ -176,5 +176,5 @@ If this repo helped you in any way, you can always leave me a BNB tip at 0xf0c49
 * **Discord**: [Invite Link](https://discord.gg/4EQrEgj)
 
 <p align="center">
-  <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="Discord_button.png" /></a>
+  <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="docs/images/discord_button.png" /></a>
 </p>
