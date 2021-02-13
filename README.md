@@ -50,13 +50,13 @@ $EDITOR .env
 It contains your most private information.
 
 **This project can be used as a Docker container!** Use the `docker run` commands below, after building the container:
-`docker build -t node-binance-trader .`
+`docker build -t jsappme/node-binance-trader .`
 
 **To start the server** to save pair data, define strategies and emit trading signals:
 ```
 npm run start
 // or
-docker run --rm -it -v "$PWD/.env:/srv/app/.env" -p 4000:4000 node-binance-trader npm run start
+docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" -p 4000:4000 jsappme/node-binance-trader npm run start
 ```
 
 **To start the auto trader** to monitor strategies and signals received from the server or the NBT Hub:
@@ -66,14 +66,14 @@ docker run --rm -it -v "$PWD/.env:/srv/app/.env" -p 4000:4000 node-binance-trade
 ```
 npm run trader
 // or
-docker run --rm -it -v "$PWD/.env:/srv/app/.env" node-binance-trader npm run trader
+docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" jsappme/node-binance-trader npm run trader
 ```
 
 **To backtest** strategies using the data recorded by the server:
 ```
 npm run backtest
 // or
-docker run --rm -it -v "$PWD/.env:/srv/app/.env" node-binance-trader npm run backtest
+docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" jsappme/node-binance-trader npm run backtest
 ```
 
 # Web Socket API specifications 📡
