@@ -71,9 +71,9 @@ docker run --rm -it -v "$PWD/.env:/srv/app/.env" node-binance-trader npm run tra
 
 **To backtest** strategies using the data recorded by the server:
 ```
-npm run bt
+npm run backtest
 // or
-docker run --rm -it -v "$PWD/.env:/srv/app/.env" node-binance-trader npm run bt
+docker run --rm -it -v "$PWD/.env:/srv/app/.env" node-binance-trader npm run backtest
 ```
 
 # Web Socket API specifications 📡

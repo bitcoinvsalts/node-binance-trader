@@ -20,7 +20,7 @@
     "scripts": {
         "start": "node ./src/server.js",
         "trader": "node ./src/trader.js",
-        "bt": "node ./src/backtest.js"
+        "backtest": "node ./src/backtest.js"
     },
     "dependencies": {
         "axios": "^0.21.1",
