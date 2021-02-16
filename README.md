@@ -173,10 +173,16 @@ There are no warranties or guarantees expressed or implied.
 You assume all responsibility and liability.
 ```
 
-# Final Notes 🙏
+# Final Notes 
 
 Feel free to fork and add new pull request to this repo.
 If you have any questions/suggestions, or simply you need some help building your trading bot, or mining historical data or improving your strategies using the latest AI/ML algorithms, please feel free to <a href="mailto:herve76@gmail.com" target="_blank">contact me</a>.
+
+# Donate 🙏
+
+Become a patron, by simply clicking on this button (**very appreciated!**):
+
+[![](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://www.patreon.com/bitcoinvsaltcoins)
 
 If this repo helped you in any way, you can always leave me a BNB tip at 0xf0c499c0accddd52d2f96d8afb6778be0659ee0c
 
