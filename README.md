@@ -182,7 +182,7 @@ If you have any questions/suggestions, or simply you need some help building you
 
 Become a patron, by simply clicking on this button (**very appreciated!**):
 
-[![](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://www.patreon.com/bitcoinvsaltcoins)
+[![](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://www.patreon.com/bePatron?u=4121661)
 
 If this repo helped you in any way, you can always leave me a BNB tip at 0xf0c499c0accddd52d2f96d8afb6778be0659ee0c
 
