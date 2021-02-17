@@ -18,6 +18,9 @@ module.exports = envalid.cleanEnv(process.env, {
     }),
     GMAIL_ADDRESS: envalid.str({ default: "" }),
     GMAIL_APP_PASSWORD: envalid.str({ default: "" }),
+    TELEGRAM_API_KEY: envalid.str({ default: "" }),
+    TELEGRAM_RECEIVER_ID: envalid.str({ default: "" }),
+    USE_TELEGRAM: envalid.bool({ default: false }),
     HOST: envalid.host({ default: "localhost" }),
     SERVER_PORT: envalid.port({
         default: 4000,
