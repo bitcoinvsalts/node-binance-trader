@@ -3,7 +3,7 @@ const env = require("./../env")
 module.exports = function (trading_pairs) {
   const notifiers = [];
   if (env.USE_TELEGRAM)
-    notifiers.push(require('./../telegram')(trading_pairs))
+    notifiers.push(require('./telegram')(trading_pairs))
 
   const notifyAllFor = (method, arg) => notifiers.forEach(n => n[method] && n[method](arg));
 
