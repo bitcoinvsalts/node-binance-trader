@@ -37,33 +37,33 @@ function createSignalMessage(base, signal) {
 function send(message) {
     if (!env.USE_TELEGRAM || !telBot) return;
     return telBot.sendMessage(env.TELEGRAM_RECEIVER_ID, message, {
-        parseMode: "markdown"
+        parseMode: "html"
     })
 }
 
 function notifyExitLongSignal(signal) {
-    return send(createSignalMessage("SELL_SIGNAL :: SELL TO EXIT LONG TRADE", signal));
+    return send(createSignalMessage("<i>SELL_SIGNAL :: SELL TO EXIT LONG TRADE</i>", signal));
 }
 function notifyExitLongTraded(signal) {
-    return send(createSignalMessage("**>> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE**", signal));
+    return send(createSignalMessage("<b>>> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE</b>", signal));
 }
 function notifyEnterLongSignal(signal) {
-    return send(createSignalMessage("**BUY_SIGNAL :: ENTER LONG TRADE", signal));
+    return send(createSignalMessage("<i>BUY_SIGNAL :: ENTER LONG TRADE</i>", signal));
 }
 function notifyEnterLongTraded(signal) {
-    return send(createSignalMessage("**>> SUCCESS! BUY_SIGNAL :: ENTER LONG TRADE**", signal));
+    return send(createSignalMessage("<b>>> SUCCESS! BUY_SIGNAL :: ENTER LONG TRADE</b>", signal));
 }
 function notifyBuyToCoverSignal(signal) {
-    return send(createSignalMessage("**BUY_SIGNAL :: BUY TO COVER SHORT TRADE", signal));
+    return send(createSignalMessage("<i>BUY_SIGNAL :: BUY TO COVER SHORT TRADE</i>", signal));
 }
 function notifyBuyToCoverTraded(signal) {
-    return send(createSignalMessage("**>> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE**", signal));
+    return send(createSignalMessage("<b>>> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE</b>", signal));
 }
 function notifyEnterShortSignal(signal) {
-    return send(createSignalMessage("**SELL_SIGNAL :: ENTER SHORT TRADE", signal));
+    return send(createSignalMessage("<i>SELL_SIGNAL :: ENTER SHORT TRADE</i>", signal));
 }
 function notifyEnterShortTraded(signal) {
-    return send(createSignalMessage("**>> SUCCESS! SELL_SIGNAL :: ENTER SHORT TRADE**", signal));
+    return send(createSignalMessage("<b>>> SUCCESS! SELL_SIGNAL :: ENTER SHORT TRADE</b>", signal));
 }
 
 const publicMethods = {
