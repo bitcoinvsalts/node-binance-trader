@@ -1,23 +1,13 @@
 const express = require("express")
 const io = require("socket.io-client")
-const moment = require("moment")
 const _ = require("lodash")
 const colors = require("colors")
 const BigNumber = require("bignumber.js")
 const axios = require("axios")
 const Binance = require("node-binance-api")
-const nodemailer = require("nodemailer")
 const env = require("./env")
 
 const bva_key = env.BVA_API_KEY
-const send_email = false // USE SEND MAIL ---- true = YES; false = NO
-const gmail_address = env.GMAIL_ADDRESS
-const gmail_app_password = env.GMAIL_APP_PASSWORD
-const gmailEmail = encodeURIComponent(gmail_address)
-const gmailPassword = encodeURIComponent(gmail_app_password)
-const mailTransport = nodemailer.createTransport(
-    `smtps://${gmailEmail}:${gmailPassword}@smtp.gmail.com`
-)
 
 //////////////////////////////////////////////////////////////////////////////////
 //         VARIABLES TO KEEP TRACK OF BOT POSITIONS AND ACTIVITY
@@ -114,42 +104,6 @@ socket.on("buy_signal", async (signal) => {
                     signal.pair
                 )
             )
-            // SEND TRADE EMAIL
-            if (send_email) {
-                const mailOptions = {
-                    from: '"🐬  BVA " <no-reply@gmail.com>',
-                    to: gmail_address,
-                    subject:
-                        "BUY_SIGNAL :: ENTER LONG TRADE :: " +
-                        signal.stratname +
-                        " " +
-                        signal.pair +
-                        " " +
-                        signal.price,
-                    text:
-                        (signal.score
-                            ? "score: " + signal.score
-                            : "score: NA") + "\n",
-                }
-                mailTransport
-                    .sendMail(mailOptions)
-                    .then(() => {})
-                    .catch((error) => {
-                        console.error(
-                            "There was an error while sending the email ... trying again..."
-                        )
-                        setTimeout(() => {
-                            mailTransport
-                                .sendMail(mailOptions)
-                                .then(() => {})
-                                .catch((error) => {
-                                    console.error(
-                                        "There was an error while sending the email: stop trying"
-                                    )
-                                })
-                        }, 2000)
-                    })
-            }
             //notify
             notifier.notifyEnterLongSignal(signal)
 
@@ -296,42 +250,6 @@ socket.on("buy_signal", async (signal) => {
                     signal.pair
                 )
             )
-            // SEND TRADE EMAIL
-            if (send_email) {
-                const mailOptions = {
-                    from: '"🐬  BVA " <no-reply@gmail.com>',
-                    to: gmail_address,
-                    subject:
-                        "BUY_SIGNAL :: BUY TO COVER SHORT TRADE :: " +
-                        signal.stratname +
-                        " " +
-                        signal.pair +
-                        " " +
-                        signal.price,
-                    text:
-                        (signal.score
-                            ? "score: " + signal.score
-                            : "score: NA") + "\n",
-                }
-                mailTransport
-                    .sendMail(mailOptions)
-                    .then(() => {})
-                    .catch((error) => {
-                        console.error(
-                            "There was an error while sending the email ... trying again..."
-                        )
-                        setTimeout(() => {
-                            mailTransport
-                                .sendMail(mailOptions)
-                                .then(() => {})
-                                .catch((error) => {
-                                    console.error(
-                                        "There was an error while sending the email: stop trying"
-                                    )
-                                })
-                        }, 2000)
-                    })
-            }
             //notify
             notifier.notifyBuyToCoverSignal(signal)
             //////
@@ -489,42 +407,6 @@ socket.on("sell_signal", async (signal) => {
                     signal.pair
                 )
             )
-            // SEND TRADE EMAIL
-            if (send_email) {
-                const mailOptions = {
-                    from: '"🐬  BVA " <no-reply@gmail.com>',
-                    to: gmail_address,
-                    subject:
-                        "SELL_SIGNAL :: ENTER SHORT TRADE :: " +
-                        signal.stratname +
-                        " " +
-                        signal.pair +
-                        " " +
-                        signal.price,
-                    text:
-                        (signal.score
-                            ? "score: " + signal.score
-                            : "score: NA") + "\n",
-                }
-                mailTransport
-                    .sendMail(mailOptions)
-                    .then(() => {})
-                    .catch((error) => {
-                        console.error(
-                            "There was an error while sending the email ... trying again..."
-                        )
-                        setTimeout(() => {
-                            mailTransport
-                                .sendMail(mailOptions)
-                                .then(() => {})
-                                .catch((error) => {
-                                    console.error(
-                                        "There was an error while sending the email: stop trying"
-                                    )
-                                })
-                        }, 2000)
-                    })
-            }
             //notify
             notifier.notifyEnterShortSignal(signal)
             //////
@@ -680,42 +562,6 @@ socket.on("sell_signal", async (signal) => {
                     signal.pair
                 )
             )
-            // SEND TRADE EMAIL
-            if (send_email) {
-                const mailOptions = {
-                    from: '"🐬  BVA " <no-reply@gmail.com>',
-                    to: gmail_address,
-                    subject:
-                        "SELL_SIGNAL :: SELL TO EXIT LONG TRADE :: " +
-                        signal.stratname +
-                        " " +
-                        signal.pair +
-                        " " +
-                        signal.price,
-                    text:
-                        (signal.score
-                            ? "score: " + signal.score
-                            : "score: NA") + "\n",
-                }
-                mailTransport
-                    .sendMail(mailOptions)
-                    .then(() => {})
-                    .catch((error) => {
-                        console.error(
-                            "There was an error while sending the email ... trying again..."
-                        )
-                        setTimeout(() => {
-                            mailTransport
-                                .sendMail(mailOptions)
-                                .then(() => {})
-                                .catch((error) => {
-                                    console.error(
-                                        "There was an error while sending the email: stop trying"
-                                    )
-                                })
-                        }, 2000)
-                    })
-            }
             //notify
             notifier.notifyExitLongSignal(signal)
             //////
