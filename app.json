@@ -24,6 +24,6 @@
       "GMAIL_APP_PASSWORD": {
         "description": "Gmail password to get notifications",
         "required": false
-      },
+      }
     }
   }
