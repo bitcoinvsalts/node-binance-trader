@@ -1,0 +1,29 @@
+{
+    "name": "node-binance-trader",
+    "description": "Auto trader to trade signals from your BitcoinVsAltcoins.com strategy selection.",
+    "logo": "https://pbs.twimg.com/profile_images/1144199654831267841/SyDG8MA1_400x400.jpg",
+    "repository": "https://github.com/jsappme/node-binance-trader",
+    "keywords": ["node", "binance","trading","trader","bot","market","maker","algo","crypto"],
+    "env": {
+      "BVA_API_KEY": {
+        "description": "Your BitcoinVsAltcoins.com Account API Key",
+        "required": true
+      },
+      "BINANCE_API_KEY": {
+        "description": "Your Binance API Key",
+        "required": true
+      },
+      "BINANCE_SECRET_KEY": {
+        "description": "Your Binance API Secret",
+        "required": true
+      },
+      "GMAIL_ADDRESS": {
+        "description": "Gmail email to get notifications",
+        "required": false
+      },
+      "GMAIL_APP_PASSWORD": {
+        "description": "Gmail password to get notifications",
+        "required": false
+      },
+    }
+  }
