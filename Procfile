@@ -1,1 +1,1 @@
-trader: npm run trader -p $PORT
+trader: TRADER_PORT=$PORT npm run trader
