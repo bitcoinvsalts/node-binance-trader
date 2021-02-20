@@ -2,6 +2,8 @@
 
 <h6 align="center">Version 0.2.4</h6>
 
+[Click here to open our setup guide](https://github.com/jsappme/node-binance-trader/blob/master/BVA_Guide.pdf)
+
 [![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://wallet.nimiq.com/nimiq:NQ38SDPGREC3USTALLCT87GQTCUYFH5L6PCQ)
 
 <img src="docs/images/nbt_diagram.png">
