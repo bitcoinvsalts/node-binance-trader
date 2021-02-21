@@ -38,7 +38,7 @@
         "required": false
       },
       "USE_TELEGRAM": {
-        "description": "Selects if Gmail will be used",
+        "description": "Selects if telegram will be used",
         "required": false
       }
     }
