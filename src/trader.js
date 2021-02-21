@@ -1,4 +1,3 @@
-const express = require("express")
 const io = require("socket.io-client")
 const _ = require("lodash")
 const colors = require("colors")
@@ -25,11 +24,6 @@ let available_balances = []
 let minimums = {}
 
 //////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
-
-const app = express()
-app.get("/", (req, res) => res.send(""))
-app.listen(env.TRADER_PORT, () => console.log("NBT auto trader running.".grey))
 
 const notifier = require('./notifiers')(trading_pairs);
 
@@ -590,7 +584,7 @@ socket.on("sell_signal", async (signal) => {
                                     "ERROR 7220017 BTCUSDT",
                                     Number(
                                         trading_qty[
-                                            signal.pair + signal.stratid
+                                        signal.pair + signal.stratid
                                         ]
                                     ),
                                     JSON.stringify(error)
@@ -628,10 +622,10 @@ socket.on("sell_signal", async (signal) => {
                         if (margin_pairs.includes(alt + "BTC")) {
                             console.log(
                                 "QTY =======mgMarketSell======> " +
-                                    qty +
-                                    " - " +
-                                    alt +
-                                    "BTC"
+                                qty +
+                                " - " +
+                                alt +
+                                "BTC"
                             )
                             bnb_client.mgMarketSell(
                                 alt + "BTC",
@@ -661,10 +655,10 @@ socket.on("sell_signal", async (signal) => {
                         } else {
                             console.log(
                                 "QTY =======marketSell======> " +
-                                    qty +
-                                    " - " +
-                                    alt +
-                                    "BTC"
+                                qty +
+                                " - " +
+                                alt +
+                                "BTC"
                             )
                             bnb_client.marketSell(
                                 alt + "BTC",
@@ -783,10 +777,10 @@ socket.on("close_traded_signal", async (signal) => {
                         if (margin_pairs.includes(alt + "BTC")) {
                             console.log(
                                 "CLOSE =========mgMarketSell=========> " +
-                                    qty +
-                                    " - " +
-                                    alt +
-                                    "BTC"
+                                qty +
+                                " - " +
+                                alt +
+                                "BTC"
                             )
                             bnb_client.mgMarketSell(
                                 alt + "BTC",
@@ -811,10 +805,10 @@ socket.on("close_traded_signal", async (signal) => {
                         } else {
                             console.log(
                                 "CLOSE =========marketSell=========> " +
-                                    qty +
-                                    " - " +
-                                    alt +
-                                    "BTC"
+                                qty +
+                                " - " +
+                                alt +
+                                "BTC"
                             )
                             bnb_client.marketSell(
                                 alt + "BTC",
@@ -1061,7 +1055,7 @@ async function UpdateOpenTrades() {
         axios
             .get(
                 "https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=" +
-                    bva_key
+                bva_key
             )
             .then((response) => {
                 response.data.rows.map((s) => {
