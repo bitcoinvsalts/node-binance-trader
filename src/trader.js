@@ -1,27 +1,13 @@
 const express = require("express")
 const io = require("socket.io-client")
-const moment = require("moment")
 const _ = require("lodash")
 const colors = require("colors")
 const BigNumber = require("bignumber.js")
 const axios = require("axios")
 const Binance = require("node-binance-api")
-const nodemailer = require("nodemailer")
-//const TeleBot = require('telebot')
 const env = require("./env")
 
 const bva_key = env.BVA_API_KEY
-//const telegramToken = 'replaceWith:your_BOT_token' //BOT TOKEN -> ask BotFather Please if not use set default value to->> replaceWith:your_BOT_token
-//const telChanel = -12345678910 //Replace with your Chanel ID. Type /chanel in your telegram chanel
-//const use_telegram = false //USE TELEGRAM  ---- true = YES; false = NO
-const send_email = false // USE SEND MAIL ---- true = YES; false = NO
-const gmail_address = env.GMAIL_ADDRESS
-const gmail_app_password = env.GMAIL_APP_PASSWORD
-const gmailEmail = encodeURIComponent(gmail_address)
-const gmailPassword = encodeURIComponent(gmail_app_password)
-const mailTransport = nodemailer.createTransport(
-    `smtps://${gmailEmail}:${gmailPassword}@smtp.gmail.com`
-)
 
 //////////////////////////////////////////////////////////////////////////////////
 //         VARIABLES TO KEEP TRACK OF BOT POSITIONS AND ACTIVITY
@@ -44,6 +30,8 @@ let minimums = {}
 const app = express()
 app.get("/", (req, res) => res.send(""))
 app.listen(env.TRADER_PORT, () => console.log("NBT auto trader running.".grey))
+
+const notifier = require('./notifiers')(trading_pairs);
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -116,50 +104,9 @@ socket.on("buy_signal", async (signal) => {
                     signal.pair
                 )
             )
-            // SEND TRADE EMAIL
-            if (send_email) {
-                const mailOptions = {
-                    from: '"🐬  BVA " <no-reply@gmail.com>',
-                    to: gmail_address,
-                    subject:
-                        "BUY_SIGNAL :: ENTER LONG TRADE :: " +
-                        signal.stratname +
-                        " " +
-                        signal.pair +
-                        " " +
-                        signal.price,
-                    text:
-                        (signal.score
-                            ? "score: " + signal.score
-                            : "score: NA") + "\n",
-                }
-                mailTransport
-                    .sendMail(mailOptions)
-                    .then(() => {})
-                    .catch((error) => {
-                        console.error(
-                            "There was an error while sending the email ... trying again..."
-                        )
-                        setTimeout(() => {
-                            mailTransport
-                                .sendMail(mailOptions)
-                                .then(() => {})
-                                .catch((error) => {
-                                    console.error(
-                                        "There was an error while sending the email: stop trying"
-                                    )
-                                })
-                        }, 2000)
-                    })
-            }
-            //SEND TELEGRAM MSG
-            /*
-            if (use_telegram) {
-                let msg = "BUY_SIGNAL :: ENTER LONG TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
-                msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telBot.telChanel, msg)
-            }
-            */
+            //notify
+            notifier.notifyEnterLongSignal(signal)
+
             //////
             trading_pairs[signal.pair + signal.stratid] = true
             trading_types[signal.pair + signal.stratid] = "LONG"
@@ -201,11 +148,13 @@ socket.on("buy_signal", async (signal) => {
 
                             console.log(" mgMarketBuy BTCUSDT SUCESS 3")
                             socket.emit("traded_buy_signal", traded_buy_signal)
+                            notifier.notifyEnterLongTraded(signal);
                         }
                     )
                 } else {
                     // VIRTUAL TRADE
                     socket.emit("traded_buy_signal", traded_buy_signal)
+                    notifier.notifyEnterLongTraded(signal);
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
@@ -246,6 +195,7 @@ socket.on("buy_signal", async (signal) => {
                                         "traded_buy_signal",
                                         traded_buy_signal
                                     )
+                                    notifier.notifyEnterLongTraded(signal);
                                 }
                             )
                         } else {
@@ -272,12 +222,14 @@ socket.on("buy_signal", async (signal) => {
                                         "traded_buy_signal",
                                         traded_buy_signal
                                     )
+                                    notifier.notifyEnterLongTraded(signal);
                                 }
                             )
                         }
                     } else {
                         // VIRTUAL TRADE
                         socket.emit("traded_buy_signal", traded_buy_signal)
+                        notifier.notifyEnterLongTraded(signal);
                     }
                 } else {
                     console.log("PAIR UNKNOWN", alt)
@@ -298,50 +250,8 @@ socket.on("buy_signal", async (signal) => {
                     signal.pair
                 )
             )
-            // SEND TRADE EMAIL
-            if (send_email) {
-                const mailOptions = {
-                    from: '"🐬  BVA " <no-reply@gmail.com>',
-                    to: gmail_address,
-                    subject:
-                        "BUY_SIGNAL :: BUY TO COVER SHORT TRADE :: " +
-                        signal.stratname +
-                        " " +
-                        signal.pair +
-                        " " +
-                        signal.price,
-                    text:
-                        (signal.score
-                            ? "score: " + signal.score
-                            : "score: NA") + "\n",
-                }
-                mailTransport
-                    .sendMail(mailOptions)
-                    .then(() => {})
-                    .catch((error) => {
-                        console.error(
-                            "There was an error while sending the email ... trying again..."
-                        )
-                        setTimeout(() => {
-                            mailTransport
-                                .sendMail(mailOptions)
-                                .then(() => {})
-                                .catch((error) => {
-                                    console.error(
-                                        "There was an error while sending the email: stop trying"
-                                    )
-                                })
-                        }, 2000)
-                    })
-            }
-            //SEND TELEGRAM MSG
-            /*
-            if (use_telegram) {
-                let msg = "BUY_SIGNAL :: BUY TO COVER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
-                msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telBot.telChanel, msg)
-            }
-            */
+            //notify
+            notifier.notifyBuyToCoverSignal(signal)
             //////
             console.log(
                 signal.pair,
@@ -373,6 +283,7 @@ socket.on("buy_signal", async (signal) => {
                             }
 
                             socket.emit("traded_buy_signal", traded_buy_signal)
+                            notifier.notifyBuyToCoverTraded(signal);
 
                             console.log("----- mgRepay BTC 5 -----")
                             bnb_client.mgRepay(
@@ -395,6 +306,7 @@ socket.on("buy_signal", async (signal) => {
                 } else {
                     // VIRTUAL TRADE
                     socket.emit("traded_buy_signal", traded_buy_signal)
+                    notifier.notifyBuyToCoverTraded(signal);
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
@@ -433,6 +345,7 @@ socket.on("buy_signal", async (signal) => {
                                     "traded_buy_signal",
                                     traded_buy_signal
                                 )
+                                notifier.notifyBuyToCoverTraded(signal);
 
                                 console.log("---+-- mgRepay ---+--")
                                 bnb_client.mgRepay(
@@ -456,6 +369,7 @@ socket.on("buy_signal", async (signal) => {
                     } else {
                         // VIRTUAL TRADE
                         socket.emit("traded_buy_signal", traded_buy_signal)
+                        notifier.notifyBuyToCoverTraded(signal);
                     }
                 } else {
                     console.log("PAIR UNKNOWN", alt)
@@ -493,50 +407,8 @@ socket.on("sell_signal", async (signal) => {
                     signal.pair
                 )
             )
-            // SEND TRADE EMAIL
-            if (send_email) {
-                const mailOptions = {
-                    from: '"🐬  BVA " <no-reply@gmail.com>',
-                    to: gmail_address,
-                    subject:
-                        "SELL_SIGNAL :: ENTER SHORT TRADE :: " +
-                        signal.stratname +
-                        " " +
-                        signal.pair +
-                        " " +
-                        signal.price,
-                    text:
-                        (signal.score
-                            ? "score: " + signal.score
-                            : "score: NA") + "\n",
-                }
-                mailTransport
-                    .sendMail(mailOptions)
-                    .then(() => {})
-                    .catch((error) => {
-                        console.error(
-                            "There was an error while sending the email ... trying again..."
-                        )
-                        setTimeout(() => {
-                            mailTransport
-                                .sendMail(mailOptions)
-                                .then(() => {})
-                                .catch((error) => {
-                                    console.error(
-                                        "There was an error while sending the email: stop trying"
-                                    )
-                                })
-                        }, 2000)
-                    })
-            }
-            //SEND TELEGRAM MSG
-            /*
-            if (use_telegram) {
-                let msg = "SELL_SIGNAL :: ENTER SHORT TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
-                msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telBot.telChanel, msg)
-            }
-            */
+            //notify
+            notifier.notifyEnterShortSignal(signal)
             //////
             trading_pairs[signal.pair + signal.stratid] = true
             trading_types[signal.pair + signal.stratid] = "SHORT"
@@ -593,6 +465,7 @@ socket.on("sell_signal", async (signal) => {
                                         "traded_sell_signal",
                                         traded_sell_signal
                                     )
+                                    notifier.notifyEnterShortTraded(signal);
                                 }
                             )
                         }
@@ -600,6 +473,7 @@ socket.on("sell_signal", async (signal) => {
                 } else {
                     // VIRTUAL TRADE
                     socket.emit("traded_sell_signal", traded_sell_signal)
+                    notifier.notifyEnterShortTraded(signal);
                 }
             } else {
                 console.log("const alt = signal.pair.replace('BTC', '')")
@@ -659,6 +533,7 @@ socket.on("sell_signal", async (signal) => {
                                             "traded_sell_signal",
                                             traded_sell_signal
                                         )
+                                        notifier.notifyEnterShortTraded(signal);
                                     }
                                 )
                             }
@@ -666,6 +541,7 @@ socket.on("sell_signal", async (signal) => {
                     } else {
                         // VIRTUAL TRADE
                         socket.emit("traded_sell_signal", traded_sell_signal)
+                        notifier.notifyEnterShortTraded(signal);
                     }
                 } else {
                     console.log("PAIR UNKNOWN", alt)
@@ -686,50 +562,8 @@ socket.on("sell_signal", async (signal) => {
                     signal.pair
                 )
             )
-            // SEND TRADE EMAIL
-            if (send_email) {
-                const mailOptions = {
-                    from: '"🐬  BVA " <no-reply@gmail.com>',
-                    to: gmail_address,
-                    subject:
-                        "SELL_SIGNAL :: SELL TO EXIT LONG TRADE :: " +
-                        signal.stratname +
-                        " " +
-                        signal.pair +
-                        " " +
-                        signal.price,
-                    text:
-                        (signal.score
-                            ? "score: " + signal.score
-                            : "score: NA") + "\n",
-                }
-                mailTransport
-                    .sendMail(mailOptions)
-                    .then(() => {})
-                    .catch((error) => {
-                        console.error(
-                            "There was an error while sending the email ... trying again..."
-                        )
-                        setTimeout(() => {
-                            mailTransport
-                                .sendMail(mailOptions)
-                                .then(() => {})
-                                .catch((error) => {
-                                    console.error(
-                                        "There was an error while sending the email: stop trying"
-                                    )
-                                })
-                        }, 2000)
-                    })
-            }
-            //SEND TELEGRAM MSG
-            /*
-            if (use_telegram) {
-                let msg = "SELL_SIGNAL :: SELL TO EXIT LONG TRADE :: " + signal.stratname + ' ' + signal.pair + ' ' + signal.price+"\n"
-                msg += (signal.score?"score: "+signal.score:'score: NA') + "\n"
-                telBot.sendMessage(telBot.telChanel, msg)
-            }
-            */
+            //notify
+            notifier.notifyExitLongSignal(signal)
             //////
             console.log(
                 signal.pair,
@@ -767,11 +601,14 @@ socket.on("sell_signal", async (signal) => {
                                 "traded_sell_signal",
                                 traded_sell_signal
                             )
+                            notifier.notifyExitLongTraded(signal)
                         }
                     )
                 } else {
                     // VIRTUAL TRADE
                     socket.emit("traded_sell_signal", traded_sell_signal)
+                    notifier.notifyExitLongTraded(signal)
+
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
@@ -818,6 +655,7 @@ socket.on("sell_signal", async (signal) => {
                                         "traded_sell_signal",
                                         traded_sell_signal
                                     )
+                                    notifier.notifyExitLongTraded(signal)
                                 }
                             )
                         } else {
@@ -850,12 +688,14 @@ socket.on("sell_signal", async (signal) => {
                                         "traded_sell_signal",
                                         traded_sell_signal
                                     )
+                                    notifier.notifyExitLongTraded(signal)
                                 }
                             )
                         }
                     } else {
                         // VIRTUAL TRADE
                         socket.emit("traded_sell_signal", traded_sell_signal)
+                        notifier.notifyExitLongTraded(signal)
                     }
                     ///
                 } else {
@@ -1252,62 +1092,3 @@ async function run() {
 }
 
 run()
-
-//////////////////////////////////////////////////////////////////////////////////
-//                      TELEGRAM BOT
-/////////////////////////////////////////////////////////////////////////////////
-/*
-const telBot = new TeleBot({
-    token: telegramToken, // Required. Telegram Bot API token.
-    polling: { // Optional. Use polling.
-    interval: 700, // Optional. How often check updates (in ms).
-    timeout: 0, // Optional. Update polling timeout (0 - short polling).
-    limit: 100, // Optional. Limits the number of updates to be retrieved.
-    retryTimeout: 5000, // Optional. Reconnecting timeout (in ms).
-    // proxy: 'http://username:password@yourproxy.com:8080' // Optional. An HTTP proxy to be used.
-    },
-    // webhook: { // Optional. Use webhook instead of polling.
-    //     key: 'key.pem', // Optional. Private key for server.
-    //     cert: 'cert.pem', // Optional. Public key.
-    //     url: 'https://....', // HTTPS url to send updates to.
-    //     host: '0.0.0.0', // Webhook server host.
-    //     port: 443, // Server port.
-    //     maxConnections: 40 // Optional. Maximum allowed number of simultaneous HTTPS connections to the webhook for update delivery
-    // },
-    allowedUpdates: [], // Optional. List the types of updates you want your bot to receive. Specify an empty list to receive all updates.
-    usePlugins: ['askUser'], // Optional. Use user plugins from pluginFolder.
-    pluginFolder: '../plugins/', // Optional. Plugin folder location.
-    pluginConfig: { // Optional. Plugin configuration.
-    // myPluginName: {
-    //   data: 'my custom value'
-    // }
-    }
-});
-
-if(use_telegram){
-    let msg = ''
-
-    // GET CHANEL ID
-    telBot.on('/chanel', async (msg) => {
-        return telBot.sendMessage(msg.chat.id, "Chanel ID : "+msg.chat.id+"\n")
-    });
-
-    //Get Info. Open signals
-    telBot.on('/info', async (msg) => {
-        response = "Open Trades: "+ _.values(trading_pairs).length+"\n"
-        return telBot.sendMessage(telChanel, response)
-    });
-
-    //Get Binace Spot Balance
-    telBot.on('/balance', async (msg) => {
-        let response = "-------SPOT BALANCE-----\n"
-        available_balances.forEach(c => {
-            response += c.asset+": "+c.available+"\n"
-        })
-        return telBot.sendMessage(telChanel, response)
-    })
-
-    telBot.start();
-}
-*/
-//////////////////////////////////////////////////////////////////////////////////
