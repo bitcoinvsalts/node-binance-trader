@@ -1,6 +1,6 @@
-const TeleBot = require("telebot")
 const _ = require("lodash")
 const env = require("../env")
+const TeleBot = require("telebot")
 
 /**
  * @type {TeleBot}
@@ -12,10 +12,11 @@ module.exports = function (trading_pairs) {
 
     telBot = new TeleBot(env.TELEGRAM_API_KEY)
 
-    // GET CHANEL ID
+    // Get channel id.
     telBot.on("/info", async (msg) => {
         let response = "Open Trades: " + _.values(trading_pairs).length + "\n"
-        // response += "Chanel ID : "+msg.chat.id+"\n"  //IF UNCOMENT SHOW CHANEL ID
+        // Uncomment to include channel id.
+        // response += "Channel ID : "+msg.chat.id+"\n"
         return send(response)
     })
 
@@ -36,16 +37,17 @@ function createSignalMessage(base, signal) {
 
 function send(message) {
     if (!env.USE_TELEGRAM || !telBot) return;
+
     return telBot.sendMessage(env.TELEGRAM_RECEIVER_ID, message, {
         parseMode: "html"
     })
 }
 
-function notifyExitLongSignal(signal) {
-    return send(createSignalMessage("<i>SELL_SIGNAL :: SELL TO EXIT LONG TRADE</i>", signal));
+function notifyBuyToCoverSignal(signal) {
+    return send(createSignalMessage("<i>BUY_SIGNAL :: BUY TO COVER SHORT TRADE</i>", signal));
 }
-function notifyExitLongTraded(signal) {
-    return send(createSignalMessage("<b>>> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE</b>", signal));
+function notifyBuyToCoverTraded(signal) {
+    return send(createSignalMessage("<b>>> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE</b>", signal));
 }
 function notifyEnterLongSignal(signal) {
     return send(createSignalMessage("<i>BUY_SIGNAL :: ENTER LONG TRADE</i>", signal));
@@ -53,27 +55,27 @@ function notifyEnterLongSignal(signal) {
 function notifyEnterLongTraded(signal) {
     return send(createSignalMessage("<b>>> SUCCESS! BUY_SIGNAL :: ENTER LONG TRADE</b>", signal));
 }
-function notifyBuyToCoverSignal(signal) {
-    return send(createSignalMessage("<i>BUY_SIGNAL :: BUY TO COVER SHORT TRADE</i>", signal));
-}
-function notifyBuyToCoverTraded(signal) {
-    return send(createSignalMessage("<b>>> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE</b>", signal));
-}
 function notifyEnterShortSignal(signal) {
     return send(createSignalMessage("<i>SELL_SIGNAL :: ENTER SHORT TRADE</i>", signal));
 }
 function notifyEnterShortTraded(signal) {
     return send(createSignalMessage("<b>>> SUCCESS! SELL_SIGNAL :: ENTER SHORT TRADE</b>", signal));
 }
+function notifyExitLongSignal(signal) {
+    return send(createSignalMessage("<i>SELL_SIGNAL :: SELL TO EXIT LONG TRADE</i>", signal));
+}
+function notifyExitLongTraded(signal) {
+    return send(createSignalMessage("<b>>> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE</b>", signal));
+}
 
 const publicMethods = {
-    send,
-    notifyExitLongSignal,
-    notifyExitLongTraded,
-    notifyEnterLongSignal,
-    notifyEnterLongTraded,
     notifyBuyToCoverSignal,
     notifyBuyToCoverTraded,
+    notifyEnterLongSignal,
+    notifyEnterLongTraded,
     notifyEnterShortSignal,
     notifyEnterShortTraded,
+    notifyExitLongSignal,
+    notifyExitLongTraded,
+    send,
 }

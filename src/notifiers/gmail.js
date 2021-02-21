@@ -1,16 +1,16 @@
 const env = require("../env")
+
 const gmail_address = env.GMAIL_ADDRESS
 const gmail_app_password = env.GMAIL_APP_PASSWORD
 
 function createMailMessage(subject, html) {
-  const mailMessage = {
+  return {
     from: '"🐬  BVA " <no-reply@gmail.com>',
     to: gmail_address,
     subject,
     text: html,
     html,
   }
-  return mailMessage
 }
 
 function createSignalMessage(base, signal) {
@@ -39,9 +39,11 @@ module.exports = function () {
 
   function send(message) {
     if (!env.USE_GMAIL) return;
+
     if (typeof message === "string") {
       message = createMailMessage("Tading Bot Message", message)
     }
+
     return mailTransport
       .sendMail(message)
       .catch((error) => {
@@ -60,11 +62,11 @@ module.exports = function () {
       })
   }
 
-  function notifyExitLongSignal(signal) {
-    return send(createSignalMessage("<i>SELL_SIGNAL :: SELL TO EXIT LONG TRADE</i>", signal));
+  function notifyBuyToCoverSignal(signal) {
+    return send(createSignalMessage("<i>BUY_SIGNAL :: BUY TO COVER SHORT TRADE</i>", signal));
   }
-  function notifyExitLongTraded(signal) {
-    return send(createSignalMessage("<b>>> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE</b>", signal));
+  function notifyBuyToCoverTraded(signal) {
+    return send(createSignalMessage("<b>>> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE</b>", signal));
   }
   function notifyEnterLongSignal(signal) {
     return send(createSignalMessage("<i>BUY_SIGNAL :: ENTER LONG TRADE</i>", signal));
@@ -72,29 +74,28 @@ module.exports = function () {
   function notifyEnterLongTraded(signal) {
     return send(createSignalMessage("<b>>> SUCCESS! BUY_SIGNAL :: ENTER LONG TRADE</b>", signal));
   }
-  function notifyBuyToCoverSignal(signal) {
-    return send(createSignalMessage("<i>BUY_SIGNAL :: BUY TO COVER SHORT TRADE</i>", signal));
-  }
-  function notifyBuyToCoverTraded(signal) {
-    return send(createSignalMessage("<b>>> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE</b>", signal));
-  }
   function notifyEnterShortSignal(signal) {
-    return send(createSignalMessage("<i>SELL_SIGNAL :: ENTER SHORT TRADE</i>", signal));
+    return send(createSignalMessage("<i>SEL_SIGNAL :: ENTER SHORT TRADE</i>", signal));
   }
   function notifyEnterShortTraded(signal) {
     return send(createSignalMessage("<b>>> SUCCESS! SELL_SIGNAL :: ENTER SHORT TRADE</b>", signal));
   }
+  function notifyExitLongSignal(signal) {
+    return send(createSignalMessage("<i>SELL_SIGNAL :: SELL TO EXIT LONG TRADE</i>", signal));
+  }
+  function notifyExitLongTraded(signal) {
+    return send(createSignalMessage("<b>>> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE</b>", signal));
+  }
 
   return {
-    send,
-    notifyExitLongSignal,
-    notifyExitLongTraded,
-    notifyEnterLongSignal,
-    notifyEnterLongTraded,
     notifyBuyToCoverSignal,
     notifyBuyToCoverTraded,
+    notifyEnterLongSignal,
+    notifyEnterLongTraded,
     notifyEnterShortSignal,
     notifyEnterShortTraded,
+    notifyExitLongSignal,
+    notifyExitLongTraded,
+    send,
   }
 }
-

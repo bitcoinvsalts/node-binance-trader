@@ -18,19 +18,19 @@ module.exports = envalid.cleanEnv(process.env, {
     }),
     GMAIL_ADDRESS: envalid.str({ default: "" }),
     GMAIL_APP_PASSWORD: envalid.str({ default: "" }),
-    TELEGRAM_API_KEY: envalid.str({ default: "" }),
-    TELEGRAM_RECEIVER_ID: envalid.str({ default: "" }),
-    USE_TELEGRAM: envalid.bool({ default: false }),
-    USE_GMAIL: envalid.bool({ default: false }),
     HOST: envalid.host({ default: "localhost" }),
     SERVER_PORT: envalid.port({
         default: 4000,
         desc: "The port to start the server on",
     }),
     STRATEGY_TIMEFRAME: envalid.str({ default: "15m" }),
+    TELEGRAM_API_KEY: envalid.str({ default: "" }),
+    TELEGRAM_RECEIVER_ID: envalid.str({ default: "" }),
     TRADER_PORT: envalid.port({
         default: 8003,
         desc: "The port to trader webserver runs",
     }),
+    USE_GMAIL: envalid.bool({ default: false }),
+    USE_TELEGRAM: envalid.bool({ default: false }),
     VERSION: envalid.str({ default: pjson.version }),
 })

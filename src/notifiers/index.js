@@ -10,14 +10,14 @@ module.exports = function (trading_pairs) {
   const notifyAllFor = (method, arg) => notifiers.forEach(n => n[method] && n[method](arg));
 
   return {
-    send: message => notifyAllFor("send", message),
-    notifyExitLongSignal: signal => notifyAllFor("notifyExitLongSignal", signal),
-    notifyExitLongTraded: signal => notifyAllFor("notifyExitLongTraded", signal),
-    notifyEnterLongSignal: signal => notifyAllFor("notifyEnterLongSignal", signal),
-    notifyEnterLongTraded: signal => notifyAllFor("notifyEnterLongTraded", signal),
     notifyBuyToCoverSignal: signal => notifyAllFor("notifyBuyToCoverSignal", signal),
     notifyBuyToCoverTraded: signal => notifyAllFor("notifyBuyToCoverTraded", signal),
+    notifyEnterLongSignal: signal => notifyAllFor("notifyEnterLongSignal", signal),
+    notifyEnterLongTraded: signal => notifyAllFor("notifyEnterLongTraded", signal),
     notifyEnterShortSignal: signal => notifyAllFor("notifyEnterShortSignal", signal),
     notifyEnterShortTraded: signal => notifyAllFor("notifyEnterShortTraded", signal),
+    notifyExitLongSignal: signal => notifyAllFor("notifyExitLongSignal", signal),
+    notifyExitLongTraded: signal => notifyAllFor("notifyExitLongTraded", signal),
+    send: message => notifyAllFor("send", message),
   }
 }
