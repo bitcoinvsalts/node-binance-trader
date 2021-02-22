@@ -489,6 +489,16 @@ socket.on("sell_signal", async (signal) => {
                                     )
                                     return
                                 }
+
+                                //////
+                                delete trading_pairs[signal.pair + signal.stratid]
+                                delete trading_types[signal.pair + signal.stratid]
+                                delete sell_prices[signal.pair + signal.stratid]
+                                delete buy_prices[signal.pair + signal.stratid]
+                                delete trading_qty[signal.pair + signal.stratid]
+                                delete open_trades[signal.pair + signal.stratid]
+                                //////
+
                                 console.log(
                                     "SUCESS 71111111",
                                     alt,
@@ -522,6 +532,16 @@ socket.on("sell_signal", async (signal) => {
                                     )
                                     return
                                 }
+
+                                //////
+                                delete trading_pairs[signal.pair + signal.stratid]
+                                delete trading_types[signal.pair + signal.stratid]
+                                delete sell_prices[signal.pair + signal.stratid]
+                                delete buy_prices[signal.pair + signal.stratid]
+                                delete trading_qty[signal.pair + signal.stratid]
+                                delete open_trades[signal.pair + signal.stratid]
+                                //////
+
                                 console.log(
                                     "SUCESS 711000111 marketSell",
                                     alt + "BTC",
@@ -537,6 +557,16 @@ socket.on("sell_signal", async (signal) => {
                     }
                 } else {
                     // VIRTUAL TRADE
+
+                    //////
+                    delete trading_pairs[signal.pair + signal.stratid]
+                    delete trading_types[signal.pair + signal.stratid]
+                    delete sell_prices[signal.pair + signal.stratid]
+                    delete buy_prices[signal.pair + signal.stratid]
+                    delete trading_qty[signal.pair + signal.stratid]
+                    delete open_trades[signal.pair + signal.stratid]
+                    //////
+
                     socket.emit("traded_sell_signal", traded_sell_signal)
                     notifier.notifyExitLongTraded(signal)
                 }
@@ -544,15 +574,6 @@ socket.on("sell_signal", async (signal) => {
             } else {
                 console.log("PAIR UNKNOWN", alt)
             }
-
-            //////
-            delete trading_pairs[signal.pair + signal.stratid]
-            delete trading_types[signal.pair + signal.stratid]
-            delete sell_prices[signal.pair + signal.stratid]
-            delete buy_prices[signal.pair + signal.stratid]
-            delete trading_qty[signal.pair + signal.stratid]
-            delete open_trades[signal.pair + signal.stratid]
-            //////
         } else {
             console.log(
                 "SELL AGAIN",
