@@ -268,6 +268,16 @@ socket.on("buy_signal", async (signal) => {
                                 )
                                 return
                             }
+
+                            //////
+                            delete trading_pairs[signal.pair + signal.stratid]
+                            delete trading_types[signal.pair + signal.stratid]
+                            delete buy_prices[signal.pair + signal.stratid]
+                            delete sell_prices[signal.pair + signal.stratid]
+                            delete trading_qty[signal.pair + signal.stratid]
+                            delete open_trades[signal.pair + signal.stratid]
+                            //////
+
                             socket.emit(
                                 "traded_buy_signal",
                                 traded_buy_signal
@@ -295,20 +305,22 @@ socket.on("buy_signal", async (signal) => {
                     )
                 } else {
                     // VIRTUAL TRADE
+
+                    //////
+                    delete trading_pairs[signal.pair + signal.stratid]
+                    delete trading_types[signal.pair + signal.stratid]
+                    delete buy_prices[signal.pair + signal.stratid]
+                    delete sell_prices[signal.pair + signal.stratid]
+                    delete trading_qty[signal.pair + signal.stratid]
+                    delete open_trades[signal.pair + signal.stratid]
+                    //////
+
                     socket.emit("traded_buy_signal", traded_buy_signal)
                     notifier.notifyBuyToCoverTraded(signal);
                 }
             } else {
                 console.log("PAIR UNKNOWN", alt)
             }
-            //////
-            delete trading_pairs[signal.pair + signal.stratid]
-            delete trading_types[signal.pair + signal.stratid]
-            delete buy_prices[signal.pair + signal.stratid]
-            delete sell_prices[signal.pair + signal.stratid]
-            delete trading_qty[signal.pair + signal.stratid]
-            delete open_trades[signal.pair + signal.stratid]
-            //////
         } else {
             console.log(
                 "BUY AGAIN",
