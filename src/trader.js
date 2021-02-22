@@ -625,6 +625,15 @@ socket.on("close_traded_signal", async (signal) => {
                                     )
                                     return
                                 }
+
+                                //////
+                                delete trading_pairs[signal.pair + signal.stratid]
+                                delete trading_types[signal.pair + signal.stratid]
+                                delete sell_prices[signal.pair + signal.stratid]
+                                delete trading_qty[signal.pair + signal.stratid]
+                                delete open_trades[signal.pair + signal.stratid]
+                                //////
+                                
                                 console.log("SUCESS44444", alt, Number(qty))
                                 socket.emit(
                                     "traded_sell_signal",
@@ -653,6 +662,15 @@ socket.on("close_traded_signal", async (signal) => {
                                     )
                                     return
                                 }
+
+                                //////
+                                delete trading_pairs[signal.pair + signal.stratid]
+                                delete trading_types[signal.pair + signal.stratid]
+                                delete sell_prices[signal.pair + signal.stratid]
+                                delete trading_qty[signal.pair + signal.stratid]
+                                delete open_trades[signal.pair + signal.stratid]
+                                //////
+
                                 console.log(
                                     "SUCESS 716611 marketSell",
                                     alt,
@@ -672,15 +690,17 @@ socket.on("close_traded_signal", async (signal) => {
 
             } else {
                 // VIRTUAL TRADE
+
+                //////
+                delete trading_pairs[signal.pair + signal.stratid]
+                delete trading_types[signal.pair + signal.stratid]
+                delete sell_prices[signal.pair + signal.stratid]
+                delete trading_qty[signal.pair + signal.stratid]
+                delete open_trades[signal.pair + signal.stratid]
+                //////
+
                 socket.emit("traded_sell_signal", traded_sell_signal)
             }
-            //////
-            delete trading_pairs[signal.pair + signal.stratid]
-            delete trading_types[signal.pair + signal.stratid]
-            delete sell_prices[signal.pair + signal.stratid]
-            delete trading_qty[signal.pair + signal.stratid]
-            delete open_trades[signal.pair + signal.stratid]
-            //////
         } else if (trading_types[signal.pair + signal.stratid] === "SHORT") {
             console.log(
                 colors.grey(
@@ -722,6 +742,15 @@ socket.on("close_traded_signal", async (signal) => {
                                 )
                                 return
                             }
+
+                            //////
+                            delete trading_pairs[signal.pair + signal.stratid]
+                            delete trading_types[signal.pair + signal.stratid]
+                            delete buy_prices[signal.pair + signal.stratid]
+                            delete trading_qty[signal.pair + signal.stratid]
+                            delete open_trades[signal.pair + signal.stratid]
+                            //////
+
                             socket.emit(
                                 "traded_buy_signal",
                                 traded_buy_signal
@@ -752,15 +781,17 @@ socket.on("close_traded_signal", async (signal) => {
 
             } else {
                 // VIRTUAL TRADE
+
+                //////
+                delete trading_pairs[signal.pair + signal.stratid]
+                delete trading_types[signal.pair + signal.stratid]
+                delete buy_prices[signal.pair + signal.stratid]
+                delete trading_qty[signal.pair + signal.stratid]
+                delete open_trades[signal.pair + signal.stratid]
+                //////
+
                 socket.emit("traded_buy_signal", traded_buy_signal)
             }
-            //////
-            delete trading_pairs[signal.pair + signal.stratid]
-            delete trading_types[signal.pair + signal.stratid]
-            delete buy_prices[signal.pair + signal.stratid]
-            delete trading_qty[signal.pair + signal.stratid]
-            delete open_trades[signal.pair + signal.stratid]
-            //////
         }
     }
 })
