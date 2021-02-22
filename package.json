@@ -21,7 +21,7 @@
         "start": "node ./src/server.js",
         "trader": "node ./src/trader.js",
         "backtest": "node ./src/backtest.js",
-        "lint": "eslint --cache src/notifiers",
+        "lint": "eslint --cache src",
         "test": "jest"
     },
     "dependencies": {

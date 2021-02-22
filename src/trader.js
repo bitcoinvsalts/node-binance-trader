@@ -25,7 +25,7 @@ let minimums = {}
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const notifier = require('./notifiers')(trading_pairs);
+const notifier = require('./notifiers')(trading_pairs)
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -142,13 +142,13 @@ socket.on("buy_signal", async (signal) => {
 
                             console.log(" mgMarketBuy BTCUSDT SUCESS 3")
                             socket.emit("traded_buy_signal", traded_buy_signal)
-                            notifier.notifyEnterLongTraded(signal);
+                            notifier.notifyEnterLongTraded(signal)
                         }
                     )
                 } else {
                     // VIRTUAL TRADE
                     socket.emit("traded_buy_signal", traded_buy_signal)
-                    notifier.notifyEnterLongTraded(signal);
+                    notifier.notifyEnterLongTraded(signal)
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
@@ -189,7 +189,7 @@ socket.on("buy_signal", async (signal) => {
                                         "traded_buy_signal",
                                         traded_buy_signal
                                     )
-                                    notifier.notifyEnterLongTraded(signal);
+                                    notifier.notifyEnterLongTraded(signal)
                                 }
                             )
                         } else {
@@ -216,14 +216,14 @@ socket.on("buy_signal", async (signal) => {
                                         "traded_buy_signal",
                                         traded_buy_signal
                                     )
-                                    notifier.notifyEnterLongTraded(signal);
+                                    notifier.notifyEnterLongTraded(signal)
                                 }
                             )
                         }
                     } else {
                         // VIRTUAL TRADE
                         socket.emit("traded_buy_signal", traded_buy_signal)
-                        notifier.notifyEnterLongTraded(signal);
+                        notifier.notifyEnterLongTraded(signal)
                     }
                 } else {
                     console.log("PAIR UNKNOWN", alt)
@@ -277,7 +277,7 @@ socket.on("buy_signal", async (signal) => {
                             }
 
                             socket.emit("traded_buy_signal", traded_buy_signal)
-                            notifier.notifyBuyToCoverTraded(signal);
+                            notifier.notifyBuyToCoverTraded(signal)
 
                             console.log("----- mgRepay BTC 5 -----")
                             bnb_client.mgRepay(
@@ -300,7 +300,7 @@ socket.on("buy_signal", async (signal) => {
                 } else {
                     // VIRTUAL TRADE
                     socket.emit("traded_buy_signal", traded_buy_signal)
-                    notifier.notifyBuyToCoverTraded(signal);
+                    notifier.notifyBuyToCoverTraded(signal)
                 }
             } else {
                 const alt = signal.pair.replace("BTC", "")
@@ -339,7 +339,7 @@ socket.on("buy_signal", async (signal) => {
                                     "traded_buy_signal",
                                     traded_buy_signal
                                 )
-                                notifier.notifyBuyToCoverTraded(signal);
+                                notifier.notifyBuyToCoverTraded(signal)
 
                                 console.log("---+-- mgRepay ---+--")
                                 bnb_client.mgRepay(
@@ -363,7 +363,7 @@ socket.on("buy_signal", async (signal) => {
                     } else {
                         // VIRTUAL TRADE
                         socket.emit("traded_buy_signal", traded_buy_signal)
-                        notifier.notifyBuyToCoverTraded(signal);
+                        notifier.notifyBuyToCoverTraded(signal)
                     }
                 } else {
                     console.log("PAIR UNKNOWN", alt)
@@ -459,7 +459,7 @@ socket.on("sell_signal", async (signal) => {
                                         "traded_sell_signal",
                                         traded_sell_signal
                                     )
-                                    notifier.notifyEnterShortTraded(signal);
+                                    notifier.notifyEnterShortTraded(signal)
                                 }
                             )
                         }
@@ -467,7 +467,7 @@ socket.on("sell_signal", async (signal) => {
                 } else {
                     // VIRTUAL TRADE
                     socket.emit("traded_sell_signal", traded_sell_signal)
-                    notifier.notifyEnterShortTraded(signal);
+                    notifier.notifyEnterShortTraded(signal)
                 }
             } else {
                 console.log("const alt = signal.pair.replace('BTC', '')")
@@ -527,7 +527,7 @@ socket.on("sell_signal", async (signal) => {
                                             "traded_sell_signal",
                                             traded_sell_signal
                                         )
-                                        notifier.notifyEnterShortTraded(signal);
+                                        notifier.notifyEnterShortTraded(signal)
                                     }
                                 )
                             }
@@ -535,7 +535,7 @@ socket.on("sell_signal", async (signal) => {
                     } else {
                         // VIRTUAL TRADE
                         socket.emit("traded_sell_signal", traded_sell_signal)
-                        notifier.notifyEnterShortTraded(signal);
+                        notifier.notifyEnterShortTraded(signal)
                     }
                 } else {
                     console.log("PAIR UNKNOWN", alt)

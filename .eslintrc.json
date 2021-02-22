@@ -9,6 +9,10 @@
         "ecmaVersion": 12
     },
     "rules": {
-        "semi": ["error", "never"]
+        "semi": [
+            "error",
+            "never"
+        ],
+        "no-unused-vars": "warn"
     }
 }

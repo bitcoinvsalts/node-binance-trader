@@ -1,6 +1,5 @@
 const BigNumber = require("bignumber.js")
 const colors = require("colors")
-const _ = require("lodash")
 const moment = require("moment")
 const { Client } = require("pg")
 const env = require("./env")
@@ -47,8 +46,6 @@ async function getData(pair) {
         })
 }
 
-const arrAvg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length
-
 async function backtest(lines) {
     let curr_pnl = new BigNumber(0)
     let first_price = new BigNumber(0)
@@ -61,7 +58,6 @@ async function backtest(lines) {
     let amount_sold = 0
     let trading_report = ""
     let trading_count = 0
-    let trading_start = 0
     let trading_win_count = 0
     let trading_loss_count = 0
     let pnl = new BigNumber(0)
@@ -180,7 +176,6 @@ async function backtest(lines) {
                     " trd:".grey +
                     colors.white(trades[trades.length - 1])
                 trading = true
-                trading_start = time
 
                 start_price = BigNumber(price)
             } else {
@@ -333,20 +328,20 @@ async function backtest(lines) {
     console.log("trading_loss_count: ".red + String(trading_win_count).red)
     console.log(
         "HODL PnL: %".grey +
-            last_price
-                .minus(first_price)
-                .dividedBy(first_price)
-                .times(100)
-                .minus(0.1)
-                .toFormat(3).grey
+        last_price
+            .minus(first_price)
+            .dividedBy(first_price)
+            .times(100)
+            .minus(0.1)
+            .toFormat(3).grey
     )
     console.log("Strat PnL: %".yellow + curr_pnl.toFormat(3).yellow)
     console.log(
         "Daily PnL: ".cyan +
-            colors.cyan(
-                curr_pnl.dividedBy(days).decimalPlaces(3).toString().cyan
-            ) +
-            "% /day".cyan
+        colors.cyan(
+            curr_pnl.dividedBy(days).decimalPlaces(3).toString().cyan
+        ) +
+        "% /day".cyan
     )
     console.log("-----------")
     return true
