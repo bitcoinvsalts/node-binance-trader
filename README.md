@@ -2,6 +2,8 @@
 
 <h6 align="center">Version 0.2.4</h6>
 
+[Our Setup Guide](https://github.com/jsappme/node-binance-trader/blob/master/BVA_Guide.pdf)
+
 [![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://wallet.nimiq.com/nimiq:NQ38SDPGREC3USTALLCT87GQTCUYFH5L6PCQ)
 
 <img src="docs/images/nbt_diagram.png">
@@ -16,7 +18,7 @@ NBT includes 3 main JS scripts:
   * to detect buy or sell signals
   * (optional) to send trading signals to the NBT Hub / [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to monitor performances and auto trade those signals (virtually or for real).
 
-* the **trader**: [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/jsappme/nbt-binance-auto-trader)
+* the **trader**: [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/jsappme/node-binance-trader)
 
   * this script allows you to auto trade the signals received from the NBT hub or your own server. this script can run locally or on cloud services like Heroku. This new auto trader script allows you to trade with leverage when the pair is available for margin trading.
 

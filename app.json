@@ -1,0 +1,45 @@
+{
+    "name": "node-binance-trader",
+    "description": "Auto trader to trade signals from your BitcoinVsAltcoins.com strategy selection.",
+    "logo": "https://pbs.twimg.com/profile_images/1144199654831267841/SyDG8MA1_400x400.jpg",
+    "repository": "https://github.com/jsappme/node-binance-trader",
+    "keywords": ["node", "binance","trading","trader","bot","market","maker","algo","crypto"],
+    "env": {
+      "BINANCE_API_KEY": {
+        "description": "Your Binance API Key",
+        "required": true
+      },
+      "BINANCE_SECRET_KEY": {
+        "description": "Your Binance API Secret",
+        "required": true
+      },
+      "BVA_API_KEY": {
+        "description": "Your BitcoinVsAltcoins.com Account API Key",
+        "required": true
+      },
+      "GMAIL_ADDRESS": {
+        "description": "Gmail email to get notifications",
+        "required": false
+      },
+      "GMAIL_APP_PASSWORD": {
+        "description": "Gmail password to get notifications",
+        "required": false
+      },
+      "TELEGRAM_API_KEY": {
+        "description": "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather )",
+        "required": false
+      },
+      "TELEGRAM_RECEIVER_ID": {
+        "description": "Unique identifier for the target chat or username of the target channel (in the format @channelusername)",
+        "required": false
+      },
+      "USE_GMAIL": {
+        "description": "Selects if Gmail will be used",
+        "required": false
+      },
+      "USE_TELEGRAM": {
+        "description": "Selects if Telegram will be used",
+        "required": false
+      }
+    }
+  }
