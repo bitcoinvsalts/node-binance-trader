@@ -582,7 +582,7 @@ socket.on("close_traded_signal", async (signal) => {
         if (trading_types[signal.pair + signal.stratid] === "LONG") {
             console.log(
                 colors.grey(
-                    "BUY_SIGNAL :: SELL TO EXIT LONG TRADE ::",
+                    "CLOSE_SIGNAL :: SELL TO EXIT LONG TRADE ::",
                     signal.stratname,
                     signal.stratid,
                     signal.pair
