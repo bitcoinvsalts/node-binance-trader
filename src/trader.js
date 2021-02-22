@@ -205,7 +205,7 @@ socket.on("buy_signal", async (signal) => {
                     open_trades[signal.pair + signal.stratid] = true
                     trading_qty[signal.pair + signal.stratid] = Number(qty)
                     //////
-                    
+
                     socket.emit("traded_buy_signal", traded_buy_signal)
                     notifier.notifyEnterLongTraded(signal);
                 }
@@ -335,11 +335,7 @@ socket.on("sell_signal", async (signal) => {
             )
             //notify
             notifier.notifyEnterShortSignal(signal)
-            //////
-            trading_pairs[signal.pair + signal.stratid] = true
-            trading_types[signal.pair + signal.stratid] = "SHORT"
-            open_trades[signal.pair + signal.stratid] = true
-            //////
+            
             console.log(
                 signal.pair,
                 " ===> SELL",
@@ -358,7 +354,6 @@ socket.on("sell_signal", async (signal) => {
                     btc_qty,
                     minimums[alt + "BTC"].stepSize
                 )
-                trading_qty[signal.pair + signal.stratid] = Number(qty)
                 console.log(
                     "QTY ===mgBorrow===> " + qty + " - " + alt + "BTC"
                 )
@@ -385,6 +380,7 @@ socket.on("sell_signal", async (signal) => {
                                 )
                                 return
                             }
+
                             console.log(
                                 "SUCESS 444444444 mgMarketSell 44444444"
                             )
@@ -399,6 +395,14 @@ socket.on("sell_signal", async (signal) => {
                                         )
                                         return
                                     }
+
+                                    //////
+                                    trading_pairs[signal.pair + signal.stratid] = true
+                                    trading_types[signal.pair + signal.stratid] = "SHORT"
+                                    open_trades[signal.pair + signal.stratid] = true
+                                    trading_qty[signal.pair + signal.stratid] = Number(qty)
+                                    //////
+
                                     console.log("SUCCESS 22222222")
                                     socket.emit(
                                         "traded_sell_signal",
@@ -411,6 +415,14 @@ socket.on("sell_signal", async (signal) => {
                     )
                 } else {
                     // VIRTUAL TRADE
+
+                    //////
+                    trading_pairs[signal.pair + signal.stratid] = true
+                    trading_types[signal.pair + signal.stratid] = "SHORT"
+                    open_trades[signal.pair + signal.stratid] = true
+                    trading_qty[signal.pair + signal.stratid] = Number(qty)
+                    //////
+
                     socket.emit("traded_sell_signal", traded_sell_signal)
                     notifier.notifyEnterShortTraded(signal);
                 }
