@@ -663,6 +663,7 @@ socket.on("close_traded_signal", async (signal) => {
                                 delete trading_pairs[signal.pair + signal.stratid]
                                 delete trading_types[signal.pair + signal.stratid]
                                 delete sell_prices[signal.pair + signal.stratid]
+                                delete buy_prices[signal.pair + signal.stratid]
                                 delete trading_qty[signal.pair + signal.stratid]
                                 delete open_trades[signal.pair + signal.stratid]
                                 //////
@@ -700,6 +701,7 @@ socket.on("close_traded_signal", async (signal) => {
                                 delete trading_pairs[signal.pair + signal.stratid]
                                 delete trading_types[signal.pair + signal.stratid]
                                 delete sell_prices[signal.pair + signal.stratid]
+                                delete buy_prices[signal.pair + signal.stratid]
                                 delete trading_qty[signal.pair + signal.stratid]
                                 delete open_trades[signal.pair + signal.stratid]
                                 //////
@@ -728,6 +730,7 @@ socket.on("close_traded_signal", async (signal) => {
                 delete trading_pairs[signal.pair + signal.stratid]
                 delete trading_types[signal.pair + signal.stratid]
                 delete sell_prices[signal.pair + signal.stratid]
+                delete buy_prices[signal.pair + signal.stratid]
                 delete trading_qty[signal.pair + signal.stratid]
                 delete open_trades[signal.pair + signal.stratid]
                 //////
@@ -779,6 +782,7 @@ socket.on("close_traded_signal", async (signal) => {
                             //////
                             delete trading_pairs[signal.pair + signal.stratid]
                             delete trading_types[signal.pair + signal.stratid]
+                            delete sell_prices[signal.pair + signal.stratid]
                             delete buy_prices[signal.pair + signal.stratid]
                             delete trading_qty[signal.pair + signal.stratid]
                             delete open_trades[signal.pair + signal.stratid]
@@ -818,6 +822,7 @@ socket.on("close_traded_signal", async (signal) => {
                 //////
                 delete trading_pairs[signal.pair + signal.stratid]
                 delete trading_types[signal.pair + signal.stratid]
+                delete sell_prices[signal.pair + signal.stratid]
                 delete buy_prices[signal.pair + signal.stratid]
                 delete trading_qty[signal.pair + signal.stratid]
                 delete open_trades[signal.pair + signal.stratid]
