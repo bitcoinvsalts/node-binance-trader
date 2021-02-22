@@ -20,7 +20,9 @@
     "scripts": {
         "start": "node ./src/server.js",
         "trader": "node ./src/trader.js",
-        "backtest": "node ./src/backtest.js"
+        "backtest": "node ./src/backtest.js",
+        "lint": "eslint --cache src/notifiers",
+        "test": "jest"
     },
     "dependencies": {
         "axios": "^0.21.1",
@@ -40,5 +42,9 @@
         "socket.io-client": "^2.2.0",
         "telebot": "^1.4.1",
         "tulind": "^0.8.18"
+    },
+    "devDependencies": {
+        "eslint": "^7.20.0",
+        "jest": "^26.6.3"
     }
 }
