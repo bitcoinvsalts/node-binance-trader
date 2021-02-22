@@ -107,11 +107,6 @@ socket.on("buy_signal", async (signal) => {
             //notify
             notifier.notifyEnterLongSignal(signal)
 
-            //////
-            trading_pairs[signal.pair + signal.stratid] = true
-            trading_types[signal.pair + signal.stratid] = "LONG"
-            open_trades[signal.pair + signal.stratid] = true
-            //////
             console.log(
                 signal.pair,
                 " ===> BUY",
@@ -130,7 +125,6 @@ socket.on("buy_signal", async (signal) => {
                     minimums[alt + "BTC"].stepSize
                 )
                 console.log("Market Buy ==> " + qty + " - " + alt + "BTC")
-                trading_qty[signal.pair + signal.stratid] = Number(qty)
                 ////
                 const traded_buy_signal = {
                     key: bva_key,
@@ -151,6 +145,13 @@ socket.on("buy_signal", async (signal) => {
                                     console.log("ERROR 3355333", error.body)
                                     return
                                 }
+
+                                //////
+                                trading_pairs[signal.pair + signal.stratid] = true
+                                trading_types[signal.pair + signal.stratid] = "LONG"
+                                open_trades[signal.pair + signal.stratid] = true
+                                trading_qty[signal.pair + signal.stratid] = Number(qty)
+                                //////
 
                                 console.log("SUCCESS 222444222")
                                 socket.emit(
@@ -175,6 +176,13 @@ socket.on("buy_signal", async (signal) => {
                                     return
                                 }
 
+                                //////
+                                trading_pairs[signal.pair + signal.stratid] = true
+                                trading_types[signal.pair + signal.stratid] = "LONG"
+                                open_trades[signal.pair + signal.stratid] = true
+                                trading_qty[signal.pair + signal.stratid] = Number(qty)
+                                //////
+
                                 console.log(
                                     "SUCESS 99111 marketBuy",
                                     alt + "BTC",
@@ -190,6 +198,14 @@ socket.on("buy_signal", async (signal) => {
                     }
                 } else {
                     // VIRTUAL TRADE
+
+                    //////
+                    trading_pairs[signal.pair + signal.stratid] = true
+                    trading_types[signal.pair + signal.stratid] = "LONG"
+                    open_trades[signal.pair + signal.stratid] = true
+                    trading_qty[signal.pair + signal.stratid] = Number(qty)
+                    //////
+                    
                     socket.emit("traded_buy_signal", traded_buy_signal)
                     notifier.notifyEnterLongTraded(signal);
                 }
