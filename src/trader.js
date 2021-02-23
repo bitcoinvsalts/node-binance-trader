@@ -118,10 +118,19 @@ socket.on("buy_signal", async (signal) => {
                 signal.price,
                 Number(user_payload[tresult].buy_amount)
             )
-            if (signal.pair == "BTCUSDT") {
-                trading_qty[signal.pair + signal.stratid] = Number(
+
+            const alt = signal.pair.replace("BTC", "")
+            if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
+                const buy_amount = new BigNumber(
                     user_payload[tresult].buy_amount
                 )
+                const btc_qty = buy_amount.dividedBy(signal.price)
+                const qty = bnb_client.roundStep(
+                    btc_qty,
+                    minimums[alt + "BTC"].stepSize
+                )
+                console.log("Market Buy ==> " + qty + " - " + alt + "BTC")
+                trading_qty[signal.pair + signal.stratid] = Number(qty)
                 ////
                 const traded_buy_signal = {
                     key: bva_key,
@@ -129,111 +138,63 @@ socket.on("buy_signal", async (signal) => {
                     stratid: signal.stratid,
                     trading_type: user_payload[tresult].trading_type,
                     pair: signal.pair,
-                    qty: Number(user_payload[tresult].buy_amount),
+                    qty: qty,
                 }
                 ////
                 if (user_payload[tresult].trading_type === "real") {
-                    bnb_client.mgMarketBuy(
-                        "BTCUSDT",
-                        Number(user_payload[tresult].buy_amount),
-                        (error, response) => {
-                            if (error) {
-                                console.log(
-                                    "ERROR 3 BTCUSDT ",
-                                    Number(user_payload[tresult].buy_amount),
-                                    error.body
-                                )
-                                return
-                            }
+                    if (margin_pairs.includes(alt + "BTC")) {
+                        bnb_client.mgMarketBuy(
+                            alt + "BTC",
+                            Number(qty),
+                            (error, response) => {
+                                if (error) {
+                                    console.log("ERROR 3355333", error.body)
+                                    return
+                                }
 
-                            console.log(" mgMarketBuy BTCUSDT SUCESS 3")
-                            socket.emit("traded_buy_signal", traded_buy_signal)
-                            notifier.notifyEnterLongTraded(signal);
-                        }
-                    )
+                                console.log("SUCCESS 222444222")
+                                socket.emit(
+                                    "traded_buy_signal",
+                                    traded_buy_signal
+                                )
+                                notifier.notifyEnterLongTraded(signal);
+                            }
+                        )
+                    } else {
+                        bnb_client.marketBuy(
+                            alt + "BTC",
+                            Number(qty),
+                            (error, response) => {
+                                if (error) {
+                                    console.log(
+                                        "ERROR 7991117 marketBuy",
+                                        alt + "BTC",
+                                        Number(qty),
+                                        error.body
+                                    )
+                                    return
+                                }
+
+                                console.log(
+                                    "SUCESS 99111 marketBuy",
+                                    alt + "BTC",
+                                    Number(qty)
+                                )
+                                socket.emit(
+                                    "traded_buy_signal",
+                                    traded_buy_signal
+                                )
+                                notifier.notifyEnterLongTraded(signal);
+                            }
+                        )
+                    }
                 } else {
                     // VIRTUAL TRADE
                     socket.emit("traded_buy_signal", traded_buy_signal)
                     notifier.notifyEnterLongTraded(signal);
                 }
             } else {
-                const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
-                    const buy_amount = new BigNumber(
-                        user_payload[tresult].buy_amount
-                    )
-                    const btc_qty = buy_amount.dividedBy(signal.price)
-                    const qty = bnb_client.roundStep(
-                        btc_qty,
-                        minimums[alt + "BTC"].stepSize
-                    )
-                    console.log("Market Buy ==> " + qty + " - " + alt + "BTC")
-                    trading_qty[signal.pair + signal.stratid] = Number(qty)
-                    ////
-                    const traded_buy_signal = {
-                        key: bva_key,
-                        stratname: signal.stratname,
-                        stratid: signal.stratid,
-                        trading_type: user_payload[tresult].trading_type,
-                        pair: signal.pair,
-                        qty: qty,
-                    }
-                    ////
-                    if (user_payload[tresult].trading_type === "real") {
-                        if (margin_pairs.includes(alt + "BTC")) {
-                            bnb_client.mgMarketBuy(
-                                alt + "BTC",
-                                Number(qty),
-                                (error, response) => {
-                                    if (error) {
-                                        console.log("ERROR 3355333", error.body)
-                                        return
-                                    }
-
-                                    console.log("SUCCESS 222444222")
-                                    socket.emit(
-                                        "traded_buy_signal",
-                                        traded_buy_signal
-                                    )
-                                    notifier.notifyEnterLongTraded(signal);
-                                }
-                            )
-                        } else {
-                            bnb_client.marketBuy(
-                                alt + "BTC",
-                                Number(qty),
-                                (error, response) => {
-                                    if (error) {
-                                        console.log(
-                                            "ERROR 7991117 marketBuy",
-                                            alt + "BTC",
-                                            Number(qty),
-                                            error.body
-                                        )
-                                        return
-                                    }
-
-                                    console.log(
-                                        "SUCESS 99111 marketBuy",
-                                        alt + "BTC",
-                                        Number(qty)
-                                    )
-                                    socket.emit(
-                                        "traded_buy_signal",
-                                        traded_buy_signal
-                                    )
-                                    notifier.notifyEnterLongTraded(signal);
-                                }
-                            )
-                        }
-                    } else {
-                        // VIRTUAL TRADE
-                        socket.emit("traded_buy_signal", traded_buy_signal)
-                        notifier.notifyEnterLongTraded(signal);
-                    }
-                } else {
-                    console.log("PAIR UNKNOWN", alt)
-                }
+                console.log("PAIR UNKNOWN", alt)
             }
             //////
         } else if (
@@ -258,7 +219,15 @@ socket.on("buy_signal", async (signal) => {
                 " ---> BUY",
                 Number(trading_qty[signal.pair + signal.stratid])
             )
-            if (signal.pair == "BTCUSDT") {
+
+            const alt = signal.pair.replace("BTC", "")
+            if (minimums[alt + "BTC"].minQty) {
+                const qty = Number(
+                    trading_qty[signal.pair + signal.stratid]
+                )
+                console.log(
+                    "QTY ====mgMarketBuy===> " + qty + " - " + alt + "BTC"
+                )
                 /////
                 const traded_buy_signal = {
                     key: bva_key,
@@ -266,39 +235,44 @@ socket.on("buy_signal", async (signal) => {
                     stratid: signal.stratid,
                     trading_type: user_payload[tresult].trading_type,
                     pair: signal.pair,
-                    qty: Number(trading_qty[signal.pair + signal.stratid]),
+                    qty: qty,
                 }
                 /////
                 if (user_payload[tresult].trading_type === "real") {
-                    const qty = Number(
-                        trading_qty[signal.pair + signal.stratid]
-                    )
                     bnb_client.mgMarketBuy(
-                        "BTCUSDT",
-                        qty,
+                        alt + "BTC",
+                        Number(qty),
                         (error, response) => {
                             if (error) {
-                                console.log("ERROR 5 BTCUST ", qty, error.body)
+                                console.log(
+                                    "ERROR 6 ",
+                                    alt,
+                                    Number(qty),
+                                    error.body
+                                )
                                 return
                             }
-
-                            socket.emit("traded_buy_signal", traded_buy_signal)
+                            socket.emit(
+                                "traded_buy_signal",
+                                traded_buy_signal
+                            )
                             notifier.notifyBuyToCoverTraded(signal);
 
-                            console.log("----- mgRepay BTC 5 -----")
+                            console.log("---+-- mgRepay ---+--")
                             bnb_client.mgRepay(
-                                "BTC",
-                                qty,
+                                alt,
+                                Number(qty),
                                 (error, response) => {
                                     if (error) {
                                         console.log(
-                                            "ERROR BTC 999",
-                                            qty,
+                                            "ERROR 244343333",
+                                            alt,
+                                            Number(qty),
                                             error.body
                                         )
                                         return
                                     }
-                                    console.log("SUCCESS BTC 888")
+                                    console.log("SUCCESS 333342111")
                                 }
                             )
                         }
@@ -309,71 +283,7 @@ socket.on("buy_signal", async (signal) => {
                     notifier.notifyBuyToCoverTraded(signal);
                 }
             } else {
-                const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"].minQty) {
-                    const qty = Number(
-                        trading_qty[signal.pair + signal.stratid]
-                    )
-                    console.log(
-                        "QTY ====mgMarketBuy===> " + qty + " - " + alt + "BTC"
-                    )
-                    /////
-                    const traded_buy_signal = {
-                        key: bva_key,
-                        stratname: signal.stratname,
-                        stratid: signal.stratid,
-                        trading_type: user_payload[tresult].trading_type,
-                        pair: signal.pair,
-                        qty: qty,
-                    }
-                    /////
-                    if (user_payload[tresult].trading_type === "real") {
-                        bnb_client.mgMarketBuy(
-                            alt + "BTC",
-                            Number(qty),
-                            (error, response) => {
-                                if (error) {
-                                    console.log(
-                                        "ERROR 6 ",
-                                        alt,
-                                        Number(qty),
-                                        error.body
-                                    )
-                                    return
-                                }
-                                socket.emit(
-                                    "traded_buy_signal",
-                                    traded_buy_signal
-                                )
-                                notifier.notifyBuyToCoverTraded(signal);
-
-                                console.log("---+-- mgRepay ---+--")
-                                bnb_client.mgRepay(
-                                    alt,
-                                    Number(qty),
-                                    (error, response) => {
-                                        if (error) {
-                                            console.log(
-                                                "ERROR 244343333",
-                                                alt,
-                                                Number(qty),
-                                                error.body
-                                            )
-                                            return
-                                        }
-                                        console.log("SUCCESS 333342111")
-                                    }
-                                )
-                            }
-                        )
-                    } else {
-                        // VIRTUAL TRADE
-                        socket.emit("traded_buy_signal", traded_buy_signal)
-                        notifier.notifyBuyToCoverTraded(signal);
-                    }
-                } else {
-                    console.log("PAIR UNKNOWN", alt)
-                }
+                console.log("PAIR UNKNOWN", alt)
             }
             //////
             delete trading_pairs[signal.pair + signal.stratid]
@@ -420,9 +330,21 @@ socket.on("sell_signal", async (signal) => {
                 signal.price,
                 Number(user_payload[tresult].buy_amount)
             )
-            if (signal.pair == "BTCUSDT") {
-                trading_qty[signal.pair + signal.stratid] = Number(
+
+            console.log("const alt = signal.pair.replace('BTC', '')")
+            const alt = signal.pair.replace("BTC", "")
+            if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
+                const buy_amount = new BigNumber(
                     user_payload[tresult].buy_amount
+                )
+                const btc_qty = buy_amount.dividedBy(signal.price)
+                const qty = bnb_client.roundStep(
+                    btc_qty,
+                    minimums[alt + "BTC"].stepSize
+                )
+                trading_qty[signal.pair + signal.stratid] = Number(qty)
+                console.log(
+                    "QTY ===mgBorrow===> " + qty + " - " + alt + "BTC"
                 )
                 const traded_sell_signal = {
                     key: bva_key,
@@ -430,37 +352,38 @@ socket.on("sell_signal", async (signal) => {
                     stratid: signal.stratid,
                     trading_type: user_payload[tresult].trading_type,
                     pair: signal.pair,
-                    qty: Number(user_payload[tresult].buy_amount),
+                    qty: qty,
                 }
 
                 if (user_payload[tresult].trading_type === "real") {
                     bnb_client.mgBorrow(
-                        "BTC",
-                        Number(user_payload[tresult].buy_amount),
+                        alt,
+                        Number(qty),
                         (error, response) => {
                             if (error) {
                                 console.log(
-                                    "ERROR BTC 55",
-                                    Number(user_payload[tresult].buy_amount),
-                                    error.body
+                                    "ERROR 55555555555",
+                                    alt,
+                                    Number(qty),
+                                    JSON.stringify(error)
                                 )
                                 return
                             }
-                            console.log("SUCESS BTC 4 mgMarketSell 444")
+                            console.log(
+                                "SUCESS 444444444 mgMarketSell 44444444"
+                            )
                             bnb_client.mgMarketSell(
-                                "BTCUSDT",
-                                Number(user_payload[tresult].buy_amount),
+                                alt + "BTC",
+                                Number(qty),
                                 (error, response) => {
                                     if (error) {
                                         console.log(
-                                            "ERROR BTC 33333",
-                                            error.body
+                                            "ERROR 333333333",
+                                            JSON.stringify(error)
                                         )
                                         return
                                     }
-                                    console.log(
-                                        "mgMarketSell BTCUSDT SUCCESS 2222"
-                                    )
+                                    console.log("SUCCESS 22222222")
                                     socket.emit(
                                         "traded_sell_signal",
                                         traded_sell_signal
@@ -476,77 +399,9 @@ socket.on("sell_signal", async (signal) => {
                     notifier.notifyEnterShortTraded(signal);
                 }
             } else {
-                console.log("const alt = signal.pair.replace('BTC', '')")
-                const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
-                    const buy_amount = new BigNumber(
-                        user_payload[tresult].buy_amount
-                    )
-                    const btc_qty = buy_amount.dividedBy(signal.price)
-                    const qty = bnb_client.roundStep(
-                        btc_qty,
-                        minimums[alt + "BTC"].stepSize
-                    )
-                    trading_qty[signal.pair + signal.stratid] = Number(qty)
-                    console.log(
-                        "QTY ===mgBorrow===> " + qty + " - " + alt + "BTC"
-                    )
-                    const traded_sell_signal = {
-                        key: bva_key,
-                        stratname: signal.stratname,
-                        stratid: signal.stratid,
-                        trading_type: user_payload[tresult].trading_type,
-                        pair: signal.pair,
-                        qty: qty,
-                    }
-
-                    if (user_payload[tresult].trading_type === "real") {
-                        bnb_client.mgBorrow(
-                            alt,
-                            Number(qty),
-                            (error, response) => {
-                                if (error) {
-                                    console.log(
-                                        "ERROR 55555555555",
-                                        alt,
-                                        Number(qty),
-                                        JSON.stringify(error)
-                                    )
-                                    return
-                                }
-                                console.log(
-                                    "SUCESS 444444444 mgMarketSell 44444444"
-                                )
-                                bnb_client.mgMarketSell(
-                                    alt + "BTC",
-                                    Number(qty),
-                                    (error, response) => {
-                                        if (error) {
-                                            console.log(
-                                                "ERROR 333333333",
-                                                JSON.stringify(error)
-                                            )
-                                            return
-                                        }
-                                        console.log("SUCCESS 22222222")
-                                        socket.emit(
-                                            "traded_sell_signal",
-                                            traded_sell_signal
-                                        )
-                                        notifier.notifyEnterShortTraded(signal);
-                                    }
-                                )
-                            }
-                        )
-                    } else {
-                        // VIRTUAL TRADE
-                        socket.emit("traded_sell_signal", traded_sell_signal)
-                        notifier.notifyEnterShortTraded(signal);
-                    }
-                } else {
-                    console.log("PAIR UNKNOWN", alt)
-                }
+                console.log("PAIR UNKNOWN", alt)
             }
+
             //////
         } else if (
             trading_types[signal.pair + signal.stratid] === "LONG" &&
@@ -570,138 +425,98 @@ socket.on("sell_signal", async (signal) => {
                 " ---> SELL",
                 Number(trading_qty[signal.pair + signal.stratid])
             )
-            if (signal.pair == "BTCUSDT") {
+
+            const alt = signal.pair.replace("BTC", "")
+            if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
+                const qty = trading_qty[signal.pair + signal.stratid]
+                ///
                 const traded_sell_signal = {
                     key: bva_key,
                     stratname: signal.stratname,
                     stratid: signal.stratid,
                     trading_type: user_payload[tresult].trading_type,
                     pair: signal.pair,
-                    qty: Number(trading_qty[signal.pair + signal.stratid]),
+                    qty: qty,
                 }
-
+                ///
                 if (user_payload[tresult].trading_type === "real") {
-                    bnb_client.mgMarketSell(
-                        "BTCUSDT",
-                        Number(trading_qty[signal.pair + signal.stratid]),
-                        (error, response) => {
-                            if (error) {
+                    if (margin_pairs.includes(alt + "BTC")) {
+                        console.log(
+                            "QTY =======mgMarketSell======> " +
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
+                        )
+                        bnb_client.mgMarketSell(
+                            alt + "BTC",
+                            Number(qty),
+                            (error, response) => {
+                                if (error) {
+                                    console.log(
+                                        "ERROR 722211117",
+                                        alt,
+                                        Number(qty),
+                                        JSON.stringify(error)
+                                    )
+                                    return
+                                }
                                 console.log(
-                                    "ERROR 7220017 BTCUSDT",
-                                    Number(
-                                        trading_qty[
-                                            signal.pair + signal.stratid
-                                        ]
-                                    ),
-                                    JSON.stringify(error)
+                                    "SUCESS 71111111",
+                                    alt,
+                                    Number(qty)
                                 )
-                                return
+                                socket.emit(
+                                    "traded_sell_signal",
+                                    traded_sell_signal
+                                )
+                                notifier.notifyExitLongTraded(signal)
                             }
-                            socket.emit(
-                                "traded_sell_signal",
-                                traded_sell_signal
-                            )
-                            notifier.notifyExitLongTraded(signal)
-                        }
-                    )
+                        )
+                    } else {
+                        console.log(
+                            "QTY =======marketSell======> " +
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
+                        )
+                        bnb_client.marketSell(
+                            alt + "BTC",
+                            Number(qty),
+                            (error, response) => {
+                                if (error) {
+                                    console.log(
+                                        "ERROR 7213331117 marketSell",
+                                        alt + "BTC",
+                                        Number(qty),
+                                        JSON.stringify(error)
+                                    )
+                                    return
+                                }
+                                console.log(
+                                    "SUCESS 711000111 marketSell",
+                                    alt + "BTC",
+                                    Number(qty)
+                                )
+                                socket.emit(
+                                    "traded_sell_signal",
+                                    traded_sell_signal
+                                )
+                                notifier.notifyExitLongTraded(signal)
+                            }
+                        )
+                    }
                 } else {
                     // VIRTUAL TRADE
                     socket.emit("traded_sell_signal", traded_sell_signal)
                     notifier.notifyExitLongTraded(signal)
-
                 }
+                ///
             } else {
-                const alt = signal.pair.replace("BTC", "")
-                if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
-                    const qty = trading_qty[signal.pair + signal.stratid]
-                    ///
-                    const traded_sell_signal = {
-                        key: bva_key,
-                        stratname: signal.stratname,
-                        stratid: signal.stratid,
-                        trading_type: user_payload[tresult].trading_type,
-                        pair: signal.pair,
-                        qty: qty,
-                    }
-                    ///
-                    if (user_payload[tresult].trading_type === "real") {
-                        if (margin_pairs.includes(alt + "BTC")) {
-                            console.log(
-                                "QTY =======mgMarketSell======> " +
-                                    qty +
-                                    " - " +
-                                    alt +
-                                    "BTC"
-                            )
-                            bnb_client.mgMarketSell(
-                                alt + "BTC",
-                                Number(qty),
-                                (error, response) => {
-                                    if (error) {
-                                        console.log(
-                                            "ERROR 722211117",
-                                            alt,
-                                            Number(qty),
-                                            JSON.stringify(error)
-                                        )
-                                        return
-                                    }
-                                    console.log(
-                                        "SUCESS 71111111",
-                                        alt,
-                                        Number(qty)
-                                    )
-                                    socket.emit(
-                                        "traded_sell_signal",
-                                        traded_sell_signal
-                                    )
-                                    notifier.notifyExitLongTraded(signal)
-                                }
-                            )
-                        } else {
-                            console.log(
-                                "QTY =======marketSell======> " +
-                                    qty +
-                                    " - " +
-                                    alt +
-                                    "BTC"
-                            )
-                            bnb_client.marketSell(
-                                alt + "BTC",
-                                Number(qty),
-                                (error, response) => {
-                                    if (error) {
-                                        console.log(
-                                            "ERROR 7213331117 marketSell",
-                                            alt + "BTC",
-                                            Number(qty),
-                                            JSON.stringify(error)
-                                        )
-                                        return
-                                    }
-                                    console.log(
-                                        "SUCESS 711000111 marketSell",
-                                        alt + "BTC",
-                                        Number(qty)
-                                    )
-                                    socket.emit(
-                                        "traded_sell_signal",
-                                        traded_sell_signal
-                                    )
-                                    notifier.notifyExitLongTraded(signal)
-                                }
-                            )
-                        }
-                    } else {
-                        // VIRTUAL TRADE
-                        socket.emit("traded_sell_signal", traded_sell_signal)
-                        notifier.notifyExitLongTraded(signal)
-                    }
-                    ///
-                } else {
-                    console.log("PAIR UNKNOWN", alt)
-                }
+                console.log("PAIR UNKNOWN", alt)
             }
+
             //////
             delete trading_pairs[signal.pair + signal.stratid]
             delete trading_types[signal.pair + signal.stratid]
@@ -756,96 +571,77 @@ socket.on("close_traded_signal", async (signal) => {
             //////
             if (user_payload[tresult].trading_type === "real") {
                 console.log(signal.pair, " ===---==> SELL ", signal.qty)
-                if (signal.pair == "BTCUSDT") {
-                    bnb_client.mgMarketSell(
-                        "BTCUSDT",
-                        Number(signal.qty),
-                        (error, response) => {
-                            if (error) {
-                                console.log(
-                                    "ERROR 1212 BTCUSDT",
-                                    Number(signal.qty),
-                                    JSON.stringify(error)
-                                )
-                                return
-                            }
-                            socket.emit(
-                                "traded_sell_signal",
-                                traded_sell_signal
-                            )
-                        }
-                    )
-                } else {
-                    const alt = signal.pair.replace("BTC", "")
-                    if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
-                        const qty = signal.qty
-                        ///
-                        if (margin_pairs.includes(alt + "BTC")) {
-                            console.log(
-                                "CLOSE =========mgMarketSell=========> " +
-                                    qty +
-                                    " - " +
-                                    alt +
-                                    "BTC"
-                            )
-                            bnb_client.mgMarketSell(
-                                alt + "BTC",
-                                Number(qty),
-                                (error, response) => {
-                                    if (error) {
-                                        console.log(
-                                            "ERORR 4547777745",
-                                            alt,
-                                            Number(qty),
-                                            JSON.stringify(error)
-                                        )
-                                        return
-                                    }
-                                    console.log("SUCESS44444", alt, Number(qty))
-                                    socket.emit(
-                                        "traded_sell_signal",
-                                        traded_sell_signal
-                                    )
-                                }
-                            )
-                        } else {
-                            console.log(
-                                "CLOSE =========marketSell=========> " +
-                                    qty +
-                                    " - " +
-                                    alt +
-                                    "BTC"
-                            )
-                            bnb_client.marketSell(
-                                alt + "BTC",
-                                Number(qty),
-                                (error, response) => {
-                                    if (error) {
-                                        console.log(
-                                            "ERROR 72317 marketSell",
-                                            alt,
-                                            Number(qty),
-                                            JSON.stringify(error)
-                                        )
-                                        return
-                                    }
+
+                const alt = signal.pair.replace("BTC", "")
+                if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
+                    const qty = signal.qty
+                    ///
+                    if (margin_pairs.includes(alt + "BTC")) {
+                        console.log(
+                            "CLOSE =========mgMarketSell=========> " +
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
+                        )
+                        bnb_client.mgMarketSell(
+                            alt + "BTC",
+                            Number(qty),
+                            (error, response) => {
+                                if (error) {
                                     console.log(
-                                        "SUCESS 716611 marketSell",
+                                        "ERORR 4547777745",
                                         alt,
-                                        Number(qty)
+                                        Number(qty),
+                                        JSON.stringify(error)
                                     )
-                                    socket.emit(
-                                        "traded_sell_signal",
-                                        traded_sell_signal
-                                    )
+                                    return
                                 }
-                            )
-                        }
-                        ///
+                                console.log("SUCESS44444", alt, Number(qty))
+                                socket.emit(
+                                    "traded_sell_signal",
+                                    traded_sell_signal
+                                )
+                            }
+                        )
                     } else {
-                        console.log("PAIR UNKNOWN", alt)
+                        console.log(
+                            "CLOSE =========marketSell=========> " +
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
+                        )
+                        bnb_client.marketSell(
+                            alt + "BTC",
+                            Number(qty),
+                            (error, response) => {
+                                if (error) {
+                                    console.log(
+                                        "ERROR 72317 marketSell",
+                                        alt,
+                                        Number(qty),
+                                        JSON.stringify(error)
+                                    )
+                                    return
+                                }
+                                console.log(
+                                    "SUCESS 716611 marketSell",
+                                    alt,
+                                    Number(qty)
+                                )
+                                socket.emit(
+                                    "traded_sell_signal",
+                                    traded_sell_signal
+                                )
+                            }
+                        )
                     }
+                    ///
+                } else {
+                    console.log("PAIR UNKNOWN", alt)
                 }
+
             } else {
                 // VIRTUAL TRADE
                 socket.emit("traded_sell_signal", traded_sell_signal)
@@ -878,87 +674,54 @@ socket.on("close_traded_signal", async (signal) => {
             //////
             if (user_payload[tresult].trading_type === "real") {
                 console.log(signal.pair, " ---==---> BUY ", signal.qty)
-                if (signal.pair == "BTCUSDT") {
+
+                const alt = signal.pair.replace("BTC", "")
+                if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
+                    const qty = trading_qty[signal.pair + signal.stratid]
+                    console.log("QTY ==> " + qty + " - " + alt + "BTC")
                     bnb_client.mgMarketBuy(
-                        "BTCUSDT",
-                        signal.qty,
+                        alt + "BTC",
+                        Number(qty),
                         (error, response) => {
                             if (error) {
                                 console.log(
-                                    "ERROR 990099 BTCUSDT",
-                                    Number(signal.qty),
+                                    "ERROR 2 ",
+                                    alt,
+                                    Number(
+                                        user_payload[tresult].buy_amount
+                                    ),
                                     error.body
                                 )
                                 return
                             }
-                            socket.emit("traded_buy_signal", traded_buy_signal)
+                            socket.emit(
+                                "traded_buy_signal",
+                                traded_buy_signal
+                            )
 
-                            console.log("----- mgRepay BTC -----")
+                            console.log("----- mgRepay -----")
                             bnb_client.mgRepay(
-                                "BTC",
-                                Number(signal.qty),
+                                alt,
+                                Number(qty),
                                 (error, response) => {
                                     if (error) {
                                         console.log(
-                                            "ERROR BTC 9",
-                                            Number(signal.qty),
+                                            "ERROR 99999999999",
+                                            alt,
+                                            Number(qty),
                                             error.body
                                         )
                                         return
                                     }
-                                    console.log("SUCCESS BTC 8")
+                                    console.log("SUCCESS 888888888888")
                                 }
                             )
                         }
                     )
                 } else {
-                    const alt = signal.pair.replace("BTC", "")
-                    if (minimums[alt + "BTC"] && minimums[alt + "BTC"].minQty) {
-                        const qty = trading_qty[signal.pair + signal.stratid]
-                        console.log("QTY ==> " + qty + " - " + alt + "BTC")
-                        bnb_client.mgMarketBuy(
-                            alt + "BTC",
-                            Number(qty),
-                            (error, response) => {
-                                if (error) {
-                                    console.log(
-                                        "ERROR 2 ",
-                                        alt,
-                                        Number(
-                                            user_payload[tresult].buy_amount
-                                        ),
-                                        error.body
-                                    )
-                                    return
-                                }
-                                socket.emit(
-                                    "traded_buy_signal",
-                                    traded_buy_signal
-                                )
-
-                                console.log("----- mgRepay -----")
-                                bnb_client.mgRepay(
-                                    alt,
-                                    Number(qty),
-                                    (error, response) => {
-                                        if (error) {
-                                            console.log(
-                                                "ERROR 99999999999",
-                                                alt,
-                                                Number(qty),
-                                                error.body
-                                            )
-                                            return
-                                        }
-                                        console.log("SUCCESS 888888888888")
-                                    }
-                                )
-                            }
-                        )
-                    } else {
-                        console.log("PAIR UNKNOWN", alt)
-                    }
+                    console.log("PAIR UNKNOWN", alt)
                 }
+
             } else {
                 // VIRTUAL TRADE
                 socket.emit("traded_buy_signal", traded_buy_signal)
@@ -1061,7 +824,7 @@ async function UpdateOpenTrades() {
         axios
             .get(
                 "https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=" +
-                    bva_key
+                bva_key
             )
             .then((response) => {
                 response.data.rows.map((s) => {
