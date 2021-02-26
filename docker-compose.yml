@@ -1,13 +1,13 @@
 secrets:
   postgres_db:
   # The database's name.
-    file: ./secrets/postgres/db.secret
+    file: ./docker/secrets/postgres/db.secret
   postgres_password:
   # The database's password.
-    file: ./secrets/postgres/password.secret
+    file: ./docker/secrets/postgres/password.secret
   postgres_user:
   # The database's default user.
-    file: ./secrets/postgres/user.secret
+    file: ./docker/secrets/postgres/user.secret
 services:
   postgres:
   # This runs the database that everything else connects to
