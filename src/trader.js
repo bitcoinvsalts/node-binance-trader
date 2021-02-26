@@ -116,19 +116,6 @@ socket.on("connect_error", (error) => {
     )
 })
 
-// setTimeout(async () => {
-//     const bvaSignal = {
-//         userid: 1,
-//         nickname: "herve",
-//         stratid: 595,
-//         stratname: "BVA",
-//         pair: "LINKUSDT",
-//         price: 0.00055178,
-//         new: true,
-//     }
-//     await handleBuySignal(bvaSignal)
-// }, 5000)
-
 const handleBuySignal = async (signal) => {
     const tresult = _.findIndex(
         tradingData.user_payload,
