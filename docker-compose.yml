@@ -24,6 +24,19 @@ services:
     - postgres_db
     - postgres_password
     - postgres_user
+  server:
+    image: jsappme/node-binance-trader
+    command: sh -c "npm run start"
+    volumes:
+      - "./.env:/srv/app/.env"
+    ports:
+      - "4000:4000"
+  trader:
+    image: jsappme/node-binance-trader
+    command: sh -c "npm run trader"
+    volumes:
+      - "./.env:/srv/app/.env"
+    
 version: "3.7"
 volumes:
   postgres_data:
