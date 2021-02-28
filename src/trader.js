@@ -8,9 +8,7 @@ const Binance = require("node-binance-api")
 const env = require("./env")
 
 const bva_key = env.BVA_API_KEY
-
-// Handle only LONG signals and skip SHORT signals
-const longOnlyMode = false
+const tradeShortEnabled = env.TRADE_SHORT_ENABLED
 
 //////////////////////////////////////////////////////////////////////////////////
 //         VARIABLES TO KEEP TRACK OF BOT POSITIONS AND ACTIVITY
@@ -217,7 +215,7 @@ socket.on("buy_signal", async (signal) => {
             }
             //////
         } else if (
-            !longOnlyMode &&
+            tradeShortEnabled &&
             trading_types[signal.pair + signal.stratid] === "SHORT" &&
             trading_qty[signal.pair + signal.stratid] &&
             !signal.new &&
@@ -340,7 +338,7 @@ socket.on("sell_signal", async (signal) => {
         return o.stratid == signal.stratid
     })
     if (tresult > -1) {
-        if (!longOnlyMode && !trading_pairs[signal.pair + signal.stratid] && signal.new) {
+        if (tradeShortEnabled && !trading_pairs[signal.pair + signal.stratid] && signal.new) {
             console.log(
                 colors.grey(
                     "SELL_SIGNAL :: ENTER SHORT TRADE ::",

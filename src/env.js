@@ -33,4 +33,5 @@ module.exports = envalid.cleanEnv(process.env, {
     USE_GMAIL: envalid.bool({ default: false }),
     USE_TELEGRAM: envalid.bool({ default: false }),
     VERSION: envalid.str({ default: pjson.version }),
+    TRADE_SHORT_ENABLED: envalid.bool({ default: true }),
 })
