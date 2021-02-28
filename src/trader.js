@@ -185,10 +185,10 @@ const handleBuySignal = async (signal) => {
                                         //////
 
                                         console.log("SUCCESS 222444222")
-                                        // socket.emit(
-                                        //     "traded_buy_signal",
-                                        //     traded_buy_signal
-                                        // )
+                                        socket.emit(
+                                            "traded_buy_signal",
+                                            traded_buy_signal
+                                        )
                                         notifier.notifyEnterLongTraded(signal)
 
                                         resolve(true)
@@ -234,10 +234,10 @@ const handleBuySignal = async (signal) => {
                                             pair,
                                             Number(qty)
                                         )
-                                        // socket.emit(
-                                        //     "traded_buy_signal",
-                                        //     traded_buy_signal
-                                        // )
+                                        socket.emit(
+                                            "traded_buy_signal",
+                                            traded_buy_signal
+                                        )
                                         notifier.notifyEnterLongTraded(signal)
 
                                         resolve(true)
@@ -259,7 +259,7 @@ const handleBuySignal = async (signal) => {
                     tradingData.trading_qty[tradeKey] = Number(qty)
                     //////
 
-                    // socket.emit("traded_buy_signal", traded_buy_signal)
+                    socket.emit("traded_buy_signal", traded_buy_signal)
                     notifier.notifyEnterLongTraded(signal)
                 }
             } else {
@@ -332,7 +332,7 @@ const handleBuySignal = async (signal) => {
                             delete tradingData.open_trades[tradeKey]
                             //////
 
-                            // socket.emit("traded_buy_signal", traded_buy_signal)
+                            socket.emit("traded_buy_signal", traded_buy_signal)
                             notifier.notifyBuyToCoverTraded(signal)
 
                             console.log("---+-- mgRepay ---+--")
@@ -372,7 +372,7 @@ const handleBuySignal = async (signal) => {
                     delete tradingData.open_trades[tradeKey]
                     //////
 
-                    // socket.emit("traded_buy_signal", traded_buy_signal)
+                    socket.emit("traded_buy_signal", traded_buy_signal)
                     notifier.notifyBuyToCoverTraded(signal)
                 }
             } else {
