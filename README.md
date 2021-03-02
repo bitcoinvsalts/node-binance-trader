@@ -8,13 +8,13 @@
 
 <img src="docs/images/nbt_diagram.png">
 
-<h4 align="center">NBT is an open cryptocurrency trading bot development framework for the Binance exchange.</h4>
+<h4 align="center">NBT is an open cryptocurrency trading bot development framework for the [Binance](https://www.binance.com/en/register?ref=DULNH2ZZ) exchange.</h4>
 
 NBT includes 3 main JS scripts:
 
 * the **server**:
 
-  * to track a selection of asset pairs and record all binance api data (candles, depths, trades) into a Postgres database.
+  * to track a selection of asset pairs and record all [Binance](https://www.binance.com/en/register?ref=DULNH2ZZ) api data (candles, depths, trades) into a Postgres database.
   * to detect buy or sell signals
   * (optional) to send trading signals to the NBT Hub / [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to monitor performances and auto trade those signals (virtually or for real).
 
