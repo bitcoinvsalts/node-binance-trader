@@ -35,7 +35,7 @@ const TradeQueue = function () {
             try {
                 const res = await task.job()
                 task.onFinished(res)
-                queue.shift() // Remove current task
+                queue.shift() // Remove current task.
             } catch (error) {
                 task.onError(error)
                 if (error.body) {
