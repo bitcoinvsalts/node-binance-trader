@@ -45,7 +45,7 @@ const TradeQueue = function () {
                 }
 
                 if (task.currentRetry >= task.maxRetries) {
-                    queue.shift() // Remove current task
+                    queue.shift() // Remove current task.
                     console.log("No more retries left".red)
                 } else {
                     console.log(
