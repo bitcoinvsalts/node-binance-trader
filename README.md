@@ -2,7 +2,7 @@
 
 <h6 align="center">Version 0.2.4</h6>
 
-[Our Setup Guide](https://github.com/jsappme/node-binance-trader/blob/master/BVA_Guide.pdf)
+[Our Setup Guide](./docs/GETTING-STARTED.md)
 
 [![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://wallet.nimiq.com/nimiq:NQ38SDPGREC3USTALLCT87GQTCUYFH5L6PCQ)
 
@@ -175,7 +175,7 @@ There are no warranties or guarantees expressed or implied.
 You assume all responsibility and liability.
 ```
 
-# Final Notes 
+# Final Notes
 
 Feel free to fork and add new pull request to this repo.
 If you have any questions/suggestions, or simply you need some help building your trading bot, or mining historical data or improving your strategies using the latest AI/ML algorithms, please feel free to <a href="mailto:herve76@gmail.com" target="_blank">contact me</a>.
