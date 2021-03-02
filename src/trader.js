@@ -919,18 +919,23 @@ async function UpdateOpenTrades() {
 
 async function updateMarginPairs() {
     return new Promise((resolve, reject) => {
-    axios.get('https://www.binance.com/gateway-api/v1/friendly/margin/symbols')
-		    .then(res => {
-        let btconly = res.data.data.filter(obj => obj.isMarginTrade == true && obj.quote == 'BTC');
-        let list = btconly.map(obj => obj.symbol);
-        margin_pairs = list.sort()
-	console.log("Margin Pairs:", margin_pairs)
-			    resolve(true)
-    })
-	    .catch(e => {
-		    console.log("ERROR UpdateMarginPairs", e.response.data)
-		    return reject(false)
-	    })
+        axios
+            .get(
+                "https://www.binance.com/gateway-api/v1/friendly/margin/symbols"
+            )
+            .then((res) => {
+                let btconly = res.data.data.filter(
+                    (obj) => obj.isMarginTrade == true && obj.quote == "BTC"
+                )
+                let list = btconly.map((obj) => obj.symbol)
+                margin_pairs = list.sort()
+                console.log("Margin Pairs:", margin_pairs)
+                resolve(true)
+            })
+            .catch((e) => {
+                console.log("ERROR UpdateMarginPairs", e.response.data)
+                return reject(false)
+            })
     })
 }
 
