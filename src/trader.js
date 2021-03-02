@@ -6,8 +6,8 @@ const BigNumber = require("bignumber.js")
 const axios = require("axios")
 const Binance = require("node-binance-api")
 const env = require("./env")
-const TradeQueue = require("./trade-queue")
 const Task = require("./task")
+const TradeQueue = require("./trade-queue")
 
 const bva_key = env.BVA_API_KEY
 const tradeQueue = new TradeQueue()
