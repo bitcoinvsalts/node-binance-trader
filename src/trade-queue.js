@@ -6,7 +6,7 @@ const TradeQueue = function () {
     const colors = require("colors")
 
     const queue = []
-    const interval = 250
+    const interval = 250 // ms
     let setIntervalAsyncHandle
 
     const addToQueue = (task) => {
