@@ -8,7 +8,7 @@
 
 <img src="docs/images/nbt_diagram.png">
 
-<h4 align="center">NBT is an open cryptocurrency trading bot development framework for the <a href='https://www.binance.com/en/register?ref=DULNH2ZZ' target="_new">Binance</a> exchange.</h4>
+<h4 align="center">NBT is a Cryptocurrency Trading Strategy & Portfolio Management Development Framework for <a href='https://www.binance.com/en/register?ref=DULNH2ZZ' target="_new">Binance</a>.</h4>
 
 NBT includes 3 main JS scripts:
 
