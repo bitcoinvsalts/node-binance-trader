@@ -1,3 +1,5 @@
+[![build status](https://github.com/jsappme/node-binance-trader/workflows/CI/badge.svg)](https://github.com/jsappme/node-binance-trader/actions?query=workflow%3ACI "build status")
+
 <h1 align="center">Node Binance Trader NBT</h1>
 
 <h6 align="center">Version 0.2.4</h6>
