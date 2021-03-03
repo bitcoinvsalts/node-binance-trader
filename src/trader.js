@@ -417,25 +417,10 @@ socket.on("sell_signal", async (signal) => {
                 }
 
                 if (tradingData.user_payload[tresult].trading_type === "real") {
-                    bnb_client.mgBorrow(
-                        alt,
-                        Number(qty),
-                        (error, response) => {
-                            if (error) {
-                                console.log(
-                                    "ERROR 55555555555",
-                                    alt,
-                                    Number(qty),
-                                    JSON.stringify(error)
-                                )
-                                return
-                            }
-
-                            console.log(
-                                "SUCESS 444444444 mgMarketSell 44444444"
-                            )
-                            bnb_client.mgMarketSell(
-                                alt + "BTC",
+                    const job = async () => {
+                        return new Promise((resolve, reject) => {
+                            bnb_client.mgBorrow(
+                                alt,
                                 Number(qty),
                                 (error, response) => {
                                     if (error) {
@@ -445,7 +430,6 @@ socket.on("sell_signal", async (signal) => {
                                             Number(qty),
                                             JSON.stringify(error)
                                         )
-
                                         reject(error)
                                         return
                                     }
@@ -486,8 +470,8 @@ socket.on("sell_signal", async (signal) => {
                                     )
                                 }
                             )
-                        }
-                    )
+                        })
+                    }
 
                     const task = new Task(job)
                     tradeQueue.addToQueue(task)
