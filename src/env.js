@@ -26,6 +26,7 @@ module.exports = envalid.cleanEnv(process.env, {
     STRATEGY_TIMEFRAME: envalid.str({ default: "15m" }),
     TELEGRAM_API_KEY: envalid.str({ default: "" }),
     TELEGRAM_RECEIVER_ID: envalid.str({ default: "" }),
+    TRADE_SHORT_ENABLED: envalid.bool({ default: true }),
     TRADER_PORT: envalid.port({
         default: 8003,
         desc: "The port to trader webserver runs",
@@ -33,5 +34,4 @@ module.exports = envalid.cleanEnv(process.env, {
     USE_GMAIL: envalid.bool({ default: false }),
     USE_TELEGRAM: envalid.bool({ default: false }),
     VERSION: envalid.str({ default: pjson.version }),
-    TRADE_SHORT_ENABLED: envalid.bool({ default: true }),
 })
