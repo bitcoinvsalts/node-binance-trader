@@ -1,5 +1,6 @@
 {
     "name": "node-binance-trader",
+    "private": true,
     "version": "0.2.4",
     "engine": {
         "node": ">=0.12"
