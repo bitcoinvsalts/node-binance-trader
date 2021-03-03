@@ -3,7 +3,7 @@ name: CI
 on: [create, pull_request, push]
 
 env:
-  IMAGE_ID: ${{ github.repository }}
+  IMAGE_ID: herve76/node-binance-trader
 
 jobs:
   docker:
