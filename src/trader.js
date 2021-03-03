@@ -11,6 +11,7 @@ const TradeQueue = require("./trade-queue")
 
 const bva_key = env.BVA_API_KEY
 const tradeQueue = new TradeQueue()
+const tradeShortEnabled = env.TRADE_SHORT_ENABLED
 tradeQueue.startQueue()
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -238,6 +239,7 @@ socket.on("buy_signal", async (signal) => {
             }
             //////
         } else if (
+            tradeShortEnabled &&
             trading_types[signal.pair + signal.stratid] === "SHORT" &&
             trading_qty[signal.pair + signal.stratid] &&
             !signal.new &&
@@ -373,7 +375,7 @@ socket.on("sell_signal", async (signal) => {
         return o.stratid == signal.stratid
     })
     if (tresult > -1) {
-        if (!trading_pairs[signal.pair + signal.stratid] && signal.new) {
+        if (tradeShortEnabled && !trading_pairs[signal.pair + signal.stratid] && signal.new) {
             console.log(
                 colors.grey(
                     "SELL_SIGNAL :: ENTER SHORT TRADE ::",
