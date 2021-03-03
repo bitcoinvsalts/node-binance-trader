@@ -31,7 +31,7 @@ const app = express()
 app.get("/", (req, res) => res.send(""))
 app.listen(env.TRADER_PORT, () => console.log("NBT auto trader running.".grey))
 
-const notifier = require("./notifiers")(trading_pairs)
+const notifier = require('./notifiers')(trading_pairs);
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -147,15 +147,10 @@ socket.on("buy_signal", async (signal) => {
                                 }
 
                                 //////
-                                trading_pairs[
-                                    signal.pair + signal.stratid
-                                ] = true
-                                trading_types[signal.pair + signal.stratid] =
-                                    "LONG"
+                                trading_pairs[signal.pair + signal.stratid] = true
+                                trading_types[signal.pair + signal.stratid] = "LONG"
                                 open_trades[signal.pair + signal.stratid] = true
-                                trading_qty[
-                                    signal.pair + signal.stratid
-                                ] = Number(qty)
+                                trading_qty[signal.pair + signal.stratid] = Number(qty)
                                 //////
 
                                 console.log("SUCCESS 222444222")
@@ -163,7 +158,7 @@ socket.on("buy_signal", async (signal) => {
                                     "traded_buy_signal",
                                     traded_buy_signal
                                 )
-                                notifier.notifyEnterLongTraded(signal)
+                                notifier.notifyEnterLongTraded(signal);
                             }
                         )
                     } else {
@@ -182,15 +177,10 @@ socket.on("buy_signal", async (signal) => {
                                 }
 
                                 //////
-                                trading_pairs[
-                                    signal.pair + signal.stratid
-                                ] = true
-                                trading_types[signal.pair + signal.stratid] =
-                                    "LONG"
+                                trading_pairs[signal.pair + signal.stratid] = true
+                                trading_types[signal.pair + signal.stratid] = "LONG"
                                 open_trades[signal.pair + signal.stratid] = true
-                                trading_qty[
-                                    signal.pair + signal.stratid
-                                ] = Number(qty)
+                                trading_qty[signal.pair + signal.stratid] = Number(qty)
                                 //////
 
                                 console.log(
@@ -202,7 +192,7 @@ socket.on("buy_signal", async (signal) => {
                                     "traded_buy_signal",
                                     traded_buy_signal
                                 )
-                                notifier.notifyEnterLongTraded(signal)
+                                notifier.notifyEnterLongTraded(signal);
                             }
                         )
                     }
@@ -217,7 +207,7 @@ socket.on("buy_signal", async (signal) => {
                     //////
 
                     socket.emit("traded_buy_signal", traded_buy_signal)
-                    notifier.notifyEnterLongTraded(signal)
+                    notifier.notifyEnterLongTraded(signal);
                 }
             } else {
                 console.log("PAIR UNKNOWN", alt)
@@ -248,7 +238,9 @@ socket.on("buy_signal", async (signal) => {
 
             const alt = signal.pair.replace("BTC", "")
             if (minimums[alt + "BTC"].minQty) {
-                const qty = Number(trading_qty[signal.pair + signal.stratid])
+                const qty = Number(
+                    trading_qty[signal.pair + signal.stratid]
+                )
                 console.log(
                     "QTY ====mgMarketBuy===> " + qty + " - " + alt + "BTC"
                 )
@@ -286,8 +278,11 @@ socket.on("buy_signal", async (signal) => {
                             delete open_trades[signal.pair + signal.stratid]
                             //////
 
-                            socket.emit("traded_buy_signal", traded_buy_signal)
-                            notifier.notifyBuyToCoverTraded(signal)
+                            socket.emit(
+                                "traded_buy_signal",
+                                traded_buy_signal
+                            )
+                            notifier.notifyBuyToCoverTraded(signal);
 
                             console.log("---+-- mgRepay ---+--")
                             bnb_client.mgRepay(
@@ -321,7 +316,7 @@ socket.on("buy_signal", async (signal) => {
                     //////
 
                     socket.emit("traded_buy_signal", traded_buy_signal)
-                    notifier.notifyBuyToCoverTraded(signal)
+                    notifier.notifyBuyToCoverTraded(signal);
                 }
             } else {
                 console.log("PAIR UNKNOWN", alt)
@@ -352,7 +347,7 @@ socket.on("sell_signal", async (signal) => {
             )
             //notify
             notifier.notifyEnterShortSignal(signal)
-
+            
             console.log(
                 signal.pair,
                 " ===> SELL",
@@ -371,7 +366,9 @@ socket.on("sell_signal", async (signal) => {
                     btc_qty,
                     minimums[alt + "BTC"].stepSize
                 )
-                console.log("QTY ===mgBorrow===> " + qty + " - " + alt + "BTC")
+                console.log(
+                    "QTY ===mgBorrow===> " + qty + " - " + alt + "BTC"
+                )
                 const traded_sell_signal = {
                     key: bva_key,
                     stratname: signal.stratname,
@@ -382,51 +379,52 @@ socket.on("sell_signal", async (signal) => {
                 }
 
                 if (user_payload[tresult].trading_type === "real") {
-                    bnb_client.mgBorrow(alt, Number(qty), (error, response) => {
-                        if (error) {
-                            console.log(
-                                "ERROR 55555555555",
-                                alt,
-                                Number(qty),
-                                JSON.stringify(error)
-                            )
-                            return
-                        }
-
-                        console.log("SUCESS 444444444 mgMarketSell 44444444")
-                        bnb_client.mgMarketSell(
-                            alt + "BTC",
-                            Number(qty),
-                            (error, response) => {
-                                if (error) {
-                                    console.log(
-                                        "ERROR 333333333",
-                                        JSON.stringify(error)
-                                    )
-                                    return
-                                }
-
-                                //////
-                                trading_pairs[
-                                    signal.pair + signal.stratid
-                                ] = true
-                                trading_types[signal.pair + signal.stratid] =
-                                    "SHORT"
-                                open_trades[signal.pair + signal.stratid] = true
-                                trading_qty[
-                                    signal.pair + signal.stratid
-                                ] = Number(qty)
-                                //////
-
-                                console.log("SUCCESS 22222222")
-                                socket.emit(
-                                    "traded_sell_signal",
-                                    traded_sell_signal
+                    bnb_client.mgBorrow(
+                        alt,
+                        Number(qty),
+                        (error, response) => {
+                            if (error) {
+                                console.log(
+                                    "ERROR 55555555555",
+                                    alt,
+                                    Number(qty),
+                                    JSON.stringify(error)
                                 )
-                                notifier.notifyEnterShortTraded(signal)
+                                return
                             }
-                        )
-                    })
+
+                            console.log(
+                                "SUCESS 444444444 mgMarketSell 44444444"
+                            )
+                            bnb_client.mgMarketSell(
+                                alt + "BTC",
+                                Number(qty),
+                                (error, response) => {
+                                    if (error) {
+                                        console.log(
+                                            "ERROR 333333333",
+                                            JSON.stringify(error)
+                                        )
+                                        return
+                                    }
+
+                                    //////
+                                    trading_pairs[signal.pair + signal.stratid] = true
+                                    trading_types[signal.pair + signal.stratid] = "SHORT"
+                                    open_trades[signal.pair + signal.stratid] = true
+                                    trading_qty[signal.pair + signal.stratid] = Number(qty)
+                                    //////
+
+                                    console.log("SUCCESS 22222222")
+                                    socket.emit(
+                                        "traded_sell_signal",
+                                        traded_sell_signal
+                                    )
+                                    notifier.notifyEnterShortTraded(signal);
+                                }
+                            )
+                        }
+                    )
                 } else {
                     // VIRTUAL TRADE
 
@@ -438,7 +436,7 @@ socket.on("sell_signal", async (signal) => {
                     //////
 
                     socket.emit("traded_sell_signal", traded_sell_signal)
-                    notifier.notifyEnterShortTraded(signal)
+                    notifier.notifyEnterShortTraded(signal);
                 }
             } else {
                 console.log("PAIR UNKNOWN", alt)
@@ -485,10 +483,10 @@ socket.on("sell_signal", async (signal) => {
                     if (margin_pairs.includes(alt + "BTC")) {
                         console.log(
                             "QTY =======mgMarketSell======> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
                         )
                         bnb_client.mgMarketSell(
                             alt + "BTC",
@@ -505,19 +503,19 @@ socket.on("sell_signal", async (signal) => {
                                 }
 
                                 //////
-                                delete trading_pairs[
-                                    signal.pair + signal.stratid
-                                ]
-                                delete trading_types[
-                                    signal.pair + signal.stratid
-                                ]
+                                delete trading_pairs[signal.pair + signal.stratid]
+                                delete trading_types[signal.pair + signal.stratid]
                                 delete sell_prices[signal.pair + signal.stratid]
                                 delete buy_prices[signal.pair + signal.stratid]
                                 delete trading_qty[signal.pair + signal.stratid]
                                 delete open_trades[signal.pair + signal.stratid]
                                 //////
 
-                                console.log("SUCESS 71111111", alt, Number(qty))
+                                console.log(
+                                    "SUCESS 71111111",
+                                    alt,
+                                    Number(qty)
+                                )
                                 socket.emit(
                                     "traded_sell_signal",
                                     traded_sell_signal
@@ -528,10 +526,10 @@ socket.on("sell_signal", async (signal) => {
                     } else {
                         console.log(
                             "QTY =======marketSell======> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
                         )
                         bnb_client.marketSell(
                             alt + "BTC",
@@ -548,12 +546,8 @@ socket.on("sell_signal", async (signal) => {
                                 }
 
                                 //////
-                                delete trading_pairs[
-                                    signal.pair + signal.stratid
-                                ]
-                                delete trading_types[
-                                    signal.pair + signal.stratid
-                                ]
+                                delete trading_pairs[signal.pair + signal.stratid]
+                                delete trading_types[signal.pair + signal.stratid]
                                 delete sell_prices[signal.pair + signal.stratid]
                                 delete buy_prices[signal.pair + signal.stratid]
                                 delete trading_qty[signal.pair + signal.stratid]
@@ -646,10 +640,10 @@ socket.on("close_traded_signal", async (signal) => {
                     if (margin_pairs.includes(alt + "BTC")) {
                         console.log(
                             "CLOSE =========mgMarketSell=========> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
                         )
                         bnb_client.mgMarketSell(
                             alt + "BTC",
@@ -666,18 +660,14 @@ socket.on("close_traded_signal", async (signal) => {
                                 }
 
                                 //////
-                                delete trading_pairs[
-                                    signal.pair + signal.stratid
-                                ]
-                                delete trading_types[
-                                    signal.pair + signal.stratid
-                                ]
+                                delete trading_pairs[signal.pair + signal.stratid]
+                                delete trading_types[signal.pair + signal.stratid]
                                 delete sell_prices[signal.pair + signal.stratid]
                                 delete buy_prices[signal.pair + signal.stratid]
                                 delete trading_qty[signal.pair + signal.stratid]
                                 delete open_trades[signal.pair + signal.stratid]
                                 //////
-
+                                
                                 console.log("SUCESS44444", alt, Number(qty))
                                 socket.emit(
                                     "traded_sell_signal",
@@ -688,10 +678,10 @@ socket.on("close_traded_signal", async (signal) => {
                     } else {
                         console.log(
                             "CLOSE =========marketSell=========> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
                         )
                         bnb_client.marketSell(
                             alt + "BTC",
@@ -708,12 +698,8 @@ socket.on("close_traded_signal", async (signal) => {
                                 }
 
                                 //////
-                                delete trading_pairs[
-                                    signal.pair + signal.stratid
-                                ]
-                                delete trading_types[
-                                    signal.pair + signal.stratid
-                                ]
+                                delete trading_pairs[signal.pair + signal.stratid]
+                                delete trading_types[signal.pair + signal.stratid]
                                 delete sell_prices[signal.pair + signal.stratid]
                                 delete buy_prices[signal.pair + signal.stratid]
                                 delete trading_qty[signal.pair + signal.stratid]
@@ -736,6 +722,7 @@ socket.on("close_traded_signal", async (signal) => {
                 } else {
                     console.log("PAIR UNKNOWN", alt)
                 }
+
             } else {
                 // VIRTUAL TRADE
 
@@ -784,7 +771,9 @@ socket.on("close_traded_signal", async (signal) => {
                                 console.log(
                                     "ERROR 2 ",
                                     alt,
-                                    Number(user_payload[tresult].buy_amount),
+                                    Number(
+                                        user_payload[tresult].buy_amount
+                                    ),
                                     error.body
                                 )
                                 return
@@ -799,7 +788,10 @@ socket.on("close_traded_signal", async (signal) => {
                             delete open_trades[signal.pair + signal.stratid]
                             //////
 
-                            socket.emit("traded_buy_signal", traded_buy_signal)
+                            socket.emit(
+                                "traded_buy_signal",
+                                traded_buy_signal
+                            )
 
                             console.log("----- mgRepay -----")
                             bnb_client.mgRepay(
@@ -823,6 +815,7 @@ socket.on("close_traded_signal", async (signal) => {
                 } else {
                     console.log("PAIR UNKNOWN", alt)
                 }
+
             } else {
                 // VIRTUAL TRADE
 
@@ -928,7 +921,7 @@ async function UpdateOpenTrades() {
         axios
             .get(
                 "https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=" +
-                    bva_key
+                bva_key
             )
             .then((response) => {
                 response.data.rows.map((s) => {
