@@ -264,7 +264,7 @@ socket.on("buy_signal", async (signal) => {
             if (minimums[alt + "BTC"].minQty) {
                 const qty = Number(
                     trading_qty[signal.pair + signal.stratid]
-                    )
+                )
                 console.log(
                     "QTY ====mgMarketBuy===> " + qty + " - " + alt + "BTC"
                 )
@@ -384,7 +384,6 @@ socket.on("sell_signal", async (signal) => {
             )
             //notify
             notifier.notifyEnterShortSignal(signal)
-
             console.log(
                 signal.pair,
                 " ===> SELL",
@@ -405,7 +404,7 @@ socket.on("sell_signal", async (signal) => {
                 )
                 console.log(
                     "QTY ===mgBorrow===> " + qty + " - " + alt + "BTC"
-                    )
+                )
                 const traded_sell_signal = {
                     key: bva_key,
                     stratname: signal.stratname,
@@ -533,10 +532,10 @@ socket.on("sell_signal", async (signal) => {
                     if (margin_pairs.includes(alt + "BTC")) {
                         console.log(
                             "QTY =======mgMarketSell======> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
                         )
                         const job = async () => {
                             return new Promise((resolve, reject) => {
@@ -587,10 +586,10 @@ socket.on("sell_signal", async (signal) => {
                     } else {
                         console.log(
                             "QTY =======marketSell======> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
                         )
                         const job = async () => {
                             return new Promise((resolve, reject) => {
@@ -712,10 +711,10 @@ socket.on("close_traded_signal", async (signal) => {
                     if (margin_pairs.includes(alt + "BTC")) {
                         console.log(
                             "CLOSE =========mgMarketSell=========> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
                         )
                         const job = async () => {
                             return new Promise((resolve, reject) => {
@@ -761,10 +760,10 @@ socket.on("close_traded_signal", async (signal) => {
                     } else {
                         console.log(
                             "CLOSE =========marketSell=========> " +
-                                qty +
-                                " - " +
-                                alt +
-                                "BTC"
+                            qty +
+                            " - " +
+                            alt +
+                            "BTC"
                         )
                         const job = async () => {
                             return new Promise((resolve, reject) => {
@@ -1027,7 +1026,7 @@ async function UpdateOpenTrades() {
         axios
             .get(
                 "https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=" +
-                    bva_key
+                bva_key
             )
             .then((response) => {
                 response.data.rows.map((s) => {
