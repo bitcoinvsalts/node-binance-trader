@@ -2,19 +2,19 @@
 
 <h6 align="center">Version 0.2.4</h6>
 
-[Our Setup Guide](https://github.com/jsappme/node-binance-trader/blob/master/BVA_Guide.pdf)
+[Our Setup Guide](./docs/GETTING-STARTED.md)
 
 [![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://wallet.nimiq.com/nimiq:NQ38SDPGREC3USTALLCT87GQTCUYFH5L6PCQ)
 
 <img src="docs/images/nbt_diagram.png">
 
-<h4 align="center">NBT is an open cryptocurrency trading bot development framework for the Binance exchange.</h4>
+<h4 align="center">NBT is a Cryptocurrency Trading Strategy & Portfolio Management Development Framework for <a href='https://www.binance.com/en/register?ref=DULNH2ZZ' target="_new">Binance</a>.</h4>
 
 NBT includes 3 main JS scripts:
 
 * the **server**:
 
-  * to track a selection of asset pairs and record all binance api data (candles, depths, trades) into a Postgres database.
+  * to track a selection of asset pairs and record all [Binance](https://www.binance.com/en/register?ref=DULNH2ZZ) api data (candles, depths, trades) into a Postgres database.
   * to detect buy or sell signals
   * (optional) to send trading signals to the NBT Hub / [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com) to monitor performances and auto trade those signals (virtually or for real).
 
@@ -175,7 +175,7 @@ There are no warranties or guarantees expressed or implied.
 You assume all responsibility and liability.
 ```
 
-# Final Notes 
+# Final Notes
 
 Feel free to fork and add new pull request to this repo.
 If you have any questions/suggestions, or simply you need some help building your trading bot, or mining historical data or improving your strategies using the latest AI/ML algorithms, please feel free to <a href="mailto:herve76@gmail.com" target="_blank">contact me</a>.
