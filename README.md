@@ -1,16 +1,28 @@
 [![build status](https://github.com/jsappme/node-binance-trader/workflows/CI/badge.svg)](https://github.com/jsappme/node-binance-trader/actions?query=workflow%3ACI "build status")
+[![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://wallet.nimiq.com/nimiq:NQ38SDPGREC3USTALLCT87GQTCUYFH5L6PCQ)
 
 <h1 align="center">Node Binance Trader NBT</h1>
 
-<h6 align="center">Version 0.2.4</h6>
+<h4 align="center">NBT is a Cryptocurrency Trading Strategy & Portfolio Management Development Framework for <a href='https://www.binance.com/en/register?ref=DULNH2ZZ' target="_new">Binance</a>.</h4>
 
-[Our Setup Guide](./docs/GETTING-STARTED.md)
+## Table of contents
 
-[![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://wallet.nimiq.com/nimiq:NQ38SDPGREC3USTALLCT87GQTCUYFH5L6PCQ)
+1. **[Documentation 📖](#documentation-📖)**
+1. **[Technical overview 👨‍💻](#technical-overview-👨‍💻)**
+1. **[Disclaimer 📖](#disclaimer-📖)**
+1. **[Donate 🙏](#donate-🙏)**
+1. **[Getting in touch 💬](#getting-in-touch-💬)**
+1. **[Final Notes](#final-notes)**
+
+## Documentation 📖
+
+- **[Quick start guide 🚀](./docs/GETTING-STARTED.md)**: bootstrap using Heroku
+- **[Manual setup guide 👨‍💻](./docs/GETTING-STARTED-MANUALLY.md)**: bootstrap using your own client
+- **[Web socket API specification 📡](./docs/WEB-SOCKET-API-SPECIFICATION.md)**
+
+## Technical overview 👨‍💻
 
 <img src="docs/images/nbt_diagram.png">
-
-<h4 align="center">NBT is a Cryptocurrency Trading Strategy & Portfolio Management Development Framework for <a href='https://www.binance.com/en/register?ref=DULNH2ZZ' target="_new">Binance</a>.</h4>
 
 NBT includes 3 main JS scripts:
 
@@ -28,161 +40,14 @@ NBT includes 3 main JS scripts:
 
   * to backtest your strategies on the historical tick data (Postgres database) recorded by the server.
 
-# Requirements
+## Disclaimer 📖
 
-* [Git](https://git-scm.com/download/) (see if it is already installed with the command: *git --version*)
-* [Node.JS](http://nodejs.org) (see if it is already installed with the command: *npm --version*)
+> No owner or contributor is responsible for anything done with this bot.
+> You use it at your own risk.
+> There are no warranties or guarantees expressed or implied.
+> You assume all responsibility and liability.
 
-# Installation 📦
-
-```
-git clone https://github.com/jsappme/node-binance-trader
-cd node-binance-trader
-npm i --unsafe-perm
-```
-
-# Usage ⚡️
-
-Before everything, please review the source code of the JS scripts (server.js, trader.js) and then add your secret data to `.env`.
-
-To kickstart, just duplicate the `.env.example`, name it  `.env` and insert your secret values:
-```bash
-cp .env.example .env
-$EDITOR .env
-```
-**Never check in your `.env` file!**
-It contains your most private information.
-
-**This project can be used as a Docker container!** Use the `docker run` commands below, after building the container:
-`docker build -t jsappme/node-binance-trader .`
-
-**To start the server** to save pair data, define strategies and emit trading signals:
-```
-npm run start
-// or
-docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" -p 4000:4000 jsappme/node-binance-trader npm run start
-```
-
-**To start the auto trader** to monitor strategies and signals received from the server or the NBT Hub:
-
-<i>Important note: Always make sure to have some BNB available on your corresponding wallet to pay for the fees.</i>
-
-```
-npm run trader
-// or
-docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" jsappme/node-binance-trader npm run trader
-```
-
-**To backtest** strategies using the data recorded by the server:
-```
-npm run backtest
-// or
-docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" jsappme/node-binance-trader npm run backtest
-```
-
-# Web Socket API specifications 📡
-
-Feel free to connect your Node.js scripts to the NBT hub Websocket server to monitor the performance of your signals and strategies on [BvA](https://bitcoinvsaltcoins.com)
-
-***From your NBT Server, you can:***
-
-**Send a Buy Signal** to the NBT hub:
-```
-const buy_signal = {
-    key: bva_key,
-    stratname: stratname,
-    pair: pair,
-    buy_price: first_ask_price[pair], //optional
-    message: Date.now(), //optional
-    stop_profit: Number(stop_profit[pair+signal_key]), //optional
-    stop_loss: Number(stop_loss[pair+signal_key]), //optional
-}
-socket_client.emit("buy_signal", buy_signal)
-```
-
-**Send a Sell Signal** to the NBT hub:
-```
-const sell_signal = {
-    key: bva_key,
-    stratname: stratname,
-    pair: pair,
-    sell_price: first_bid_price[pair] //optional
-}
-socket_client.emit("sell_signal", sell_signal)
-```
-
-You can also communicate via the NBT hub to your auto trader to track your traded signals.
-
-***From your NBT Trader, you can:***
-
-**Receive a Buy Signal** from the NBT hub, to trade a signal from a strategy selected on BvA.
-```
-socket.on('buy_signal', async (signal) => {
-    console.log(signal.userid)
-    console.log(signal.nickname)
-    console.log(signal.stratid)
-    console.log(signal.stratname)
-    console.log(signal.pair)
-    console.log(signal.price) // buy price
-    console.log(signal.new)  //new signal or closing an existing signal
-})
-```
-
-**Receive a Sell Signal** from the NBT hub, to trade a signal from a strategy selected on BvA.
-```
-socket.on('sell_signal', async (signal) => {
-    console.log(signal.userid)
-    console.log(signal.nickname)
-    console.log(signal.stratid)
-    console.log(signal.stratname)
-    console.log(signal.pair)
-    console.log(signal.price) // buy price
-    console.log(signal.new)  //new signal or closing an existing signal
-})
-```
-
-**Send a Traded Buy Signal** to the NBT hub:
-```
-const traded_buy_signal = {
-    key: bva_key,
-    stratname: signal.stratname,
-    stratid: signal.stratid,
-    trading_type: user_payload[tresult].trading_type,
-    pair: signal.pair,
-    qty: Number(user_payload[tresult].buy_amount)
-}
-socket.emit("traded_buy_signal", traded_buy_signal)
-```
-
-**Send a Traded Sell Signal** to the NBT hub:
-```
-const traded_sell_signal = {
-    key: bva_key,
-    stratname: signal.stratname,
-    stratid: signal.stratid,
-    trading_type: user_payload[tresult].trading_type,
-    pair: signal.pair,
-    qty: Number(user_payload[tresult].buy_amount),
-}
-socket.emit("traded_sell_signal", traded_sell_signal)
-```
-
-
-# Disclaimer 📖
-
-```
-I am not responsible for anything done with this bot.
-You use it at your own risk.
-There are no warranties or guarantees expressed or implied.
-You assume all responsibility and liability.
-```
-
-# Final Notes
-
-Feel free to fork and add new pull request to this repo.
-If you have any questions/suggestions, or simply you need some help building your trading bot, or mining historical data or improving your strategies using the latest AI/ML algorithms, please feel free to <a href="mailto:herve76@gmail.com" target="_blank">contact me</a>.
-
-# Donate 🙏
+## Donate 🙏
 
 Become a patron, by simply clicking on this button (**very appreciated!**):
 
@@ -190,10 +55,15 @@ Become a patron, by simply clicking on this button (**very appreciated!**):
 
 If this repo helped you in any way, you can always leave me a BNB tip at 0xf0c499c0accddd52d2f96d8afb6778be0659ee0c
 
-# GETTING IN TOUCH 💬
+## Getting in touch 💬
 
 * **Discord**: [Invite Link](https://discord.gg/4EQrEgj)
 
 <p align="center">
   <a href="https://discord.gg/4EQrEgj"><img alt="Discord chat" src="docs/images/discord_button.png" /></a>
 </p>
+
+## Final Notes
+
+Feel free to fork and add new pull request to this repo.
+If you have any questions/suggestions, or simply you need some help building your trading bot, or mining historical data or improving your strategies using the latest AI/ML algorithms, please feel free to <a href="mailto:herve76@gmail.com" target="_blank">contact me</a>.
