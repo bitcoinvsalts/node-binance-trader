@@ -113,7 +113,7 @@ socket.on("buy_signal", async (signal) => {
                 }
                 ////
                 if (tradingData.user_payload[tresult].trading_type === "real") {
-                    if (margin_pairs.includes(alt + "BTC")) {
+                    if (tradingData.margin_pairs.includes(alt + "BTC")) {
                         const job = async () => {
                             return new Promise((resolve, reject) => {
                                 bnb_client.mgMarketBuy(
@@ -501,7 +501,7 @@ socket.on("sell_signal", async (signal) => {
                 }
                 ///
                 if (tradingData.user_payload[tresult].trading_type === "real") {
-                    if (margin_pairs.includes(alt + "BTC")) {
+                    if (tradingData.margin_pairs.includes(alt + "BTC")) {
                         console.log(
                             "QTY =======mgMarketSell======> " +
                             qty +
@@ -680,7 +680,7 @@ socket.on("close_traded_signal", async (signal) => {
                 if (tradingData.minimums[alt + "BTC"] && tradingData.minimums[alt + "BTC"].minQty) {
                     const qty = signal.qty
                     ///
-                    if (margin_pairs.includes(alt + "BTC")) {
+                    if (tradingData.margin_pairs.includes(alt + "BTC")) {
                         console.log(
                             "CLOSE =========mgMarketSell=========> " +
                             qty +
@@ -1030,9 +1030,9 @@ async function UpdateMarginPairs() {
             )
             .then((res) => {
                 let list = res.data.data.map((obj) => obj.symbol)
-                margin_pairs = list.sort()
-                console.log("Margin Pairs:", margin_pairs)
-                resolve(margin_pairs)
+                tradingData.margin_pairs = list.sort()
+                console.log("Margin Pairs:", tradingData.margin_pairs)
+                resolve(tradingData.margin_pairs)
             })
             .catch((e) => {
                 console.log("ERROR UpdateMarginPairs", e.response.data)
