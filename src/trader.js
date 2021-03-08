@@ -28,6 +28,7 @@ const tradingData = {
     user_payload: [],
     available_balances: [],
     minimums: {},
+    margin_pairs: [],
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -38,36 +39,6 @@ app.get("/", (req, res) => res.send(""))
 app.listen(env.TRADER_PORT, () => console.log("NBT auto trader running.".grey))
 
 const notifier = require('./notifiers')(tradingData.trading_pairs)
-
-//////////////////////////////////////////////////////////////////////////////////
-
-const margin_pairs = [
-    "ADABTC",
-    "ATOMBTC",
-    "BATBTC",
-    "BCHBTC",
-    "BNBBTC",
-    "DASHBTC",
-    "EOSBTC",
-    "ETCBTC",
-    "ETHBTC",
-    "IOSTBTC",
-    "IOTABTC",
-    "LINKBTC",
-    "LTCBTC",
-    "MATICBTC",
-    "NEOBTC",
-    "ONTBTC",
-    "QTUMBTC",
-    "RVNBTC",
-    "TRXBTC",
-    "VETBTC",
-    "XLMBTC",
-    "XMRBTC",
-    "XRPBTC",
-    "XTZBTC",
-    "ZECBTC",
-]
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -142,7 +113,7 @@ socket.on("buy_signal", async (signal) => {
                 }
                 ////
                 if (tradingData.user_payload[tresult].trading_type === "real") {
-                    if (margin_pairs.includes(alt + "BTC")) {
+                    if (tradingData.margin_pairs.includes(alt + "BTC")) {
                         const job = async () => {
                             return new Promise((resolve, reject) => {
                                 bnb_client.mgMarketBuy(
@@ -530,7 +501,7 @@ socket.on("sell_signal", async (signal) => {
                 }
                 ///
                 if (tradingData.user_payload[tresult].trading_type === "real") {
-                    if (margin_pairs.includes(alt + "BTC")) {
+                    if (tradingData.margin_pairs.includes(alt + "BTC")) {
                         console.log(
                             "QTY =======mgMarketSell======> " +
                             qty +
@@ -709,7 +680,7 @@ socket.on("close_traded_signal", async (signal) => {
                 if (tradingData.minimums[alt + "BTC"] && tradingData.minimums[alt + "BTC"].minQty) {
                     const qty = signal.qty
                     ///
-                    if (margin_pairs.includes(alt + "BTC")) {
+                    if (tradingData.margin_pairs.includes(alt + "BTC")) {
                         console.log(
                             "CLOSE =========mgMarketSell=========> " +
                             qty +
@@ -1051,7 +1022,27 @@ async function UpdateOpenTrades() {
     })
 }
 
+async function UpdateMarginPairs() {
+    return new Promise((resolve, reject) => {
+        axios
+            .get(
+                "https://www.binance.com/gateway-api/v1/friendly/margin/symbols"
+            )
+            .then((res) => {
+                let list = res.data.data.map((obj) => obj.symbol)
+                tradingData.margin_pairs = list.sort()
+                console.log("Margin Pairs:", tradingData.margin_pairs)
+                resolve(tradingData.margin_pairs)
+            })
+            .catch((e) => {
+                console.log("ERROR UpdateMarginPairs", e.response.data)
+                return reject(e.response.data)
+            })
+    })
+}
+
 async function run() {
+    await UpdateMarginPairs()
     await ExchangeInfo()
     await UpdateOpenTrades()
     //await BalancesInfo()
