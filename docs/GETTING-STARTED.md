@@ -79,7 +79,7 @@ To make sure it is running, go to Resources tab, and check if the dyno is switch
 
 ![heroku run](images/logs.png)
 
-Let's check the bot if is running from logs! You also can check detailed information about the bot from logs.
+Let's check if the bot is running from the logs. You also can check detailed information about the bot from those logs.
 
 ![heroku_logs](images/running.png)
 
