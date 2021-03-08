@@ -115,7 +115,8 @@ You can check into your account to see your progress and see something like this
 
 "NBT Auto Trader" is the trading bot and this should be on and green. The NBT Server is not needed unless you want to create your own custom strategies and publish them to the BVA page.
 
-If you are seeing "NBT Auto Trader Off" then go back to Heroku and check you have started the bot running via the console.
+If you are seeing "NBT Auto Trader Off" then go back to Heroku to check if the bot is running via log console. If it's on idle or crashed state, you need to restart your dyno.
+
 
 ### Is it secure?
 
