@@ -83,7 +83,7 @@ Let's check the bot if is running from logs! You also can check detailed informa
 
 ![heroku_logs](images/running.png)
 
-This is an example if the bot is running! Make sure to switch from All process to Web.
+This is an example of how it looks if the bot is running. Make sure to switch from All process to Web.
 
 ## Keep it trading 24/7
 
