@@ -37,7 +37,7 @@ While the Bitcoin vs. Altcoins website itself is closed source, the  automated t
 
 NBT needs to be hosted by yourself, which makes the deployment independent and secure. Luckily this is easy to set up and can be done with one click!
 
-![deploy](images/image5.png)(https://heroku.com/deploy?template=https://github.com/jsappme/node-binance-trader)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/jsappme/node-binance-trader)
 
 Clicking this button will take you to this screen:
 
