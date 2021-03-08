@@ -71,13 +71,19 @@ You're almost done.
 
 ## Start trading
 
-Log into your Heroku account and open the console:
+Log into your Heroku account and open your deployed app:
 
 ![heroku console](images/image1.png)
 
-Enter `npm run start` into the console and it will start the trading bot, which is now connected to both your Binance and your BVA account.
+To make sure it is running, go to Resources tab, and check if the dyno is switched to on.
 
-![heroku run](images/image7.png)
+![heroku run](images/logs.png)
+
+Let's check the bot if is running from logs! You also can check detailed information about the bot from logs.
+
+![heroku_logs](images/running.png)
+
+This is an example if the bot is running! Make sure to switch from All process to Web.
 
 ## Keep it trading 24/7
 
