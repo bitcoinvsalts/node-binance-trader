@@ -319,7 +319,7 @@ socket.on("sell_signal", async (signal) => {
             )
             //notify
             notifier.notifyEnterShortSignal(signal)
-            
+
             console.log(
                 signal.pair,
                 " ===> SELL",
@@ -639,7 +639,7 @@ socket.on("close_traded_signal", async (signal) => {
                                 delete trading_qty[signal.pair + signal.stratid]
                                 delete open_trades[signal.pair + signal.stratid]
                                 //////
-                                
+
                                 console.log("SUCESS44444", alt, Number(qty))
                                 socket.emit(
                                     "traded_sell_signal",
@@ -924,17 +924,14 @@ async function UpdateMarginPairs() {
                 "https://www.binance.com/gateway-api/v1/friendly/margin/symbols"
             )
             .then((res) => {
-                let btconly = res.data.data.filter(
-                    (obj) => obj.isMarginTrade == true && obj.quote == "BTC"
-                )
-                let list = btconly.map((obj) => obj.symbol)
+                let list = res.data.data.map((obj) => obj.symbol)
                 margin_pairs = list.sort()
                 console.log("Margin Pairs:", margin_pairs)
-                resolve(true)
+                resolve(margin_pairs)
             })
             .catch((e) => {
                 console.log("ERROR UpdateMarginPairs", e.response.data)
-                return reject(false)
+                return reject(e.response.data)
             })
     })
 }
