@@ -75,7 +75,7 @@ Log into your Heroku account and open your deployed app:
 
 ![heroku console](images/image1.png)
 
-To make sure it is running, go to Resources tab, and check if the dyno is switched to on.
+To make sure it is running, go to Resources tab and check if the dyno is switched to on.
 
 ![heroku run](images/logs.png)
 
