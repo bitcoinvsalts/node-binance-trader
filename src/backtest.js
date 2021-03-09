@@ -361,7 +361,8 @@ async function run() {
     console.log("starting backtest... ".green)
     await backtest(lines)
     console.log(
-        "Ending backtest... ".green + parseInt((Date.now() - startBacktest) / 1000)
+        "Ending backtest... ".green +
+            parseInt((Date.now() - startBacktest) / 1000)
     )
 
     process.exit(0)
