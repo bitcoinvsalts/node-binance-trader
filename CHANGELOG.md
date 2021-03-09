@@ -1,3 +1,10 @@
+## [0.3.1](https://github.com/jsappme/node-binance-trader/compare/0.3.0...0.3.1) (2021-03-08)
+
+
+### Reverts
+
+* Revert "refactor: reformat code" ([1fd45ae](https://github.com/jsappme/node-binance-trader/commit/1fd45aeb6fd70c37d8d998ca040ab1767ac91e33))
+
 # [0.3.0](https://github.com/jsappme/node-binance-trader/compare/0.2.2...0.3.0) (2021-03-03)
 
 
