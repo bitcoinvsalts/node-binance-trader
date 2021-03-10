@@ -37,8 +37,8 @@
         "nodemailer": "6.5.0",
         "ora": "5.3.0",
         "pg": "8.5.1",
-        "socket.io": "3.1.2",
-        "socket.io-client": "3.1.2",
+        "socket.io": "4.0.0",
+        "socket.io-client": "4.0.0",
         "telebot": "1.4.1",
         "tulind": "0.8.18"
     }
