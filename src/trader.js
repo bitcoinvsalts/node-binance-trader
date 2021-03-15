@@ -11,7 +11,7 @@ const TradeQueue = require("./trade-queue")
 
 const bva_key = env.BVA_API_KEY
 const tradeQueue = new TradeQueue()
-const tradeShortEnabled = env.TRADE_SHORT_ENABLED
+const tradeShortEnabled = env.IS_TRADE_SHORT_ENABLED
 tradeQueue.startQueue()
 
 //////////////////////////////////////////////////////////////////////////////////

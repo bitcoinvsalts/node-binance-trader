@@ -25,6 +25,10 @@
         "description": "Gmail password to get notifications",
         "required": false
       },
+      "IS_TRADE_SHORT_ENABLED": {
+        "description": "Selects if short trades are enabled",
+        "required": false
+      },
       "TELEGRAM_API_KEY": {
         "description": "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather )",
         "required": false
