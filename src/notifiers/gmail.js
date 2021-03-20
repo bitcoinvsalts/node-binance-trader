@@ -41,7 +41,7 @@ module.exports = function () {
         if (!env.USE_GMAIL) return
 
         if (typeof message === "string") {
-            message = createMailMessage("Tading Bot Message", message)
+            message = createMailMessage("Trading Bot Message", message)
         }
 
         return mailTransport.sendMail(message).catch((error) => {
@@ -92,7 +92,7 @@ module.exports = function () {
     function notifyEnterShortSignal(signal) {
         return send(
             createSignalMessage(
-                "<i>SEL_SIGNAL :: ENTER SHORT TRADE</i>",
+                "<i>SELL_SIGNAL :: ENTER SHORT TRADE</i>",
                 signal
             )
         )
