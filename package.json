@@ -37,6 +37,7 @@
         "nodemailer": "6.5.0",
         "ora": "3.4.0",
         "pg": "7.18.2",
+        "set-interval-async": "1.0.34",
         "socket.io": "2.4.1",
         "socket.io-client": "2.4.0",
         "telebot": "1.4.1",
