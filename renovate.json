@@ -1,0 +1,19 @@
+{
+  "automerge": true,
+  "automergeType": "branch",
+  "baseBranches": ["testing"],
+  "docker": {
+    "major": {
+      "enabled": true
+    },
+    "pinDigests": true
+  },
+  "extends": [
+    "config:base",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "major": {
+    "automerge": false
+  }
+}

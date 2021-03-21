@@ -37,7 +37,7 @@ While the Bitcoin vs. Altcoins website itself is closed source, the  automated t
 
 NBT needs to be hosted by yourself, which makes the deployment independent and secure. Luckily this is easy to set up and can be done with one click!
 
-![deploy](images/image5.png)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/jsappme/node-binance-trader)
 
 Clicking this button will take you to this screen:
 
@@ -71,13 +71,19 @@ You're almost done.
 
 ## Start trading
 
-Log into your Heroku account and open the console:
+Log into your Heroku account and open your deployed app:
 
 ![heroku console](images/image1.png)
 
-Enter `npm run start` into the console and it will start the trading bot, which is now connected to both your Binance and your BVA account.
+To make sure it is running, go to Resources tab and check if the dyno is switched to on.
 
-![heroku run](images/image7.png)
+![heroku run](images/logs.png)
+
+Let's check if the bot is running from the logs. You also can check detailed information about the bot from those logs.
+
+![heroku_logs](images/running.png)
+
+This is an example of how it looks if the bot is running. Make sure to switch from All process to Web.
 
 ## Keep it trading 24/7
 
@@ -109,7 +115,8 @@ You can check into your account to see your progress and see something like this
 
 "NBT Auto Trader" is the trading bot and this should be on and green. The NBT Server is not needed unless you want to create your own custom strategies and publish them to the BVA page.
 
-If you are seeing "NBT Auto Trader Off" then go back to Heroku and check you have started the bot running via the console.
+If you are seeing "NBT Auto Trader Off" then go back to Heroku to check if the bot is running via log console. If it's on idle or crashed state, you need to restart your dyno.
+
 
 ### Is it secure?
 
