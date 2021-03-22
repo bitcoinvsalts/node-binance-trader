@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/jsappme/node-binance-trader/compare/0.4.0...0.4.1) (2021-03-22)
+
+
+### Bug Fixes
+
+* **deps:** recreate package-lock.json ([a2a5099](https://github.com/jsappme/node-binance-trader/commit/a2a50991292ad16819fffb1ff319d9999d415f57))
+
 # [0.4.0](https://github.com/jsappme/node-binance-trader/compare/0.3.1...0.4.0) (2021-03-21)
 
 
