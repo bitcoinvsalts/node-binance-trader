@@ -63,7 +63,7 @@ module.exports = function () {
     function notifyBuyToCoverSignal(signal) {
         return send(
             createSignalMessage(
-                "<i>BUY_SIGNAL :: BUY TO COVER SHORT TRADE</i>",
+                "BUY_SIGNAL :: BUY TO COVER SHORT TRADE",
                 signal
             )
         )
@@ -71,20 +71,20 @@ module.exports = function () {
     function notifyBuyToCoverTraded(signal) {
         return send(
             createSignalMessage(
-                "<b>>> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE</b>",
+                ">> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE",
                 signal
             )
         )
     }
     function notifyEnterLongSignal(signal) {
         return send(
-            createSignalMessage("<i>BUY_SIGNAL :: ENTER LONG TRADE</i>", signal)
+            createSignalMessage("BUY_SIGNAL :: ENTER LONG TRADE", signal)
         )
     }
     function notifyEnterLongTraded(signal) {
         return send(
             createSignalMessage(
-                "<b>>> SUCCESS! BUY_SIGNAL :: ENTER LONG TRADE</b>",
+                ">> SUCCESS! BUY_SIGNAL :: ENTER LONG TRADE",
                 signal
             )
         )
@@ -92,7 +92,7 @@ module.exports = function () {
     function notifyEnterShortSignal(signal) {
         return send(
             createSignalMessage(
-                "<i>SELL_SIGNAL :: ENTER SHORT TRADE</i>",
+                "SELL_SIGNAL :: ENTER SHORT TRADE",
                 signal
             )
         )
@@ -100,7 +100,7 @@ module.exports = function () {
     function notifyEnterShortTraded(signal) {
         return send(
             createSignalMessage(
-                "<b>>> SUCCESS! SELL_SIGNAL :: ENTER SHORT TRADE</b>",
+                ">> SUCCESS! SELL_SIGNAL :: ENTER SHORT TRADE",
                 signal
             )
         )
@@ -108,7 +108,7 @@ module.exports = function () {
     function notifyExitLongSignal(signal) {
         return send(
             createSignalMessage(
-                "<i>SELL_SIGNAL :: SELL TO EXIT LONG TRADE</i>",
+                "SELL_SIGNAL :: SELL TO EXIT LONG TRADE",
                 signal
             )
         )
@@ -116,7 +116,7 @@ module.exports = function () {
     function notifyExitLongTraded(signal) {
         return send(
             createSignalMessage(
-                "<b>>> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE</b>",
+                ">> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE",
                 signal
             )
         )
