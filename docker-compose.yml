@@ -15,7 +15,7 @@ services:
       POSTGRES_DB_FILE: /run/secrets/postgres_db
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_USER_FILE: /run/secrets/postgres_user
-    image: postgres:13.2-alpine@sha256:e9990502ab1fec7d03db2754959ca388584966b31889a1d0d9e36de19ca28d7b
+    image: postgres:13.2-alpine@sha256:21d435eefad33e2a39fdb8b7486997601f6c006ea707fba865da138ec61f6e70
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
