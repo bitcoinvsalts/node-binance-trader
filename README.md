@@ -7,20 +7,20 @@
 
 ## Table of contents
 
-1. **[Documentation 📖](#documentation-📖)**
-1. **[Technical overview 👨‍💻](#technical-overview-👨‍💻)**
-1. **[Disclaimer 📖](#disclaimer-📖)**
-1. **[Donate 🙏](#donate-🙏)**
-1. **[Getting in touch 💬](#getting-in-touch-💬)**
+1. **[Documentation 📖](#documentation)**
+1. **[Technical overview 👨‍💻](#technical-overview)**
+1. **[Disclaimer 📖](#disclaimer)**
+1. **[Donate 🙏](#donate)**
+1. **[Getting in touch 💬](#getting-in-touch)**
 1. **[Final Notes](#final-notes)**
 
-## Documentation 📖
+## Documentation
 
 - **[Quick start guide 🚀](./docs/GETTING-STARTED.md)**: bootstrap using Heroku
 - **[Manual setup guide 👨‍💻](./docs/GETTING-STARTED-MANUALLY.md)**: bootstrap using your own client
 - **[Web socket API specification 📡](./docs/WEB-SOCKET-API-SPECIFICATION.md)**
 
-## Technical overview 👨‍💻
+## Technical overview
 
 <img src="docs/images/nbt_diagram.png">
 
@@ -40,14 +40,14 @@ NBT includes 3 main JS scripts:
 
   * to backtest your strategies on the historical tick data (Postgres database) recorded by the server.
 
-## Disclaimer 📖
+## Disclaimer
 
 > No owner or contributor is responsible for anything done with this bot.
 > You use it at your own risk.
 > There are no warranties or guarantees expressed or implied.
 > You assume all responsibility and liability.
 
-## Donate 🙏
+## Donate
 
 Become a patron, by simply clicking on this button (**very appreciated!**):
 
@@ -55,7 +55,7 @@ Become a patron, by simply clicking on this button (**very appreciated!**):
 
 If this repo helped you in any way, you can always leave me a BNB tip at 0xf0c499c0accddd52d2f96d8afb6778be0659ee0c
 
-## Getting in touch 💬
+## Getting in touch
 
 * **Discord**: [Invite Link](https://discord.gg/4EQrEgj)
 
