@@ -27,7 +27,7 @@ RUN npm install
 
 #######################
 # Should be the specific version of node:alpine3.
-FROM node:14.16.1-alpine3.13@sha256:456c8212fc3d61b32ef1e88903e4aaa2138f4bef2d4407938c667ad78d89f099 AS production
+FROM node:14.16.1-alpine3.13@sha256:4ffbef007b0214706fb8ec92353ccd5b0a12d9d1522e0f2c5e0a8bde3f9d8985 AS production
 
 ENV NODE_ENV=production
 
