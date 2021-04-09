@@ -3,31 +3,6 @@ const env = require("../env")
 const gmail_address = env.GMAIL_ADDRESS
 const gmail_app_password = env.GMAIL_APP_PASSWORD
 
-function createMailMessage(subject, html) {
-    return {
-        from: '"🐬  BVA " <no-reply@gmail.com>',
-        to: gmail_address,
-        subject,
-        text: html,
-        html,
-    }
-}
-
-function createSignalMessage(base, signal) {
-    const subject =
-        base +
-        " :: " +
-        signal.stratname +
-        " " +
-        signal.pair +
-        " " +
-        signal.price
-
-    const text = (signal.score ? "score: " + signal.score : "score: NA") + "\n"
-
-    return createMailMessage(subject, text)
-}
-
 module.exports = function () {
     if (!env.USE_GMAIL) return {}
 
@@ -60,77 +35,85 @@ module.exports = function () {
         })
     }
 
-    function notifyBuyToCoverSignal(signal) {
-        return send(
-            createSignalMessage(
-                "BUY_SIGNAL :: BUY TO COVER SHORT TRADE",
-                signal
-            )
-        )
-    }
-    function notifyBuyToCoverTraded(signal) {
-        return send(
-            createSignalMessage(
-                ">> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE",
-                signal
-            )
-        )
-    }
-    function notifyEnterLongSignal(signal) {
-        return send(
-            createSignalMessage("BUY_SIGNAL :: ENTER LONG TRADE", signal)
-        )
-    }
-    function notifyEnterLongTraded(signal) {
-        return send(
-            createSignalMessage(
-                ">> SUCCESS! BUY_SIGNAL :: ENTER LONG TRADE",
-                signal
-            )
-        )
-    }
-    function notifyEnterShortSignal(signal) {
-        return send(
-            createSignalMessage(
-                "SELL_SIGNAL :: ENTER SHORT TRADE",
-                signal
-            )
-        )
-    }
-    function notifyEnterShortTraded(signal) {
-        return send(
-            createSignalMessage(
-                ">> SUCCESS! SELL_SIGNAL :: ENTER SHORT TRADE",
-                signal
-            )
-        )
-    }
-    function notifyExitLongSignal(signal) {
-        return send(
-            createSignalMessage(
-                "SELL_SIGNAL :: SELL TO EXIT LONG TRADE",
-                signal
-            )
-        )
-    }
-    function notifyExitLongTraded(signal) {
-        return send(
-            createSignalMessage(
-                ">> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE",
-                signal
-            )
-        )
-    }
-
     return {
-        notifyBuyToCoverSignal,
-        notifyBuyToCoverTraded,
         notifyEnterLongSignal,
-        notifyEnterLongTraded,
+        notifyEnterLongSignalTraded,
         notifyEnterShortSignal,
-        notifyEnterShortTraded,
+        notifyEnterShortSignalTraded,
         notifyExitLongSignal,
-        notifyExitLongTraded,
+        notifyExitLongSignalTraded,
+        notifyExitShortSignal,
+        notifyExitShortSignalTraded,
         send,
     }
+}
+
+function createSignalMessage(base, signal) {
+    return createMailMessage(
+        base,
+        base +
+            "\n" +
+            "strategy: " +
+            signal.stratname +
+            "\n" +
+            "pair: " +
+            signal.pair +
+            "\n" +
+            "price: " +
+            signal.price +
+            "\n" +
+            "score: " +
+            (signal.score || "N/A")
+    )
+}
+
+function createMailMessage(subject, html) {
+    return {
+        from: '"🐬  BVA " <no-reply@gmail.com>',
+        to: gmail_address,
+        subject,
+        text: html,
+        html,
+    }
+}
+
+function notifyEnterLongSignal(signal) {
+    return send(
+        createSignalMessage("<b>BUY SIGNAL</b> to enter long trade.", signal)
+    )
+}
+function notifyEnterLongSignalTraded(signal) {
+    return send(
+        createSignalMessage("<b>SUCCESS!</b> Entered long trade.", signal)
+    )
+}
+function notifyEnterShortSignal(signal) {
+    return send(
+        createSignalMessage("<b>SELL SIGNAL</b> to enter short trade.", signal)
+    )
+}
+function notifyEnterShortSignalTraded(signal) {
+    return send(
+        createSignalMessage("<b>SUCCESS!</b> Entered short trade.", signal)
+    )
+}
+function notifyExitLongSignal(signal) {
+    return send(
+        createSignalMessage("<b>SELL SIGNAL</b> to exit long trade.", signal)
+    )
+}
+function notifyExitLongSignalTraded(signal) {
+    return send(
+        createSignalMessage("<b>SUCCESS!</b> Exited long trade.", signal)
+    )
+}
+function notifyExitShortSignal(signal) {
+    return send(
+        createSignalMessage("<b>BUY SIGNAL</b> to exit short trade.", signal)
+    )
+}
+function notifyExitShortSignalTraded(signal) {
+    return send(
+        createSignalMessage("<b>SUCCESS!</b> Exited short trade.", signal)
+    )
 }

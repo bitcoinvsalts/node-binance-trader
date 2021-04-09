@@ -8,38 +8,53 @@ const TeleBot = require("telebot")
 let telBot
 
 module.exports = function (trading_pairs) {
-    if (!env.USE_TELEGRAM) return publicMethods
+    if (!env.USE_TELEGRAM) return {}
 
     telBot = new TeleBot(env.TELEGRAM_API_KEY)
-
     // Get channel id.
     telBot.on("/info", async (msg) => {
-        let response = "Open Trades: " + _.values(trading_pairs).length + "\n"
-        // Uncomment to include channel id.
-        // response += "Channel ID : "+msg.chat.id+"\n"
-        return send(response)
+        return send(
+            "Open Trades: " +
+            _.values(trading_pairs).length +
+            "\n" +
+            "Channel ID : " +
+            msg.chat.id
+        )
     })
-
     telBot.on("start", () => {
         send("Trader Bot started!")
     })
-
     telBot.start()
-    return publicMethods
+
+    return {
+        notifyEnterLongSignal,
+        notifyEnterLongSignalTraded,
+        notifyEnterShortSignal,
+        notifyEnterShortSignalTraded,
+        notifyExitLongSignal,
+        notifyExitLongSignalTraded,
+        notifyExitShortSignal,
+        notifyExitShortSignalTraded,
+        send,
+    }
 }
 
 function createSignalMessage(base, signal) {
-    let msg =
+    return (
         base +
-        " :: " +
+        "\n" +
+        "strategy: " +
         signal.stratname +
-        " " +
+        "\n" +
+        "pair: " +
         signal.pair +
-        " " +
+        "\n" +
+        "price: " +
         signal.price +
-        "\n"
-    msg += (signal.score ? "score: " + signal.score : "score: NA") + "\n"
-    return msg
+        "\n" +
+        "score: " +
+        (signal.score || "N/A")
+    )
 }
 
 function send(message) {
@@ -50,73 +65,43 @@ function send(message) {
     })
 }
 
-function notifyBuyToCoverSignal(signal) {
-    return send(
-        createSignalMessage(
-            "<i>BUY_SIGNAL :: BUY TO COVER SHORT TRADE</i>",
-            signal
-        )
-    )
-}
-function notifyBuyToCoverTraded(signal) {
-    return send(
-        createSignalMessage(
-            "<b>>> SUCCESS! BUY_SIGNAL :: BUY TO COVER SHORT TRADE</b>",
-            signal
-        )
-    )
-}
 function notifyEnterLongSignal(signal) {
     return send(
-        createSignalMessage("<i>BUY_SIGNAL :: ENTER LONG TRADE</i>", signal)
+        createSignalMessage("<b>BUY SIGNAL</b> to enter long trade.", signal)
     )
 }
-function notifyEnterLongTraded(signal) {
+function notifyEnterLongSignalTraded(signal) {
     return send(
-        createSignalMessage(
-            "<b>>> SUCCESS! BUY_SIGNAL :: ENTER LONG TRADE</b>",
-            signal
-        )
+        createSignalMessage("<b>SUCCESS!</b> Entered long trade.", signal)
     )
 }
 function notifyEnterShortSignal(signal) {
     return send(
-        createSignalMessage("<i>SELL_SIGNAL :: ENTER SHORT TRADE</i>", signal)
+        createSignalMessage("<b>SELL SIGNAL</b> to enter short trade.", signal)
     )
 }
-function notifyEnterShortTraded(signal) {
+function notifyEnterShortSignalTraded(signal) {
     return send(
-        createSignalMessage(
-            "<b>>> SUCCESS! SELL_SIGNAL :: ENTER SHORT TRADE</b>",
-            signal
-        )
+        createSignalMessage("<b>SUCCESS!</b> Entered short trade.", signal)
     )
 }
 function notifyExitLongSignal(signal) {
     return send(
-        createSignalMessage(
-            "<i>SELL_SIGNAL :: SELL TO EXIT LONG TRADE</i>",
-            signal
-        )
+        createSignalMessage("<b>SELL SIGNAL</b> to exit long trade.", signal)
     )
 }
-function notifyExitLongTraded(signal) {
+function notifyExitLongSignalTraded(signal) {
     return send(
-        createSignalMessage(
-            "<b>>> SUCCESS! SELL_SIGNAL :: SELL TO EXIT LONG TRADE</b>",
-            signal
-        )
+        createSignalMessage("<b>SUCCESS!</b> Exited long trade.", signal)
     )
 }
-
-const publicMethods = {
-    notifyBuyToCoverSignal,
-    notifyBuyToCoverTraded,
-    notifyEnterLongSignal,
-    notifyEnterLongTraded,
-    notifyEnterShortSignal,
-    notifyEnterShortTraded,
-    notifyExitLongSignal,
-    notifyExitLongTraded,
-    send,
+function notifyExitShortSignal(signal) {
+    return send(
+        createSignalMessage("<b>BUY SIGNAL</b> to exit short trade.", signal)
+    )
+}
+function notifyExitShortSignalTraded(signal) {
+    return send(
+        createSignalMessage("<b>SUCCESS!</b> Exited short trade.", signal)
+    )
 }
