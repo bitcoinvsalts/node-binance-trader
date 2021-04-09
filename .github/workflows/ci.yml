@@ -32,7 +32,7 @@ jobs:
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
 
-          # Push the Docker image to the registry on git pushes that either pushed a tag or one of the following branches: [master, develop]
+          # Push the Docker image to the registry on git pushes that either pushed a tag or one of the following branches: [master, testing]
           if [[
             (
               "${{ github.event_name }}" == "create"
@@ -48,7 +48,7 @@ jobs:
               (
                 $VERSION == "latest"
                 ||
-                $VERSION == "develop"
+                $VERSION == "testing"
               )
             )
           ]]
