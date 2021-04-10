@@ -1,6 +1,6 @@
 #############
 # Should be the specific version of node:alpine3.
-FROM node:14.16.1-buster@sha256:ecad99f9bc68045675b8cc2db95a6b20ce3cdcf5a0c66a22a82b515823e3abf4 AS development
+FROM node:14.16.1-buster@sha256:2987c9901737e98c482efa355eb58337c114e806f7d65ef6ccdd5d5781969930 AS development
 
 WORKDIR /srv/app/
 
@@ -13,7 +13,7 @@ COPY ./ ./
 
 ########################
 # Should be the specific version of node:alpine3.
-FROM node:14.16.1-buster@sha256:ecad99f9bc68045675b8cc2db95a6b20ce3cdcf5a0c66a22a82b515823e3abf4 AS build
+FROM node:14.16.1-buster@sha256:2987c9901737e98c482efa355eb58337c114e806f7d65ef6ccdd5d5781969930 AS build
 
 ENV NODE_ENV=production
 
