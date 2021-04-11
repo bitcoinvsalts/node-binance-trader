@@ -58,14 +58,6 @@ socket.on("connect", () => {
     console.log("Auto Trader connected.".grey)
 })
 
-socket.on("connect_error", (err) => {
-    console.log(`Connect error! ${err.message}`.red)
-});
-
-socket.io.on("reconnect", () => {
-    console.log("Auto Trader reconnect.".grey)
-});
-
 socket.on("disconnect", () => {
     console.log("Auto Trader disconnected.".grey)
 })
