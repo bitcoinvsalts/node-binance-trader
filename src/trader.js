@@ -84,7 +84,7 @@ socket.on("buy_signal", async (signal) => {
                     signal.pair
                 )
             )
-            //notify
+
             notifier.notifyEnterLongSignal(signal)
 
             console.log(
@@ -108,7 +108,7 @@ socket.on("buy_signal", async (signal) => {
                     tradingData.minimums[alt + "BTC"].stepSize
                 )
                 console.log("Market Buy ==> " + qty + " - " + alt + "BTC")
-                ////
+
                 const traded_buy_signal = {
                     key: bva_key,
                     stratname: signal.stratname,
@@ -118,7 +118,7 @@ socket.on("buy_signal", async (signal) => {
                     pair: signal.pair,
                     qty: qty,
                 }
-                ////
+
                 if (tradingData.user_payload[tresult].trading_type === "real") {
                     if (tradingData.margin_pairs.includes(alt + "BTC")) {
                         const job = async () => {
@@ -136,7 +136,6 @@ socket.on("buy_signal", async (signal) => {
                                             return
                                         }
 
-                                        //////
                                         tradingData.trading_pairs[
                                             signal.pair + signal.stratid
                                         ] = true
@@ -149,14 +148,13 @@ socket.on("buy_signal", async (signal) => {
                                         tradingData.trading_qty[
                                             signal.pair + signal.stratid
                                         ] = Number(qty)
-                                        //////
 
                                         console.log("SUCCESS 222444222")
                                         socket.emit(
                                             "traded_buy_signal",
                                             traded_buy_signal
                                         )
-                                        notifier.notifyEnterLongTraded(signal)
+                                        notifier.notifyEnterLongSignalTraded(signal)
                                         resolve(true)
                                     }
                                 )
@@ -183,7 +181,6 @@ socket.on("buy_signal", async (signal) => {
                                             return
                                         }
 
-                                        //////
                                         tradingData.trading_pairs[
                                             signal.pair + signal.stratid
                                         ] = true
@@ -196,7 +193,6 @@ socket.on("buy_signal", async (signal) => {
                                         tradingData.trading_qty[
                                             signal.pair + signal.stratid
                                         ] = Number(qty)
-                                        //////
 
                                         console.log(
                                             "SUCESS 99111 marketBuy",
@@ -207,7 +203,7 @@ socket.on("buy_signal", async (signal) => {
                                             "traded_buy_signal",
                                             traded_buy_signal
                                         )
-                                        notifier.notifyEnterLongTraded(signal)
+                                        notifier.notifyEnterLongSignalTraded(signal)
                                         resolve(true)
                                     }
                                 )
@@ -220,7 +216,6 @@ socket.on("buy_signal", async (signal) => {
                 } else {
                     // VIRTUAL TRADE
 
-                    //////
                     tradingData.trading_pairs[
                         signal.pair + signal.stratid
                     ] = true
@@ -230,15 +225,13 @@ socket.on("buy_signal", async (signal) => {
                     tradingData.trading_qty[
                         signal.pair + signal.stratid
                     ] = Number(qty)
-                    //////
 
                     socket.emit("traded_buy_signal", traded_buy_signal)
-                    notifier.notifyEnterLongTraded(signal)
+                    notifier.notifyEnterLongSignalTraded(signal)
                 }
             } else {
                 console.log("PAIR UNKNOWN", alt)
             }
-            //////
         } else if (
             tradeShortEnabled &&
             tradingData.trading_types[signal.pair + signal.stratid] ===
@@ -255,9 +248,9 @@ socket.on("buy_signal", async (signal) => {
                     signal.pair
                 )
             )
-            //notify
-            notifier.notifyBuyToCoverSignal(signal)
-            //////
+
+            notifier.notifyExitShortSignal(signal)
+
             console.log(
                 signal.pair,
                 " ---> BUY",
@@ -272,7 +265,6 @@ socket.on("buy_signal", async (signal) => {
                 console.log(
                     "QTY ====mgMarketBuy===> " + qty + " - " + alt + "BTC"
                 )
-                /////
                 const traded_buy_signal = {
                     key: bva_key,
                     stratname: signal.stratname,
@@ -282,7 +274,6 @@ socket.on("buy_signal", async (signal) => {
                     pair: signal.pair,
                     qty: qty,
                 }
-                /////
                 if (tradingData.user_payload[tresult].trading_type === "real") {
                     const job = async () => {
                         return new Promise((resolve, reject) => {
@@ -302,7 +293,6 @@ socket.on("buy_signal", async (signal) => {
                                         return
                                     }
 
-                                    //////
                                     delete tradingData.trading_pairs[
                                         signal.pair + signal.stratid
                                     ]
@@ -321,13 +311,12 @@ socket.on("buy_signal", async (signal) => {
                                     delete tradingData.open_trades[
                                         signal.pair + signal.stratid
                                     ]
-                                    //////
 
                                     socket.emit(
                                         "traded_buy_signal",
                                         traded_buy_signal
                                     )
-                                    notifier.notifyBuyToCoverTraded(signal)
+                                    notifier.notifyExitShortSignalTraded(signal)
 
                                     console.log("---+-- mgRepay ---+--")
                                     bnb_client.mgRepay(
@@ -360,7 +349,6 @@ socket.on("buy_signal", async (signal) => {
                 } else {
                     // VIRTUAL TRADE
 
-                    //////
                     delete tradingData.trading_pairs[
                         signal.pair + signal.stratid
                     ]
@@ -371,10 +359,9 @@ socket.on("buy_signal", async (signal) => {
                     delete tradingData.sell_prices[signal.pair + signal.stratid]
                     delete tradingData.trading_qty[signal.pair + signal.stratid]
                     delete tradingData.open_trades[signal.pair + signal.stratid]
-                    //////
 
                     socket.emit("traded_buy_signal", traded_buy_signal)
-                    notifier.notifyBuyToCoverTraded(signal)
+                    notifier.notifyExitShortSignalTraded(signal)
                 }
             } else {
                 console.log("PAIR UNKNOWN", alt)
@@ -407,7 +394,7 @@ socket.on("sell_signal", async (signal) => {
                     signal.pair
                 )
             )
-            //notify
+
             notifier.notifyEnterShortSignal(signal)
 
             console.log(
@@ -477,7 +464,6 @@ socket.on("sell_signal", async (signal) => {
                                                 return
                                             }
 
-                                            //////
                                             tradingData.trading_pairs[
                                                 signal.pair + signal.stratid
                                             ] = true
@@ -490,14 +476,13 @@ socket.on("sell_signal", async (signal) => {
                                             tradingData.trading_qty[
                                                 signal.pair + signal.stratid
                                             ] = Number(qty)
-                                            //////
 
                                             console.log("SUCCESS 22222222")
                                             socket.emit(
                                                 "traded_sell_signal",
                                                 traded_sell_signal
                                             )
-                                            notifier.notifyEnterShortTraded(
+                                            notifier.notifyEnterShortSignalTraded(
                                                 signal
                                             )
 
@@ -514,7 +499,6 @@ socket.on("sell_signal", async (signal) => {
                 } else {
                     // VIRTUAL TRADE
 
-                    //////
                     tradingData.trading_pairs[
                         signal.pair + signal.stratid
                     ] = true
@@ -524,16 +508,13 @@ socket.on("sell_signal", async (signal) => {
                     tradingData.trading_qty[
                         signal.pair + signal.stratid
                     ] = Number(qty)
-                    //////
 
                     socket.emit("traded_sell_signal", traded_sell_signal)
-                    notifier.notifyEnterShortTraded(signal)
+                    notifier.notifyEnterShortSignalTraded(signal)
                 }
             } else {
                 console.log("PAIR UNKNOWN", alt)
             }
-
-            //////
         } else if (
             tradingData.trading_types[signal.pair + signal.stratid] ===
                 "LONG" &&
@@ -549,9 +530,9 @@ socket.on("sell_signal", async (signal) => {
                     signal.pair
                 )
             )
-            //notify
+
             notifier.notifyExitLongSignal(signal)
-            //////
+
             console.log(
                 signal.pair,
                 " ---> SELL",
@@ -565,7 +546,6 @@ socket.on("sell_signal", async (signal) => {
             ) {
                 const qty =
                     tradingData.trading_qty[signal.pair + signal.stratid]
-                ///
                 const traded_sell_signal = {
                     key: bva_key,
                     stratname: signal.stratname,
@@ -575,7 +555,7 @@ socket.on("sell_signal", async (signal) => {
                     pair: signal.pair,
                     qty: qty,
                 }
-                ///
+
                 if (tradingData.user_payload[tresult].trading_type === "real") {
                     if (tradingData.margin_pairs.includes(alt + "BTC")) {
                         console.log(
@@ -603,7 +583,6 @@ socket.on("sell_signal", async (signal) => {
                                             return
                                         }
 
-                                        //////
                                         delete tradingData.trading_pairs[
                                             signal.pair + signal.stratid
                                         ]
@@ -622,7 +601,6 @@ socket.on("sell_signal", async (signal) => {
                                         delete tradingData.open_trades[
                                             signal.pair + signal.stratid
                                         ]
-                                        //////
 
                                         console.log(
                                             "SUCESS 71111111",
@@ -633,7 +611,7 @@ socket.on("sell_signal", async (signal) => {
                                             "traded_sell_signal",
                                             traded_sell_signal
                                         )
-                                        notifier.notifyExitLongTraded(signal)
+                                        notifier.notifyExitLongSignalTraded(signal)
 
                                         resolve(true)
                                     }
@@ -669,7 +647,6 @@ socket.on("sell_signal", async (signal) => {
                                             return
                                         }
 
-                                        //////
                                         delete tradingData.trading_pairs[
                                             signal.pair + signal.stratid
                                         ]
@@ -688,7 +665,6 @@ socket.on("sell_signal", async (signal) => {
                                         delete tradingData.open_trades[
                                             signal.pair + signal.stratid
                                         ]
-                                        //////
 
                                         console.log(
                                             "SUCESS 711000111 marketSell",
@@ -699,7 +675,7 @@ socket.on("sell_signal", async (signal) => {
                                             "traded_sell_signal",
                                             traded_sell_signal
                                         )
-                                        notifier.notifyExitLongTraded(signal)
+                                        notifier.notifyExitLongSignalTraded(signal)
 
                                         resolve(true)
                                     }
@@ -713,7 +689,6 @@ socket.on("sell_signal", async (signal) => {
                 } else {
                     // VIRTUAL TRADE
 
-                    //////
                     delete tradingData.trading_pairs[
                         signal.pair + signal.stratid
                     ]
@@ -724,12 +699,10 @@ socket.on("sell_signal", async (signal) => {
                     delete tradingData.buy_prices[signal.pair + signal.stratid]
                     delete tradingData.trading_qty[signal.pair + signal.stratid]
                     delete tradingData.open_trades[signal.pair + signal.stratid]
-                    //////
 
                     socket.emit("traded_sell_signal", traded_sell_signal)
-                    notifier.notifyExitLongTraded(signal)
+                    notifier.notifyExitLongSignalTraded(signal)
                 }
-                ///
             } else {
                 console.log("PAIR UNKNOWN", alt)
             }
@@ -778,7 +751,7 @@ socket.on("close_traded_signal", async (signal) => {
                 pair: signal.pair,
                 qty: signal.qty,
             }
-            //////
+
             if (tradingData.user_payload[tresult].trading_type === "real") {
                 console.log(signal.pair, " ===---==> SELL ", signal.qty)
 
@@ -788,7 +761,7 @@ socket.on("close_traded_signal", async (signal) => {
                     tradingData.minimums[alt + "BTC"].minQty
                 ) {
                     const qty = signal.qty
-                    ///
+
                     if (tradingData.margin_pairs.includes(alt + "BTC")) {
                         console.log(
                             "CLOSE =========mgMarketSell=========> " +
@@ -815,7 +788,6 @@ socket.on("close_traded_signal", async (signal) => {
                                             return
                                         }
 
-                                        //////
                                         delete tradingData.trading_pairs[
                                             signal.pair + signal.stratid
                                         ]
@@ -834,7 +806,6 @@ socket.on("close_traded_signal", async (signal) => {
                                         delete tradingData.open_trades[
                                             signal.pair + signal.stratid
                                         ]
-                                        //////
 
                                         console.log(
                                             "SUCESS44444",
@@ -880,7 +851,6 @@ socket.on("close_traded_signal", async (signal) => {
                                             return
                                         }
 
-                                        //////
                                         delete tradingData.trading_pairs[
                                             signal.pair + signal.stratid
                                         ]
@@ -899,7 +869,6 @@ socket.on("close_traded_signal", async (signal) => {
                                         delete tradingData.open_trades[
                                             signal.pair + signal.stratid
                                         ]
-                                        //////
 
                                         console.log(
                                             "SUCESS 716611 marketSell",
@@ -920,21 +889,18 @@ socket.on("close_traded_signal", async (signal) => {
                         const task = new Task(job)
                         tradeQueue.addToQueue(task)
                     }
-                    ///
                 } else {
                     console.log("PAIR UNKNOWN", alt)
                 }
             } else {
                 // VIRTUAL TRADE
 
-                //////
                 delete tradingData.trading_pairs[signal.pair + signal.stratid]
                 delete tradingData.trading_types[signal.pair + signal.stratid]
                 delete tradingData.sell_prices[signal.pair + signal.stratid]
                 delete tradingData.buy_prices[signal.pair + signal.stratid]
                 delete tradingData.trading_qty[signal.pair + signal.stratid]
                 delete tradingData.open_trades[signal.pair + signal.stratid]
-                //////
 
                 socket.emit("traded_sell_signal", traded_sell_signal)
             }
@@ -949,7 +915,7 @@ socket.on("close_traded_signal", async (signal) => {
                     signal.pair
                 )
             )
-            //////
+
             const traded_buy_signal = {
                 key: bva_key,
                 stratname: signal.stratname,
@@ -958,7 +924,7 @@ socket.on("close_traded_signal", async (signal) => {
                 pair: signal.pair,
                 qty: signal.qty,
             }
-            //////
+
             if (tradingData.user_payload[tresult].trading_type === "real") {
                 console.log(signal.pair, " ---==---> BUY ", signal.qty)
 
@@ -992,7 +958,6 @@ socket.on("close_traded_signal", async (signal) => {
                                         return
                                     }
 
-                                    //////
                                     delete tradingData.trading_pairs[
                                         signal.pair + signal.stratid
                                     ]
@@ -1011,7 +976,6 @@ socket.on("close_traded_signal", async (signal) => {
                                     delete tradingData.open_trades[
                                         signal.pair + signal.stratid
                                     ]
-                                    //////
 
                                     socket.emit(
                                         "traded_buy_signal",
@@ -1052,14 +1016,12 @@ socket.on("close_traded_signal", async (signal) => {
             } else {
                 // VIRTUAL TRADE
 
-                //////
                 delete tradingData.trading_pairs[signal.pair + signal.stratid]
                 delete tradingData.trading_types[signal.pair + signal.stratid]
                 delete tradingData.sell_prices[signal.pair + signal.stratid]
                 delete tradingData.buy_prices[signal.pair + signal.stratid]
                 delete tradingData.trading_qty[signal.pair + signal.stratid]
                 delete tradingData.open_trades[signal.pair + signal.stratid]
-                //////
 
                 socket.emit("traded_buy_signal", traded_buy_signal)
             }
@@ -1093,8 +1055,6 @@ socket.on("user_payload", async (data) => {
     tradingData.user_payload = data
 })
 
-//////////////////////////////////////////////////////////////////////////////////
-
 async function ExchangeInfo() {
     return new Promise((resolve, reject) => {
         bnb_client.exchangeInfo((error, data) => {
@@ -1127,7 +1087,7 @@ async function ExchangeInfo() {
     })
 }
 
-//Get Binace Spot Balance
+// Get Binace spot balance.
 async function BalancesInfo() {
     return new Promise((resolve, reject) => {
         bnb_client.balance((error, balances) => {
@@ -1150,7 +1110,7 @@ async function BalancesInfo() {
 
 async function UpdateOpenTrades() {
     return new Promise((resolve, reject) => {
-        // Retrieve previous open trades //
+        // Retrieve open trades.
         axios
             .get(
                 "https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=" +

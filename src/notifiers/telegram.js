@@ -46,9 +46,6 @@ function createSignalMessage(base, signal) {
         "strategy: " +
         signal.stratname +
         "\n" +
-        "pair: " +
-        signal.pair +
-        "\n" +
         "price: " +
         signal.price +
         "\n" +
@@ -67,41 +64,41 @@ function send(message) {
 
 function notifyEnterLongSignal(signal) {
     return send(
-        createSignalMessage("<b>BUY SIGNAL</b> to enter long trade.", signal)
+        createSignalMessage(`<b>Enter ${signal.pair} long trade.</b>.`, signal)
     )
 }
 function notifyEnterLongSignalTraded(signal) {
     return send(
-        createSignalMessage("<b>SUCCESS!</b> Entered long trade.", signal)
+        createSignalMessage(`<b>SUCCESS!</b> Entered ${signal.pair} long trade.`, signal)
     )
 }
 function notifyEnterShortSignal(signal) {
     return send(
-        createSignalMessage("<b>SELL SIGNAL</b> to enter short trade.", signal)
+        createSignalMessage(`<b>Enter ${signal.pair} short trade</b>.`, signal)
     )
 }
 function notifyEnterShortSignalTraded(signal) {
     return send(
-        createSignalMessage("<b>SUCCESS!</b> Entered short trade.", signal)
+        createSignalMessage(`<b>SUCCESS!</b> Entered ${signal.pair} short trade.`, signal)
     )
 }
 function notifyExitLongSignal(signal) {
     return send(
-        createSignalMessage("<b>SELL SIGNAL</b> to exit long trade.", signal)
+        createSignalMessage(`<b>Exit ${signal.pair} long trade.</b>`, signal)
     )
 }
 function notifyExitLongSignalTraded(signal) {
     return send(
-        createSignalMessage("<b>SUCCESS!</b> Exited long trade.", signal)
+        createSignalMessage(`<b>SUCCESS!</b> Exited ${signal.pair} long trade.`, signal)
     )
 }
 function notifyExitShortSignal(signal) {
     return send(
-        createSignalMessage("<b>BUY SIGNAL</b> to exit short trade.", signal)
+        createSignalMessage(`<b>Exit ${signal.pair} short trade.</b>`, signal)
     )
 }
 function notifyExitShortSignalTraded(signal) {
     return send(
-        createSignalMessage("<b>SUCCESS!</b> Exited short trade.", signal)
+        createSignalMessage(`<b>SUCCESS!</b> Exited ${signal.pair} short trade.`, signal)
     )
 }
