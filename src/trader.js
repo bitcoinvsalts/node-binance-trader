@@ -129,7 +129,7 @@ socket.on("buy_signal", async (signal) => {
                                     (error, response) => {
                                         if (error) {
                                             console.log(
-                                                "ERROR 3355333",
+                                                "ERROR",
                                                 error.body
                                             )
                                             reject(error)
@@ -149,7 +149,7 @@ socket.on("buy_signal", async (signal) => {
                                             signal.pair + signal.stratid
                                         ] = Number(qty)
 
-                                        console.log("SUCCESS 222444222")
+                                        console.log("SUCCESS")
                                         socket.emit(
                                             "traded_buy_signal",
                                             traded_buy_signal
@@ -172,7 +172,7 @@ socket.on("buy_signal", async (signal) => {
                                     (error, response) => {
                                         if (error) {
                                             console.log(
-                                                "ERROR 7991117 marketBuy",
+                                                "ERROR marketBuy",
                                                 alt + "BTC",
                                                 Number(qty),
                                                 error.body
@@ -195,7 +195,7 @@ socket.on("buy_signal", async (signal) => {
                                         ] = Number(qty)
 
                                         console.log(
-                                            "SUCESS 99111 marketBuy",
+                                            "SUCESS marketBuy",
                                             alt + "BTC",
                                             Number(qty)
                                         )
@@ -283,7 +283,7 @@ socket.on("buy_signal", async (signal) => {
                                 (error, response) => {
                                     if (error) {
                                         console.log(
-                                            "ERROR 6 ",
+                                            "ERROR",
                                             alt,
                                             Number(qty),
                                             error.body
@@ -325,7 +325,7 @@ socket.on("buy_signal", async (signal) => {
                                         (error, response) => {
                                             if (error) {
                                                 console.log(
-                                                    "ERROR 244343333",
+                                                    "ERROR",
                                                     alt,
                                                     Number(qty),
                                                     error.body
@@ -334,7 +334,7 @@ socket.on("buy_signal", async (signal) => {
                                                 reject(error)
                                                 return
                                             }
-                                            console.log("SUCCESS 333342111")
+                                            console.log("SUCCESS")
 
                                             resolve(true)
                                         }
@@ -404,7 +404,6 @@ socket.on("sell_signal", async (signal) => {
                 Number(tradingData.user_payload[tresult].buy_amount)
             )
 
-            console.log("const alt = signal.pair.replace('BTC', '')")
             const alt = signal.pair.replace("BTC", "")
             if (
                 tradingData.minimums[alt + "BTC"] &&
@@ -438,7 +437,7 @@ socket.on("sell_signal", async (signal) => {
                                 (error, response) => {
                                     if (error) {
                                         console.log(
-                                            "ERROR 55555555555",
+                                            "ERROR",
                                             alt,
                                             Number(qty),
                                             JSON.stringify(error)
@@ -448,7 +447,7 @@ socket.on("sell_signal", async (signal) => {
                                     }
 
                                     console.log(
-                                        "SUCESS 444444444 mgMarketSell 44444444"
+                                        "SUCESS mgMarketSell"
                                     )
                                     bnb_client.mgMarketSell(
                                         alt + "BTC",
@@ -456,7 +455,7 @@ socket.on("sell_signal", async (signal) => {
                                         (error, response) => {
                                             if (error) {
                                                 console.log(
-                                                    "ERROR 333333333",
+                                                    "ERROR",
                                                     JSON.stringify(error)
                                                 )
 
@@ -477,7 +476,7 @@ socket.on("sell_signal", async (signal) => {
                                                 signal.pair + signal.stratid
                                             ] = Number(qty)
 
-                                            console.log("SUCCESS 22222222")
+                                            console.log("SUCCESS")
                                             socket.emit(
                                                 "traded_sell_signal",
                                                 traded_sell_signal
@@ -573,7 +572,7 @@ socket.on("sell_signal", async (signal) => {
                                     (error, response) => {
                                         if (error) {
                                             console.log(
-                                                "ERROR 722211117",
+                                                "ERROR",
                                                 alt,
                                                 Number(qty),
                                                 JSON.stringify(error)
@@ -603,7 +602,7 @@ socket.on("sell_signal", async (signal) => {
                                         ]
 
                                         console.log(
-                                            "SUCESS 71111111",
+                                            "SUCESS",
                                             alt,
                                             Number(qty)
                                         )
@@ -637,7 +636,7 @@ socket.on("sell_signal", async (signal) => {
                                     (error, response) => {
                                         if (error) {
                                             console.log(
-                                                "ERROR 7213331117 marketSell",
+                                                "ERROR marketSell",
                                                 alt + "BTC",
                                                 Number(qty),
                                                 JSON.stringify(error)
@@ -667,7 +666,7 @@ socket.on("sell_signal", async (signal) => {
                                         ]
 
                                         console.log(
-                                            "SUCESS 711000111 marketSell",
+                                            "SUCESS marketSell",
                                             alt + "BTC",
                                             Number(qty)
                                         )
@@ -778,7 +777,7 @@ socket.on("close_traded_signal", async (signal) => {
                                     (error, response) => {
                                         if (error) {
                                             console.log(
-                                                "ERORR 4547777745",
+                                                "ERORR",
                                                 alt,
                                                 Number(qty),
                                                 JSON.stringify(error)
@@ -808,7 +807,7 @@ socket.on("close_traded_signal", async (signal) => {
                                         ]
 
                                         console.log(
-                                            "SUCESS44444",
+                                            "SUCESS",
                                             alt,
                                             Number(qty)
                                         )
@@ -841,7 +840,7 @@ socket.on("close_traded_signal", async (signal) => {
                                     (error, response) => {
                                         if (error) {
                                             console.log(
-                                                "ERROR 72317 marketSell",
+                                                "ERROR marketSell",
                                                 alt,
                                                 Number(qty),
                                                 JSON.stringify(error)
@@ -871,7 +870,7 @@ socket.on("close_traded_signal", async (signal) => {
                                         ]
 
                                         console.log(
-                                            "SUCESS 716611 marketSell",
+                                            "SUCESS marketSell",
                                             alt,
                                             Number(qty)
                                         )
@@ -944,7 +943,7 @@ socket.on("close_traded_signal", async (signal) => {
                                 (error, response) => {
                                     if (error) {
                                         console.log(
-                                            "ERROR 2 ",
+                                            "ERROR",
                                             alt,
                                             Number(
                                                 tradingData.user_payload[
@@ -989,7 +988,7 @@ socket.on("close_traded_signal", async (signal) => {
                                         (error, response) => {
                                             if (error) {
                                                 console.log(
-                                                    "ERROR 99999999999",
+                                                    "ERROR",
                                                     alt,
                                                     Number(qty),
                                                     error.body
@@ -998,7 +997,7 @@ socket.on("close_traded_signal", async (signal) => {
                                                 reject(error)
                                                 return
                                             }
-                                            console.log("SUCCESS 888888888888")
+                                            console.log("SUCCESS")
 
                                             resolve(true)
                                         }
