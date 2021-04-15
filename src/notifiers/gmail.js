@@ -76,7 +76,7 @@ function createMailMessage(subject, html) {
 
 function notifyEnterLongSignal(signal) {
     return send(
-        createSignalMessage(`<b>Enter ${signal.pair} long trade.</b>.`, signal)
+        createSignalMessage(`<b>Enter ${signal.pair} long trade.</b>`, signal)
     )
 }
 function notifyEnterLongSignalTraded(signal) {
@@ -86,7 +86,7 @@ function notifyEnterLongSignalTraded(signal) {
 }
 function notifyEnterShortSignal(signal) {
     return send(
-        createSignalMessage(`<b>Enter ${signal.pair} short trade</b>.`, signal)
+        createSignalMessage(`<b>Enter ${signal.pair} short trade.</b>`, signal)
     )
 }
 function notifyEnterShortSignalTraded(signal) {
