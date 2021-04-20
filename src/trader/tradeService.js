@@ -1,6 +1,6 @@
+const env = require("../env")
 const TradeQueue = require("../trade-queue")
 const tradeQueue = new TradeQueue()
-const env = require("../env")
 const BigNumber = require("bignumber.js")
 const colors = require("colors")
 const _ = require("lodash")
@@ -127,7 +127,7 @@ const onRealTrade = (alt, qty, signal, traded_buy_signal) => {
                     }
                     addLongPosition(signal, qty)
                     console.log(
-                        "SUCESS 99111 marketBuy",
+                        "SUCCESS 99111 marketBuy",
                         alt + "BTC",
                         Number(qty),
                     )
