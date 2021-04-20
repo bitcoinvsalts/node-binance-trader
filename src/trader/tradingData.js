@@ -1,7 +1,9 @@
 const axios = require("axios")
 const { bnb_client } = require("./binanceClient")
 const env = require('../env');
+const BigNumber = require("bignumber.js")
 const bva_key = env.BVA_API_KEY
+const _ = require("lodash")
 
 const tradingData = {
     trading_pairs: {},
