@@ -1,8 +1,8 @@
+const env = require("../env")
 const tradeService = require("./tradeService")
 const express = require("express")
 const io = require("socket.io-client")
 const colors = require("colors")
-const env = require("../env")
 const nbt_vers = env.VERSION
 const bva_key = env.BVA_API_KEY
 
