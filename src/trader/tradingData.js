@@ -1,5 +1,7 @@
 const axios = require("axios")
 const { bnb_client } = require("./binanceClient")
+const env = require('../env');
+const bva_key = env.BVA_API_KEY
 
 const tradingData = {
     trading_pairs: {},
