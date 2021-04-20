@@ -9,7 +9,7 @@
         "description": "Your Binance API Key",
         "required": true
       },
-      "BINANCE_SECRET_KEY": {
+      "BINANCE_API_SECRET": {
         "description": "Your Binance API Secret",
         "required": true
       },
