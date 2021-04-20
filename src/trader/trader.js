@@ -5,9 +5,9 @@ const colors = require("colors")
 const BigNumber = require("bignumber.js")
 const axios = require("axios")
 const Binance = require("node-binance-api")
-const env = require("./env")
-const Task = require("./utils/task")
-const TradeQueue = require("./trade-queue")
+const env = require("../env")
+const Task = require("../utils/task")
+const TradeQueue = require("../trade-queue")
 
 const bva_key = env.BVA_API_KEY
 const tradeQueue = new TradeQueue()
@@ -38,7 +38,7 @@ const app = express()
 app.get("/", (req, res) => res.send(""))
 app.listen(env.TRADER_PORT, () => console.log("NBT auto trader running.".grey))
 
-const notifier = require('./notifiers')(tradingData.trading_pairs)
+const notifier = require("../notifiers")(tradingData.trading_pairs)
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -121,11 +121,19 @@ function queueRealTradeJob(alt, qty, signal, traded_buy_signal) {
     const task = new Task(job)
     tradeQueue.addToQueue(task)
 }
+function clearSignalData(signal) {
+    delete tradingData.trading_pairs[signal.pair + signal.stratid]
+    delete tradingData.trading_types[signal.pair + signal.stratid]
+    delete tradingData.sell_prices[signal.pair + signal.stratid]
+    delete tradingData.buy_prices[signal.pair + signal.stratid]
+    delete tradingData.trading_qty[signal.pair + signal.stratid]
+    delete tradingData.open_trades[signal.pair + signal.stratid]
+}
 
-socket.on("buy_signal", async (signal) => {
+export const onBuySignal = async (signal) => {
     const tresult = _.findIndex(
         tradingData.user_payload,
-        (o) => o.stratid == signal.stratid
+        (o) => o.stratid == signal.stratid,
     )
     const isNewSignal = !tradingData.trading_pairs[signal.pair + signal.stratid] && signal.new
     if (tresult > -1) {
@@ -136,8 +144,8 @@ socket.on("buy_signal", async (signal) => {
                     "BUY_SIGNAL :: ENTER LONG TRADE ::",
                     signal.stratname,
                     signal.stratid,
-                    signal.pair
-                )
+                    signal.pair,
+                ),
             )
             //notify
             notifier.notifyEnterLongSignal(signal)
@@ -146,18 +154,18 @@ socket.on("buy_signal", async (signal) => {
                 signal.pair,
                 " ===> BUY",
                 signal.price,
-                Number(tradingData.user_payload[tresult].buy_amount)
+                Number(tradingData.user_payload[tresult].buy_amount),
             )
 
             const alt = signal.pair.replace("BTC", "")
             if (tradingData.minimums[alt + "BTC"] && tradingData.minimums[alt + "BTC"].minQty) {
                 const buy_amount = new BigNumber(
-                    tradingData.user_payload[tresult].buy_amount
+                    tradingData.user_payload[tresult].buy_amount,
                 )
                 const btc_qty = buy_amount.dividedBy(signal.price)
                 const qty = bnb_client.roundStep(
                     btc_qty,
-                    tradingData.minimums[alt + "BTC"].stepSize
+                    tradingData.minimums[alt + "BTC"].stepSize,
                 )
                 console.log("Market Buy ==> " + qty + " - " + alt + "BTC")
                 ////
@@ -194,11 +202,11 @@ socket.on("buy_signal", async (signal) => {
                                         console.log("SUCCESS 222444222")
                                         socket.emit(
                                             "traded_buy_signal",
-                                            traded_buy_signal
+                                            traded_buy_signal,
                                         )
                                         notifier.notifyEnterLongTraded(signal)
                                         resolve(true)
-                                    }
+                                    },
                                 )
                             })
                         }
@@ -217,7 +225,7 @@ socket.on("buy_signal", async (signal) => {
                                                 "ERROR 7991117 marketBuy",
                                                 alt + "BTC",
                                                 Number(qty),
-                                                error.body
+                                                error.body,
                                             )
                                             reject(error)
                                             return
@@ -233,15 +241,15 @@ socket.on("buy_signal", async (signal) => {
                                         console.log(
                                             "SUCESS 99111 marketBuy",
                                             alt + "BTC",
-                                            Number(qty)
+                                            Number(qty),
                                         )
                                         socket.emit(
                                             "traded_buy_signal",
-                                            traded_buy_signal
+                                            traded_buy_signal,
                                         )
                                         notifier.notifyEnterLongTraded(signal)
                                         resolve(true)
-                                    }
+                                    },
                                 )
                             })
                         }
@@ -266,8 +274,7 @@ socket.on("buy_signal", async (signal) => {
                 console.log("PAIR UNKNOWN", alt)
             }
             //////
-        }
-        else if (
+        } else if (
             tradeShortEnabled &&
             tradingData.trading_types[signal.pair + signal.stratid] === "SHORT" &&
             tradingData.trading_qty[signal.pair + signal.stratid] &&
@@ -279,8 +286,8 @@ socket.on("buy_signal", async (signal) => {
                     "BUY_SIGNAL :: BUY TO COVER SHORT TRADE ::",
                     signal.stratname,
                     signal.stratid,
-                    signal.pair
-                )
+                    signal.pair,
+                ),
             )
             //notify
             notifier.notifyBuyToCoverSignal(signal)
@@ -288,16 +295,16 @@ socket.on("buy_signal", async (signal) => {
             console.log(
                 signal.pair,
                 " ---> BUY",
-                Number(tradingData.trading_qty[signal.pair + signal.stratid])
+                Number(tradingData.trading_qty[signal.pair + signal.stratid]),
             )
 
             const alt = signal.pair.replace("BTC", "")
             if (tradingData.minimums[alt + "BTC"].minQty) {
                 const qty = Number(
-                    tradingData.trading_qty[signal.pair + signal.stratid]
+                    tradingData.trading_qty[signal.pair + signal.stratid],
                 )
                 console.log(
-                    "QTY ====mgMarketBuy===> " + qty + " - " + alt + "BTC"
+                    "QTY ====mgMarketBuy===> " + qty + " - " + alt + "BTC",
                 )
                 /////
                 const traded_buy_signal = {
@@ -328,22 +335,12 @@ socket.on("buy_signal", async (signal) => {
             console.log(
                 "BUY AGAIN",
                 JSON.stringify(signal),
-                tradingData.trading_types[signal.pair + signal.stratid]
+                tradingData.trading_types[signal.pair + signal.stratid],
             )
         }
     }
-})
-
-function clearSignalData(signal) {
-    delete tradingData.trading_pairs[signal.pair + signal.stratid]
-    delete tradingData.trading_types[signal.pair + signal.stratid]
-    delete tradingData.sell_prices[signal.pair + signal.stratid]
-    delete tradingData.buy_prices[signal.pair + signal.stratid]
-    delete tradingData.trading_qty[signal.pair + signal.stratid]
-    delete tradingData.open_trades[signal.pair + signal.stratid]
 }
-
-socket.on("sell_signal", async (signal) => {
+export const onSellSignal = async (signal) => {
     const tresult = _.findIndex(tradingData.user_payload, (o) => {
         return o.stratid == signal.stratid
     })
@@ -354,8 +351,8 @@ socket.on("sell_signal", async (signal) => {
                     "SELL_SIGNAL :: ENTER SHORT TRADE ::",
                     signal.stratname,
                     signal.stratid,
-                    signal.pair
-                )
+                    signal.pair,
+                ),
             )
             //notify
             notifier.notifyEnterShortSignal(signal)
@@ -364,22 +361,22 @@ socket.on("sell_signal", async (signal) => {
                 signal.pair,
                 " ===> SELL",
                 signal.price,
-                Number(tradingData.user_payload[tresult].buy_amount)
+                Number(tradingData.user_payload[tresult].buy_amount),
             )
 
             console.log("const alt = signal.pair.replace('BTC', '')")
             const alt = signal.pair.replace("BTC", "")
             if (tradingData.minimums[alt + "BTC"] && tradingData.minimums[alt + "BTC"].minQty) {
                 const buy_amount = new BigNumber(
-                    tradingData.user_payload[tresult].buy_amount
+                    tradingData.user_payload[tresult].buy_amount,
                 )
                 const btc_qty = buy_amount.dividedBy(signal.price)
                 const qty = bnb_client.roundStep(
                     btc_qty,
-                    tradingData.minimums[alt + "BTC"].stepSize
+                    tradingData.minimums[alt + "BTC"].stepSize,
                 )
                 console.log(
-                    "QTY ===mgBorrow===> " + qty + " - " + alt + "BTC"
+                    "QTY ===mgBorrow===> " + qty + " - " + alt + "BTC",
                 )
                 const traded_sell_signal = {
                     key: bva_key,
@@ -402,14 +399,14 @@ socket.on("sell_signal", async (signal) => {
                                             "ERROR 55555555555",
                                             alt,
                                             Number(qty),
-                                            JSON.stringify(error)
+                                            JSON.stringify(error),
                                         )
                                         reject(error)
                                         return
                                     }
 
                                     console.log(
-                                        "SUCESS 444444444 mgMarketSell 44444444"
+                                        "SUCESS 444444444 mgMarketSell 44444444",
                                     )
                                     bnb_client.mgMarketSell(
                                         alt + "BTC",
@@ -418,7 +415,7 @@ socket.on("sell_signal", async (signal) => {
                                             if (error) {
                                                 console.log(
                                                     "ERROR 333333333",
-                                                    JSON.stringify(error)
+                                                    JSON.stringify(error),
                                                 )
 
                                                 reject(error)
@@ -435,14 +432,14 @@ socket.on("sell_signal", async (signal) => {
                                             console.log("SUCCESS 22222222")
                                             socket.emit(
                                                 "traded_sell_signal",
-                                                traded_sell_signal
+                                                traded_sell_signal,
                                             )
                                             notifier.notifyEnterShortTraded(signal)
 
                                             resolve(true)
-                                        }
+                                        },
                                     )
-                                }
+                                },
                             )
                         })
                     }
@@ -478,8 +475,8 @@ socket.on("sell_signal", async (signal) => {
                     "SELL_SIGNAL :: SELL TO EXIT LONG TRADE ::",
                     signal.stratname,
                     signal.stratid,
-                    signal.pair
-                )
+                    signal.pair,
+                ),
             )
             //notify
             notifier.notifyExitLongSignal(signal)
@@ -487,7 +484,7 @@ socket.on("sell_signal", async (signal) => {
             console.log(
                 signal.pair,
                 " ---> SELL",
-                Number(tradingData.trading_qty[signal.pair + signal.stratid])
+                Number(tradingData.trading_qty[signal.pair + signal.stratid]),
             )
 
             const alt = signal.pair.replace("BTC", "")
@@ -510,7 +507,7 @@ socket.on("sell_signal", async (signal) => {
                             qty +
                             " - " +
                             alt +
-                            "BTC"
+                            "BTC",
                         )
                         const job = async () => {
                             return new Promise((resolve, reject) => {
@@ -523,7 +520,7 @@ socket.on("sell_signal", async (signal) => {
                                                 "ERROR 722211117",
                                                 alt,
                                                 Number(qty),
-                                                JSON.stringify(error)
+                                                JSON.stringify(error),
                                             )
 
                                             reject(error)
@@ -534,16 +531,16 @@ socket.on("sell_signal", async (signal) => {
                                         console.log(
                                             "SUCESS 71111111",
                                             alt,
-                                            Number(qty)
+                                            Number(qty),
                                         )
                                         socket.emit(
                                             "traded_sell_signal",
-                                            traded_sell_signal
+                                            traded_sell_signal,
                                         )
                                         notifier.notifyExitLongTraded(signal)
 
                                         resolve(true)
-                                    }
+                                    },
                                 )
                             })
                         }
@@ -556,7 +553,7 @@ socket.on("sell_signal", async (signal) => {
                             qty +
                             " - " +
                             alt +
-                            "BTC"
+                            "BTC",
                         )
                         const job = async () => {
                             return new Promise((resolve, reject) => {
@@ -569,7 +566,7 @@ socket.on("sell_signal", async (signal) => {
                                                 "ERROR 7213331117 marketSell",
                                                 alt + "BTC",
                                                 Number(qty),
-                                                JSON.stringify(error)
+                                                JSON.stringify(error),
                                             )
 
                                             reject(error)
@@ -580,16 +577,16 @@ socket.on("sell_signal", async (signal) => {
                                         console.log(
                                             "SUCESS 711000111 marketSell",
                                             alt + "BTC",
-                                            Number(qty)
+                                            Number(qty),
                                         )
                                         socket.emit(
                                             "traded_sell_signal",
-                                            traded_sell_signal
+                                            traded_sell_signal,
                                         )
                                         notifier.notifyExitLongTraded(signal)
 
                                         resolve(true)
-                                    }
+                                    },
                                 )
                             })
                         }
@@ -614,20 +611,38 @@ socket.on("sell_signal", async (signal) => {
                 signal.pair,
                 !signal.new,
                 tradingData.open_trades[signal.pair + signal.stratid],
-                tradingData.trading_types[signal.pair + signal.stratid]
+                tradingData.trading_types[signal.pair + signal.stratid],
             )
         }
     }
-})
-
-socket.on("close_traded_signal", async (signal) => {
+}
+export const onStopTradedSignal = async (signal) => {
+    console.log(
+        colors.grey(
+            "NBT HUB =====> stop_traded_signal",
+            signal.stratid,
+            signal.pair,
+            signal.trading_type,
+        ),
+    )
+    const signalIndex = _.findIndex(tradingData.user_payload, (o) => {
+        return o.stratid == signal.stratid
+    })
+    const foundIndex = signalIndex > -1
+    if (foundIndex) {
+        if (tradingData.open_trades[signal.pair + signal.stratid]) {
+            delete tradingData.open_trades[signal.pair + signal.stratid]
+        }
+    }
+}
+export const onCloseTradedSignal = async (signal) => {
     console.log(
         colors.grey(
             "NBT HUB =====> close_traded_signal",
             signal.stratid,
             signal.pair,
-            signal.trading_type
-        )
+            signal.trading_type,
+        ),
     )
     const tresult = _.findIndex(tradingData.user_payload, (o) => {
         return o.stratid == signal.stratid
@@ -639,8 +654,8 @@ socket.on("close_traded_signal", async (signal) => {
                     "CLOSE_SIGNAL :: SELL TO EXIT LONG TRADE ::",
                     signal.stratname,
                     signal.stratid,
-                    signal.pair
-                )
+                    signal.pair,
+                ),
             )
             const traded_sell_signal = {
                 key: bva_key,
@@ -664,7 +679,7 @@ socket.on("close_traded_signal", async (signal) => {
                             qty +
                             " - " +
                             alt +
-                            "BTC"
+                            "BTC",
                         )
                         const job = async () => {
                             return new Promise((resolve, reject) => {
@@ -677,7 +692,7 @@ socket.on("close_traded_signal", async (signal) => {
                                                 "ERORR 4547777745",
                                                 alt,
                                                 Number(qty),
-                                                JSON.stringify(error)
+                                                JSON.stringify(error),
                                             )
 
                                             reject(error)
@@ -688,11 +703,11 @@ socket.on("close_traded_signal", async (signal) => {
                                         console.log("SUCESS44444", alt, Number(qty))
                                         socket.emit(
                                             "traded_sell_signal",
-                                            traded_sell_signal
+                                            traded_sell_signal,
                                         )
 
                                         resolve(true)
-                                    }
+                                    },
                                 )
                             })
                         }
@@ -705,7 +720,7 @@ socket.on("close_traded_signal", async (signal) => {
                             qty +
                             " - " +
                             alt +
-                            "BTC"
+                            "BTC",
                         )
                         const job = async () => {
                             return new Promise((resolve, reject) => {
@@ -718,7 +733,7 @@ socket.on("close_traded_signal", async (signal) => {
                                                 "ERROR 72317 marketSell",
                                                 alt,
                                                 Number(qty),
-                                                JSON.stringify(error)
+                                                JSON.stringify(error),
                                             )
 
                                             reject(error)
@@ -729,15 +744,15 @@ socket.on("close_traded_signal", async (signal) => {
                                         console.log(
                                             "SUCESS 716611 marketSell",
                                             alt,
-                                            Number(qty)
+                                            Number(qty),
                                         )
                                         socket.emit(
                                             "traded_sell_signal",
-                                            traded_sell_signal
+                                            traded_sell_signal,
                                         )
 
                                         resolve(true)
-                                    }
+                                    },
                                 )
                             })
                         }
@@ -761,8 +776,8 @@ socket.on("close_traded_signal", async (signal) => {
                     "CLOSE_SIGNAL :: BUY TO COVER SHORT TRADE ::",
                     signal.stratname,
                     signal.stratid,
-                    signal.pair
-                )
+                    signal.pair,
+                ),
             )
             //////
             const traded_buy_signal = {
@@ -792,9 +807,9 @@ socket.on("close_traded_signal", async (signal) => {
                                             "ERROR 2 ",
                                             alt,
                                             Number(
-                                                tradingData.user_payload[tresult].buy_amount
-                                                ),
-                                            error.body
+                                                tradingData.user_payload[tresult].buy_amount,
+                                            ),
+                                            error.body,
                                         )
 
                                         reject(error)
@@ -804,8 +819,8 @@ socket.on("close_traded_signal", async (signal) => {
                                     clearSignalData(signal)
                                     socket.emit(
                                         "traded_buy_signal",
-                                        traded_buy_signal
-                                        )
+                                        traded_buy_signal,
+                                    )
 
                                     console.log("----- mgRepay -----")
                                     bnb_client.mgRepay(
@@ -817,7 +832,7 @@ socket.on("close_traded_signal", async (signal) => {
                                                     "ERROR 99999999999",
                                                     alt,
                                                     Number(qty),
-                                                    error.body
+                                                    error.body,
                                                 )
 
                                                 reject(error)
@@ -826,9 +841,9 @@ socket.on("close_traded_signal", async (signal) => {
                                             console.log("SUCCESS 888888888888")
 
                                             resolve(true)
-                                        }
+                                        },
                                     )
-                                }
+                                },
                             )
                         })
                     }
@@ -845,34 +860,20 @@ socket.on("close_traded_signal", async (signal) => {
             }
         }
     }
-})
+}
 
-socket.on("stop_traded_signal", async (signal) => {
-    console.log(
-        colors.grey(
-            "NBT HUB =====> stop_traded_signal",
-            signal.stratid,
-            signal.pair,
-            signal.trading_type
-        )
-    )
-    const signalIndex = _.findIndex(tradingData.user_payload, (o) => {
-        return o.stratid == signal.stratid
-    })
-    const foundIndex = signalIndex > -1
-    if (foundIndex) {
-        if (tradingData.open_trades[signal.pair + signal.stratid]) {
-            delete tradingData.open_trades[signal.pair + signal.stratid]
-        }
-    }
-})
+socket.on("buy_signal", onBuySignal)
+socket.on("sell_signal", onSellSignal)
+socket.on("close_traded_signal", onCloseTradedSignal)
+socket.on("stop_traded_signal", onStopTradedSignal)
 
-socket.on("user_payload", async (data) => {
+let onUserPayload = async (data) => {
     console.log(
-        colors.grey("NBT HUB => user strategies + trading setup updated")
+        colors.grey("NBT HUB => user strategies + trading setup updated"),
     )
     tradingData.user_payload = data
-})
+}
+socket.on("user_payload", onUserPayload)
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -935,7 +936,7 @@ async function UpdateOpenTrades() {
         axios
             .get(
                 "https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=" +
-                bva_key
+                bva_key,
             )
             .then((response) => {
                 response.data.rows.map((s) => {
@@ -945,7 +946,7 @@ async function UpdateOpenTrades() {
                     tradingData.trading_qty[s.pair + s.stratid] = s.qty
                     tradingData.buy_prices[s.pair + s.stratid] = new BigNumber(s.buy_price)
                     tradingData.sell_prices[s.pair + s.stratid] = new BigNumber(
-                        s.sell_price
+                        s.sell_price,
                     )
                 })
                 console.log("Open Trades #:", _.values(tradingData.trading_pairs).length)
@@ -959,24 +960,22 @@ async function UpdateOpenTrades() {
     })
 }
 
-async function UpdateMarginPairs() {
-    return new Promise((resolve, reject) => {
-        axios
-            .get(
-                "https://www.binance.com/gateway-api/v1/friendly/margin/symbols"
-            )
-            .then((res) => {
-                let list = res.data.data.map((obj) => obj.symbol)
-                tradingData.margin_pairs = list.sort()
-                console.log("Margin Pairs:", tradingData.margin_pairs)
-                resolve(tradingData.margin_pairs)
-            })
-            .catch((e) => {
-                console.log("ERROR UpdateMarginPairs", e.response.data)
-                return reject(e.response.data)
-            })
-    })
-}
+const UpdateMarginPairs = async () => new Promise((resolve, reject) => {
+    axios
+        .get(
+            "https://www.binance.com/gateway-api/v1/friendly/margin/symbols",
+        )
+        .then((res) => {
+            let list = res.data.data.map((obj) => obj.symbol)
+            tradingData.margin_pairs = list.sort()
+            console.log("Margin Pairs:", tradingData.margin_pairs)
+            resolve(tradingData.margin_pairs)
+        })
+        .catch((e) => {
+            console.log("ERROR UpdateMarginPairs", e.response.data)
+            return reject(e.response.data)
+        })
+})
 
 async function run() {
     await UpdateMarginPairs()
