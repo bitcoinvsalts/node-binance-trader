@@ -5,10 +5,11 @@ const BigNumber = require("bignumber.js")
 const colors = require("colors")
 const _ = require("lodash")
 const Task = require("../utils/task")
+const { socket } = require("./socket")
 const { UpdateOpenTrades } = require("./tradingData")
 const { UpdateMarginPairs } = require("./tradingData")
 const { bnb_client } = require("./binanceClient")
-const { tradingData,clearSignalData,addLongPosition,updateExchangeInfo } = require("./tradingData")
+const { tradingData, clearSignalData, addLongPosition, updateExchangeInfo } = require("./tradingData")
 const bva_key = env.BVA_API_KEY
 const notifier = require("../notifiers")(tradingData.trading_pairs)
 
@@ -797,5 +798,11 @@ const onCloseTradedSignal = async (signal) => {
     }
 }
 
-module.exports = { init, onUserPayload, onBuySignal, onSellSignal, onStopTradedSignal, onCloseTradedSignal }
+socket.on("buy_signal", onBuySignal)
+socket.on("sell_signal", onSellSignal)
+socket.on("close_traded_signal", onCloseTradedSignal)
+socket.on("stop_traded_signal", onStopTradedSignal)
+socket.on("user_payload", onUserPayload)
+
+module.exports = { init }
 
