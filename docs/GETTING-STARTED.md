@@ -81,7 +81,7 @@ Log into your Heroku account and open your deployed app:
 
 To make sure it is running, go to Resources tab and check if the dyno is switched to on.
 
-![heroku run](images/logs.png)
+![heroku init](images/logs.png)
 
 Let's check if the bot is running from the logs. You also can check detailed information about the bot from those logs.
 
@@ -95,7 +95,7 @@ Now you are officially up and running! However there is one last task to do. As 
 
 ### Step 1
 
-Heroku only gives dyno's on its free tier 550 hours of run time per month. This is just short of what you will need to keep your new trading bot up and running 24/7. But by simply adding your credit card to your Heroku account your allowance is extended to 1000 hours, which is plenty. Now all you need to do is stop your dyno from falling asleep. This can be easily achieved by regularly pinging its URL.
+Heroku only gives dyno's on its free tier 550 hours of init time per month. This is just short of what you will need to keep your new trading bot up and running 24/7. But by simply adding your credit card to your Heroku account your allowance is extended to 1000 hours, which is plenty. Now all you need to do is stop your dyno from falling asleep. This can be easily achieved by regularly pinging its URL.
 
 ### Step 2
 
