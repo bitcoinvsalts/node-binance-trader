@@ -108,7 +108,7 @@ jobs:
           docker container rm -f extract
 
       - name: Zip
-        uses: montudor/action-zip@v0.1.1
+        uses: montudor/action-zip@v1.0.0
         with:
           args: zip -qq -r ./nbt.zip ./
 
