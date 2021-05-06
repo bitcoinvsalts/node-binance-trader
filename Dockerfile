@@ -15,11 +15,15 @@ COPY ./ ./
 # Should be the specific version of node:alpine3.
 FROM node:14.16.1-buster@sha256:509f8951071aad29c33f5b8add246f2dfe98ae4b5120a7a53b495584a9be54f1 AS build
 
-ENV NODE_ENV=production
-
 WORKDIR /srv/app/
 
 COPY --from=development /srv/app/ ./
+
+RUN npm install && \
+    npm run lint && \
+    npm run test
+
+ENV NODE_ENV=production
 
 # Discard devDependencies.
 RUN npm install

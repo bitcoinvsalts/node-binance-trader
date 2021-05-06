@@ -1,10 +1,11 @@
-<html>
+<!-- Needed for pings by external uptime robots to keep Heroku running. -->
+<html lang="en">
     <body>
         <p id="server-time"></p>
         <script src="/socket.io/socket.io.js"></script>
         <script>
-            var socket = io();
-            var el = document.getElementById('server-time');
+            let socket = io();
+            let el = document.getElementById('server-time');
             socket.on('time', function(timeString) {
             el.innerHTML = 'Server time: ' + timeString;
             });

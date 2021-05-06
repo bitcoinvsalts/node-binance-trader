@@ -17,30 +17,58 @@
         "backtesting"
     ],
     "author": "Herve Fulchiron <herve76@gmail.com>",
+    "maintainers": [
+        {
+            "name": "Jonas Thelemann",
+            "email": "e-mail@jonas-thelemann.de",
+            "url": "https://jonas-thelemann.de/"
+        }
+    ],
     "license": "ISC",
     "scripts": {
+        "backtest": "node ./src/backtest.js",
+        "build": "tsc",
+        "lint": "eslint --cache src",
         "start": "node ./src/server.js",
-        "trader": "node ./src/trader.js",
-        "backtest": "node ./src/backtest.js"
+        "test": "jest --silent",
+        "trader": "node ./dist/src/trader/trader.js"
     },
     "dependencies": {
         "axios": "0.21.1",
         "bignumber.js": "9.0.1",
         "binance-api-node": "0.10.41",
-        "colors": "1.4.0",
+        "ccxt": "1.48.90",
         "dotenv": "8.2.0",
         "envalid": "7.1.0",
         "express": "4.17.1",
-        "lodash": "4.17.21",
         "moment": "2.29.1",
-        "node-binance-api": "0.12.5",
         "nodemailer": "6.5.0",
         "ora": "5.4.0",
+        "p-queue": "6.6.2",
         "pg": "8.6.0",
         "set-interval-async": "2.0.3",
         "socket.io": "2.4.1",
         "socket.io-client": "2.4.0",
         "telebot": "1.4.1",
-        "tulind": "0.8.18"
+        "tulind": "0.8.18",
+        "winston": "3.3.3"
+    },
+    "devDependencies": {
+        "@types/express": "4.17.11",
+        "@types/jest": "26.0.23",
+        "@types/lodash": "4.14.168",
+        "@types/nodemailer": "6.4.1",
+        "@types/set-interval-async": "1.0.0",
+        "@types/socket.io-client": "1.4.36",
+        "@types/supertest": "2.0.11",
+        "@types/telebot": "1.2.2",
+        "@typescript-eslint/eslint-plugin": "4.22.0",
+        "@typescript-eslint/parser": "4.22.0",
+        "eslint": "7.24.0",
+        "jest": "26.6.3",
+        "supertest": "6.1.3",
+        "ts-jest": "26.5.5",
+        "ts-node": "9.1.1",
+        "typescript": "4.2.4"
     }
 }
