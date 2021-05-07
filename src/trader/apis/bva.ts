@@ -8,7 +8,7 @@ export async function getTradeOpenList(): Promise<TradeOpen[]> {
     return new Promise((resolve, reject) => {
         axios
             .get(
-                `https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=${env.BVA_API_KEY}`
+                `https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=${env().BVA_API_KEY}`
             )
             .then((response) => {
                 const bvaCommand: BvaCommand = response.data

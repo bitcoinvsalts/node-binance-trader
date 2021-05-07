@@ -7,8 +7,8 @@ import telegram from "./telegram"
 const notifiers: Notifier[] = []
 
 export default function initializeNotifiers(): Notifier {
-    if (env.IS_NOTIFIER_GMAIL_ENABLED) notifiers.push(gmail())
-    if (env.IS_NOTIFIER_TELEGRAM_ENABLED) notifiers.push(telegram())
+    if (env().IS_NOTIFIER_GMAIL_ENABLED) notifiers.push(gmail())
+    if (env().IS_NOTIFIER_TELEGRAM_ENABLED) notifiers.push(telegram())
 
     return {
         notify: notifyAll,

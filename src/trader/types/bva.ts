@@ -121,7 +121,7 @@ export class Signal {
     entryType: EntryType
     nickname: string
     positionType?: PositionType
-    price: string
+    price: BigNumber
     score: string
     strategyId: string
     strategyName: string
@@ -135,7 +135,7 @@ export class Signal {
         this.entryType = signalJson.new ? EntryType.ENTER : EntryType.EXIT
         this.nickname = signalJson.nickname
         this.positionType = positionType
-        this.price = signalJson.price
+        this.price = new BigNumber(signalJson.price)
         this.score = signalJson.score
         this.strategyId = signalJson.stratid
         this.strategyName = signalJson.stratname

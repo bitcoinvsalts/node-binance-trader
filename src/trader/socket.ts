@@ -9,7 +9,7 @@ let socket: SocketIOClient.Socket
 
 if (process.env.NODE_ENV !== "test") {
     socket = io("https://nbt-hub.herokuapp.com", {
-        query: `v=${env.VERSION}&type=client&key=${env.BVA_API_KEY}`,
+        query: `v=${env().VERSION}&type=client&key=${env().BVA_API_KEY}`,
     })
 }
 
@@ -56,7 +56,7 @@ export function emitSignalTraded(channel: string, signal: Signal, strategy: Stra
 
 export function getSignalTradedJson(signal: Signal, strategy: Strategy, quantity: number): SignalTradedJson {
     return new SignalTradedJson({
-        bvaApiKey: env.BVA_API_KEY,
+        bvaApiKey: env().BVA_API_KEY,
         quantity: quantity.toString(),
         strategyId: signal.strategyId,
         strategyName: signal.strategyName,

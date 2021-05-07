@@ -1,10 +1,11 @@
-import { Strategy, TradeOpen } from "./bva"
+import { Market } from "ccxt"
+import { Signal, Strategy, TradeOpen } from "./bva"
 
-// export interface TradingData {
-//     market: Market
-//     signal: Signal
-//     strategy: Strategy
-// }
+export interface TradingData {
+    market: Market
+    signal: Signal
+    strategy: Strategy
+}
 
 // export interface TradingDataEnter extends TradingData {
 //     quantity: number
@@ -20,7 +21,8 @@ export interface TradingMetaData {
 }
 
 export interface TradingSequence {
+    after?: Promise<unknown>
     before?: Promise<unknown>
     mainAction: Promise<unknown>
-    after?: Promise<unknown>
+    quantity: number
 }

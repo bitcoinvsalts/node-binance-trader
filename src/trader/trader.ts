@@ -8,6 +8,7 @@ import logger from "../logger"
 import {
     createMarketOrder,
     loadMarkets,
+    marginBorrow,
     marginRepay,
 } from "./apis/binance"
 import { getTradeOpenList } from "./apis/bva"
@@ -25,8 +26,12 @@ import {
     TradeOpen,
     TradingType,
 } from "./types/bva"
-import { TradingMetaData, TradingSequence } from "./types/trader"
+import { TradingData, TradingMetaData, TradingSequence } from "./types/trader"
 
+const logDefaultEntryType =
+    "It shouldn't be possible to have an entry type apart from enter or exit."
+const logDefaultPositionType =
+    "It shouldn't be possible to have an position type apart from long or short."
 const logTradeOpenNone =
     "Skipping signal as there was no associated open trade found."
 
@@ -41,8 +46,14 @@ const queue = new PQueue({
 })
 
 export function onUserPayload(strategies: StrategyJson[]): void {
-    const strategyIds = strategies.map((strategy) => strategy.stratid).join(", ")
-    logger.info(`Received ${strategies.length} user strategies${strategyIds && ": " + strategyIds}.`)
+    const strategyIds = strategies
+        .map((strategy) => strategy.stratid)
+        .join(", ")
+    logger.info(
+        `Received ${strategies.length} user strategies${
+            strategyIds && ": " + strategyIds
+        }.`
+    )
 
     tradingMetaData.strategies = Object.assign(
         {},
@@ -79,6 +90,9 @@ export async function onBuySignal(signalJson: SignalJson): Promise<void> {
             )
             break
         }
+        default:
+            logger.error(logDefaultEntryType)
+            break
     }
 
     await exportFunctions.trade(signal)
@@ -108,12 +122,17 @@ export async function onSellSignal(signalJson: SignalJson): Promise<void> {
             )
             break
         }
+        default:
+            logger.error(logDefaultEntryType)
+            break
     }
 
     await exportFunctions.trade(signal)
 }
 
-export async function onCloseTradedSignal(signalJson: SignalJson): Promise<void> {
+export async function onCloseTradedSignal(
+    signalJson: SignalJson
+): Promise<void> {
     const signal = new Signal(signalJson)
     await exportFunctions.trade(signal)
 }
@@ -134,81 +153,87 @@ export function onStopTradedSignal(signalJson: SignalJson): boolean {
     return true
 }
 
-export async function trade(signal: Signal): Promise<void> {
-    await notifyAll(getNotifierMessage(signal))
-
+export async function checkTradingData(signal: Signal): Promise<TradingData> {
     const strategy = tradingMetaData.strategies[signal.strategyId]
 
     if (!strategy) {
-        logger.info(
-            `Skipping signal as strategy ${signal.strategyName} isn't followed.`
-        )
-        return
+        const logMessage = `Skipping signal as strategy ${signal.strategyName} isn't followed.`
+        logger.info(logMessage)
+        return Promise.reject(logMessage)
     }
 
     if (!strategy.isActive) {
-        logger.info(
-            `Skipping signal as strategy ${signal.strategyName} isn't active.`
-        )
-        return
+        const logMessage = `Skipping signal as strategy ${signal.strategyName} isn't active.`
+        logger.info(logMessage)
+        return Promise.reject(logMessage)
     }
 
     const market = (await loadMarkets())[signal.symbol]
 
     if (!market) {
-        logger.error(
-            `Skipping signal as there is no market data for symbol ${signal.symbol}.`
-        )
-        return
+        const logMessage = `Skipping signal as there is no market data for symbol ${signal.symbol}.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
     }
 
     if (!market.active) {
-        logger.error(
-            `Failed to trade as the market for symbol ${market.symbol} is inactive.`
-        )
-        return
+        const logMessage = `Failed to trade as the market for symbol ${market.symbol} is inactive.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
     }
 
     if (!market.spot && !market.margin) {
-        logger.error(
-            `Failed to trade as neither margin trading nor spot trading is available for symbol ${market.symbol}.`
-        )
-        return
+        const logMessage = `Failed to trade as neither margin trading nor spot trading is available for symbol ${market.symbol}.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
     }
 
     switch (signal.positionType) {
         case PositionType.LONG: {
             if (!market.spot) {
-                logger.error(
-                    `Failed to trade as spot trading is unavailable for a long position on symbol ${market.symbol}.`
-                )
-                return
+                const logMessage = `Failed to trade as spot trading is unavailable for a long position on symbol ${market.symbol}.`
+                logger.error(logMessage)
+                return Promise.reject(logMessage)
             }
 
             break
         }
         case PositionType.SHORT: {
-            if (!env.IS_TRADE_MARGIN_ENABLED) {
-                logger.warn(
+            if (!env().IS_TRADE_MARGIN_ENABLED) {
+                const logMessage =
                     "Skipping signal as margin trading is disabled but required to exit a short position."
-                )
-                return
+                logger.warn(logMessage)
+                return Promise.reject(logMessage)
             }
 
             if (!market.margin) {
-                logger.error(
-                    `Failed to trade as margin trading is unavailable for a short position on symbol ${market.symbol}.`
-                )
-                return
+                const logMessage = `Failed to trade as margin trading is unavailable for a short position on symbol ${market.symbol}.`
+                logger.error(logMessage)
+                return Promise.reject(logMessage)
             }
 
             break
         }
+        default:
+            logger.error(logDefaultPositionType)
+            break
     }
 
-    const logPositionTypeInvalid = (entryTypeString: string) =>
-        `It shouldn't be possible to read this log as ${entryTypeString} a trade should always come with a long or short indication.`
-    let tradingSequence: TradingSequence
+    return Promise.resolve({
+        market,
+        signal,
+        strategy,
+    })
+}
+
+export function getTradingSequence(
+    tradingData: TradingData
+): Promise<TradingSequence> {
+    const market = tradingData.market
+    const signal = tradingData.signal
+    const strategy = tradingData.strategy
+
+    let tradingSequence: TradingSequence | undefined
     let quantity: number
 
     switch (signal.entryType) {
@@ -226,63 +251,73 @@ export async function trade(signal: Signal): Promise<void> {
             switch (signal.positionType) {
                 // Enter long.
                 case PositionType.LONG: {
+                    const order = createMarketOrder(
+                        signal.symbol,
+                        "buy",
+                        quantity,
+                        undefined,
+                        {
+                            ...(env().IS_TRADE_MARGIN_ENABLED &&
+                                market.margin && {
+                                type: "margin",
+                            }),
+                        }
+                    ).catch((reason) => logger.error(reason))
+
                     tradingSequence = {
-                        before: undefined, // TODO: Try borrowing here.
-                        mainAction: createMarketOrder(
-                            signal.symbol,
-                            "buy",
-                            quantity,
-                            undefined,
-                            {
-                                ...(env.IS_TRADE_MARGIN_ENABLED &&
-                                    market.margin && {
-                                    type: "margin", // TODO: Decide margin usage CHECK!
-                                }),
-                            }
-                        ),
+                        before:
+                            env().IS_TRADE_MARGIN_ENABLED && market.margin
+                                ? marginBorrow(market.quote, quantity, now()).catch((reason) => logger.error(reason))
+                                : undefined,
+                        mainAction: order,
                         after: undefined,
+                        quantity,
                     }
                     break
                 }
                 case PositionType.SHORT: {
                     // Enter short.
+                    const order = createMarketOrder(
+                        signal.symbol,
+                        "sell",
+                        quantity,
+                        undefined,
+                        {
+                            type: "margin", // Short trades must be a margin trade unconditionally.
+                        }
+                    ).catch((reason) => logger.error(reason))
+
                     tradingSequence = {
-                        before: undefined, // TODO: Borrow here.
-                        mainAction: createMarketOrder(
-                            signal.symbol,
-                            "sell",
-                            quantity,
-                            undefined,
-                            {
-                                type: "margin", // Short trades must be a margin trade unconditionally.
-                            }
-                        ),
+                        before: marginBorrow(market.quote, quantity, now()).catch((reason) => logger.error(reason)),
+                        mainAction: order,
                         after: undefined,
+                        quantity,
                     }
                     break
                 }
                 // "undefined" should never occur and is thus handler by the default branch below.
                 default: {
-                    logger.error(logPositionTypeInvalid("entering"))
-                    return
+                    logger.error(logDefaultPositionType)
+                    return Promise.reject(logDefaultPositionType)
                 }
             }
             break
         }
         case EntryType.EXIT: {
+            // TODO: Remember whether trades were entered using margin / borrowing.
             // First, get the open trade to exit.
             const tradeOpen = getTradeOpen(signal)
 
             if (!tradeOpen) {
                 logger.error(logTradeOpenNone)
-                return
+                return Promise.reject(logTradeOpenNone)
             }
 
             if (tradeOpen.isStopped) {
-                logger.warn(
+                const logMessage =
                     "Skipping signal as trading is stopped for this position."
-                )
-                return
+                logger.warn(logMessage)
+                return Promise.reject(logMessage)
             }
 
             quantity = tradeOpen.quantity
@@ -290,77 +325,105 @@ export async function trade(signal: Signal): Promise<void> {
             switch (tradeOpen.positionType) {
                 case PositionType.LONG: {
                     // Exit long.
+                    const order = createMarketOrder(
+                        signal.symbol,
+                        "sell",
+                        quantity,
+                        undefined,
+                        {
+                            ...(env().IS_TRADE_MARGIN_ENABLED &&
+                                market.margin && {
+                                type: "margin",
+                            }),
+                        }
+                    ).catch((reason) => logger.error(reason))
+
                     tradingSequence = {
                         before: undefined,
-                        mainAction: createMarketOrder(
-                            signal.symbol,
-                            "sell",
-                            quantity,
-                            undefined,
-                            {
-                                ...(env.IS_TRADE_MARGIN_ENABLED &&
-                                    market.margin && {
-                                    type: "margin", // TODO: Decide margin usage CHECK!
-                                }),
-                            }
-                        ),
-                        after: undefined, // TODO: Check repay.
-                        // after: marginRepay(
-                        //     market.quote,
-                        //     quantity,
-                        //     now()
-                        // )
+                        mainAction: order,
+                        after:
+                            env().IS_TRADE_MARGIN_ENABLED && market.margin
+                                ? marginRepay(market.quote, quantity, now()).catch((reason) => logger.error(reason))
+                                : undefined,
+                        quantity,
                     }
                     break
                 }
                 case PositionType.SHORT: {
                     // Exit short.
+                    const order = createMarketOrder(
+                        signal.symbol,
+                        "buy",
+                        quantity,
+                        undefined,
+                        {
+                            type: "margin", // Short trades must be a margin trade unconditionally.
+                        }
+                    ).catch((reason) => logger.error(reason))
+
                     tradingSequence = {
                         before: undefined,
-                        mainAction: createMarketOrder(
-                            signal.symbol,
-                            "buy",
-                            quantity,
-                            undefined,
-                            {
-                                type: "margin", // Short trades must be a margin trade unconditionally.
-                            }
-                        ),
-                        after: marginRepay(
-                            market.quote,
-                            quantity,
-                            now()
-                        )
+                        mainAction: order,
+                        after: marginRepay(market.quote, quantity, now()).catch((reason) => logger.error(reason)),
+                        quantity,
                     }
                     break
                 }
                 // "undefined" should never occur and is thus handler by the default branch below.
                 default: {
-                    logger.error(logPositionTypeInvalid("exiting"))
-                    return
+                    logger.error(logDefaultPositionType)
+                    return Promise.reject(logDefaultPositionType)
                 }
             }
+            break
+        }
+        default:
+            logger.error(logDefaultEntryType)
+            break
+    }
+
+    // Shall not be moved before the previous switch
+    // so that paper trading gives the most realistic experience.
+    if (strategy.tradingType === TradingType.virtual) {
+        tradingSequence = {
+            before: Promise.resolve(),
+            mainAction: Promise.resolve(),
+            after: Promise.resolve(),
+            quantity: 0,
         }
     }
 
-    await queue.add(async () => {
-        if (strategy.tradingType === TradingType.virtual) {
-            tradingSequence = {
-                before: Promise.resolve(),
-                mainAction: Promise.resolve(),
-                after: Promise.resolve(),
-            }
-        }
+    if (tradingSequence) {
+        return Promise.resolve(tradingSequence)
+    } else {
+        return Promise.reject("It shouldn't be possible that no trading sequence could be found!")
+    }
+}
 
-        logger.info(`Executing a ${strategy.tradingType} trade ${quantity} units of symbol ${signal.symbol} (${strategy.tradeAmount} BTC) at price ${signal.price}.`)
+export function getTradingTask(
+    tradingData: TradingData,
+    tradingSequence: TradingSequence
+): () => void {
+    const signal = tradingData.signal
+    const strategy = tradingData.strategy
+    const quantity = tradingSequence.quantity
+
+    return async () => {
+        logger.info(
+            `Executing a ${strategy.tradingType} trade ${quantity} units of symbol ${signal.symbol} (${strategy.tradeAmount} BTC) at price ${signal.price}.`
+        )
 
         if (tradingSequence.before) {
             await tradingSequence.before
                 .then(() => {
-                    logger.error("Successfully executed the trading sequence's before step.")
+                    logger.error(
+                        "Successfully executed the trading sequence's before step."
+                    )
                 })
                 .catch((reason) => {
-                    logger.error(`Failed to execute the trading sequence's before step: ${reason}`)
+                    logger.error(
+                        `Failed to execute the trading sequence's before step: ${reason}`
+                    )
                     return
                 })
         }
@@ -371,7 +434,12 @@ export async function trade(signal: Signal): Promise<void> {
                     "Successfully executed the trading sequence's main action step."
                 )
 
-                emitSignalTraded("traded_buy_signal", signal, strategy, quantity)
+                emitSignalTraded(
+                    "traded_buy_signal",
+                    signal,
+                    strategy,
+                    quantity
+                )
 
                 notifyAll(getNotifierMessage(signal, true))
                 // TODO: Notify on failure.
@@ -398,30 +466,51 @@ export async function trade(signal: Signal): Promise<void> {
                         }
 
                         tradingMetaData.tradesOpen = tradingMetaData.tradesOpen.filter(
-                            (tradesOpenElement) => tradesOpenElement !== tradeOpen
+                            (tradesOpenElement) =>
+                                tradesOpenElement !== tradeOpen
                         )
 
                         break
                     }
-                    // TODO: Create default branch for all switch statements.
+                    default:
+                        logger.error(logDefaultEntryType)
+                        break
                 }
             })
             .catch((reason) => {
-                logger.error(`Failed to execute the trading sequence's main action step: ${reason}`)
+                logger.error(
+                    `Failed to execute the trading sequence's main action step: ${reason}`
+                )
                 return
             })
 
         if (tradingSequence.after) {
             await tradingSequence.after
                 .then(() => {
-                    logger.error("Successfully executed the trading sequence's after step.")
+                    logger.error(
+                        "Successfully executed the trading sequence's after step."
+                    )
                 })
                 .catch((reason) => {
-                    logger.error(`Failed to execute the trading sequence's after step: ${reason}`)
+                    logger.error(
+                        `Failed to execute the trading sequence's after step: ${reason}`
+                    )
                     return
                 })
         }
-    })
+    }
+}
+
+export async function trade(signal: Signal): Promise<void> {
+    await notifyAll(getNotifierMessage(signal))
+
+    const tradingData = await checkTradingData(signal)
+    if (!tradingData) return
+
+    const tradingSequence = await getTradingSequence(tradingData)
+    if (!tradingSequence) return
+
+    await queue.add(getTradingTask(tradingData, tradingSequence))
 }
 
 export function getOnSignalLogData(signal: Signal): string {
@@ -479,12 +568,11 @@ async function run() {
 }
 
 if (process.env.NODE_ENV !== "test") {
-    run()
-        .then(() => undefined)
+    run().then(() => undefined)
 }
 
 const exportFunctions = {
-    trade
+    trade,
 }
 
 export default exportFunctions

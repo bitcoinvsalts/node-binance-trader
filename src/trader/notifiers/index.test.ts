@@ -1,3 +1,4 @@
+import BigNumber from "bignumber.js"
 import { EntryType, PositionType, Signal } from "../types/bva"
 import { getNotifierMessage } from "./index"
 
@@ -7,7 +8,7 @@ describe("notifiers", () => {
             entryType: EntryType.ENTER,
             nickname: "nickname",
             positionType: PositionType.LONG,
-            price: "price",
+            price: new BigNumber(1),
             score: "score",
             strategyId: "strategyId",
             strategyName: "strategyName",
@@ -16,13 +17,13 @@ describe("notifiers", () => {
         }
 
         const notifierMessage = getNotifierMessage(signal)
-        expect(notifierMessage.content)
-            .toEqual(`<b>0 symbol LONG trade.</b>
+        expect(notifierMessage)
+            .toEqual({
+                subject: "0 symbol LONG trade.",
+                content: `<b>0 symbol LONG trade.</b>
 strategy: strategyName
-price: price
-score: score`
-            )
-        expect(notifierMessage.subject)
-            .toEqual("0 symbol LONG trade.")
+price: 1
+score: score`,
+            })
     })
 })

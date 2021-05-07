@@ -9,7 +9,7 @@ describe("socket", () => {
             entryType: EntryType.ENTER,
             nickname: "nickname",
             positionType: PositionType.LONG,
-            price: "price",
+            price: new BigNumber(1),
             score: "score",
             strategyId: "strategyId",
             strategyName: "strategyName",

@@ -8,8 +8,8 @@ export default function (): Notifier {
     }
 }
 
-const gmailAddress = env.NOTIFIER_GMAIL_ADDRESS
-const gmailAppPassword = env.NOTIFIER_GMAIL_APP_PASSWORD
+const gmailAddress = env().NOTIFIER_GMAIL_ADDRESS
+const gmailAppPassword = env().NOTIFIER_GMAIL_APP_PASSWORD
 
 const mailTransport = nodeMailer.createTransport(
     `smtps://${encodeURIComponent(gmailAddress)}:${encodeURIComponent(
@@ -18,7 +18,7 @@ const mailTransport = nodeMailer.createTransport(
 )
 
 async function notify(message: NotifierMessage): Promise<void> {
-    if (!env.IS_NOTIFIER_GMAIL_ENABLED) return
+    if (!env().IS_NOTIFIER_GMAIL_ENABLED) return
 
     return mailTransport.sendMail({
         from: "\"🐬  BVA \" <no-reply@gmail.com>",

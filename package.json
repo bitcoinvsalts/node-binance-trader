@@ -30,7 +30,7 @@
         "build": "tsc",
         "lint": "eslint --cache src",
         "start": "node ./src/server.js",
-        "test": "jest --silent",
+        "test": "jest",
         "trader": "node ./dist/src/trader/trader.js"
     },
     "dependencies": {
@@ -46,7 +46,6 @@
         "ora": "5.4.0",
         "p-queue": "6.6.2",
         "pg": "8.6.0",
-        "set-interval-async": "2.0.3",
         "socket.io": "2.4.1",
         "socket.io-client": "2.4.0",
         "telebot": "1.4.1",
@@ -58,7 +57,6 @@
         "@types/jest": "26.0.23",
         "@types/lodash": "4.14.168",
         "@types/nodemailer": "6.4.1",
-        "@types/set-interval-async": "1.0.0",
         "@types/socket.io-client": "1.4.36",
         "@types/supertest": "2.0.11",
         "@types/telebot": "1.2.2",
