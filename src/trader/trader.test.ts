@@ -661,7 +661,7 @@ describe("trader", () => {
                 "strategyId": "strategyId",
                 "strategyName": "strategyName",
                 "symbol": "ETH/BTC",
-                "timeUpdated": -3600000
+                "timeUpdated": new Date().getTimezoneOffset() * 60 * 1000,
             }
         ])
 
@@ -737,7 +737,7 @@ describe("trader", () => {
                 "strategyId": "strategyId",
                 "strategyName": "strategyName",
                 "symbol": "ETH/BTC",
-                "timeUpdated": -3600000
+                "timeUpdated": new Date().getTimezoneOffset() * 60 * 1000,
             }
         ])
 
