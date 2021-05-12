@@ -13,7 +13,7 @@ if (process.env.NODE_ENV !== "test") {
     })
 }
 
-export default function connect(): void {
+export function connect(): void {
     socket.on("connect", () => logger.info("Trader connected."))
     socket.on("disconnect", () => logger.info("Trader disconnected."))
 
@@ -64,3 +64,10 @@ export function getSignalTradedJson(signal: Signal, strategy: Strategy, quantity
         tradingType: strategy.tradingType,
     })
 }
+
+const exportFunctions = {
+    connect,
+    emitSignalTraded,
+}
+
+export default exportFunctions

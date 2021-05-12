@@ -13,8 +13,8 @@ export enum PositionType {
 }
 
 export enum TradingType {
-    real,
-    virtual,
+    real = "real",
+    virtual = "virtual",
 }
 
 /////

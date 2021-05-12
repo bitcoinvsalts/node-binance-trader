@@ -1,7 +1,6 @@
 // TODO: Add MinMax-Check for amount / quantity in trade functions.
 // TODO: Fallback to spot trading, even if margin trading is allowed.
 
-import { now } from "lodash"
 import PQueue from "p-queue"
 
 import logger from "../logger"
@@ -15,7 +14,7 @@ import { getTradeOpenList } from "./apis/bva"
 import env from "./env"
 import startWebserver from "./http"
 import initializeNotifiers, { getNotifierMessage, notifyAll } from "./notifiers"
-import connectBvaClient, { emitSignalTraded } from "./socket"
+import socket from "./socket"
 import {
     EntryType,
     PositionType,
@@ -267,7 +266,7 @@ export function getTradingSequence(
                     tradingSequence = {
                         before:
                             env().IS_TRADE_MARGIN_ENABLED && market.margin
-                                ? marginBorrow(market.quote, quantity, now()).catch((reason) => logger.error(reason))
+                                ? marginBorrow(market.quote, quantity, Date.now()).catch((reason) => logger.error(reason))
                                 : undefined,
                         mainAction: order,
                         after: undefined,
@@ -288,7 +287,7 @@ export function getTradingSequence(
                     ).catch((reason) => logger.error(reason))
 
                     tradingSequence = {
-                        before: marginBorrow(market.quote, quantity, now()).catch((reason) => logger.error(reason)),
+                        before: marginBorrow(market.quote, quantity, Date.now()).catch((reason) => logger.error(reason)),
                         mainAction: order,
                         after: undefined,
                         quantity,
@@ -343,7 +342,7 @@ export function getTradingSequence(
                         mainAction: order,
                         after:
                             env().IS_TRADE_MARGIN_ENABLED && market.margin
-                                ? marginRepay(market.quote, quantity, now()).catch((reason) => logger.error(reason))
+                                ? marginRepay(market.quote, quantity, Date.now()).catch((reason) => logger.error(reason))
                                 : undefined,
                         quantity,
                     }
@@ -364,7 +363,7 @@ export function getTradingSequence(
                     tradingSequence = {
                         before: undefined,
                         mainAction: order,
-                        after: marginRepay(market.quote, quantity, now()).catch((reason) => logger.error(reason)),
+                        after: marginRepay(market.quote, quantity, Date.now()).catch((reason) => logger.error(reason)),
                         quantity,
                     }
                     break
@@ -400,104 +399,102 @@ export function getTradingSequence(
     }
 }
 
-export function getTradingTask(
+export async function executeTradingTask(
     tradingData: TradingData,
     tradingSequence: TradingSequence
-): () => void {
+): Promise<void> {
     const signal = tradingData.signal
     const strategy = tradingData.strategy
     const quantity = tradingSequence.quantity
 
-    return async () => {
-        logger.info(
-            `Executing a ${strategy.tradingType} trade ${quantity} units of symbol ${signal.symbol} (${strategy.tradeAmount} BTC) at price ${signal.price}.`
-        )
+    logger.info(
+        `Executing a ${strategy.tradingType} trade ${quantity} units of symbol ${signal.symbol} (${strategy.tradeAmount} BTC) at price ${signal.price}.`
+    )
 
-        if (tradingSequence.before) {
-            await tradingSequence.before
-                .then(() => {
-                    logger.error(
-                        "Successfully executed the trading sequence's before step."
-                    )
-                })
-                .catch((reason) => {
-                    logger.error(
-                        `Failed to execute the trading sequence's before step: ${reason}`
-                    )
-                    return
-                })
-        }
-
-        await tradingSequence.mainAction
+    if (tradingSequence.before) {
+        await tradingSequence.before
             .then(() => {
                 logger.info(
-                    "Successfully executed the trading sequence's main action step."
+                    "Successfully executed the trading sequence's before step."
                 )
-
-                emitSignalTraded(
-                    "traded_buy_signal",
-                    signal,
-                    strategy,
-                    quantity
-                )
-
-                notifyAll(getNotifierMessage(signal, true))
-                // TODO: Notify on failure.
-
-                switch (signal.entryType) {
-                    case EntryType.ENTER: {
-                        tradingMetaData.tradesOpen.push({
-                            // Remember the trade as opened.
-                            positionType: PositionType.LONG,
-                            quantity: quantity,
-                            strategyId: signal.strategyId,
-                            strategyName: signal.strategyName,
-                            symbol: signal.symbol,
-                            timeUpdated: now(),
-                        })
-                        break
-                    }
-                    case EntryType.EXIT: {
-                        const tradeOpen = getTradeOpen(signal)
-
-                        if (!tradeOpen) {
-                            logger.error(logTradeOpenNone)
-                            return
-                        }
-
-                        tradingMetaData.tradesOpen = tradingMetaData.tradesOpen.filter(
-                            (tradesOpenElement) =>
-                                tradesOpenElement !== tradeOpen
-                        )
-
-                        break
-                    }
-                    default:
-                        logger.error(logDefaultEntryType)
-                        break
-                }
             })
             .catch((reason) => {
                 logger.error(
-                    `Failed to execute the trading sequence's main action step: ${reason}`
+                    `Failed to execute the trading sequence's before step: ${reason}`
                 )
                 return
             })
+    }
 
-        if (tradingSequence.after) {
-            await tradingSequence.after
-                .then(() => {
-                    logger.error(
-                        "Successfully executed the trading sequence's after step."
+    await tradingSequence.mainAction
+        .then(() => {
+            logger.info(
+                "Successfully executed the trading sequence's main action step."
+            )
+
+            socket.emitSignalTraded(
+                "traded_buy_signal",
+                signal,
+                strategy,
+                quantity
+            )
+
+            notifyAll(getNotifierMessage(signal, true))
+            // TODO: Notify on failure.
+
+            switch (signal.entryType) {
+                case EntryType.ENTER: {
+                    tradingMetaData.tradesOpen.push({
+                        // Remember the trade as opened.
+                        positionType: PositionType.LONG,
+                        quantity: quantity,
+                        strategyId: signal.strategyId,
+                        strategyName: signal.strategyName,
+                        symbol: signal.symbol,
+                        timeUpdated: Date.now(),
+                    })
+                    break
+                }
+                case EntryType.EXIT: {
+                    const tradeOpen = getTradeOpen(signal)
+
+                    if (!tradeOpen) {
+                        logger.error(logTradeOpenNone)
+                        return
+                    }
+
+                    tradingMetaData.tradesOpen = tradingMetaData.tradesOpen.filter(
+                        (tradesOpenElement) =>
+                            tradesOpenElement !== tradeOpen
                     )
-                })
-                .catch((reason) => {
-                    logger.error(
-                        `Failed to execute the trading sequence's after step: ${reason}`
-                    )
-                    return
-                })
-        }
+
+                    break
+                }
+                default:
+                    logger.error(logDefaultEntryType)
+                    break
+            }
+        })
+        .catch((reason) => {
+            logger.error(
+                `Failed to execute the trading sequence's main action step: ${reason}`
+            )
+            return
+        })
+
+    if (tradingSequence.after) {
+        await tradingSequence.after
+            .then(() => {
+                logger.info(
+                    "Successfully executed the trading sequence's after step."
+                )
+            })
+            .catch((reason) => {
+                logger.error(
+                    `Failed to execute the trading sequence's after step: ${reason}`
+                )
+                return
+            })
     }
 }
 
@@ -510,7 +507,7 @@ export async function trade(signal: Signal): Promise<void> {
     const tradingSequence = await getTradingSequence(tradingData)
     if (!tradingSequence) return
 
-    await queue.add(getTradingTask(tradingData, tradingSequence))
+    await queue.add(() => executeTradingTask(tradingData, tradingSequence)) // TODO: Check if async-await is needed.
 }
 
 export function getOnSignalLogData(signal: Signal): string {
@@ -563,7 +560,7 @@ async function run() {
     tradingMetaData.tradesOpen = await getTradeOpenList()
     await loadMarkets(true)
 
-    connectBvaClient()
+    socket.connect()
     startWebserver()
 }
 

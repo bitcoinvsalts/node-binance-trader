@@ -9,6 +9,7 @@ jest.mock("winston", () => {
     }
     const transports = {
         Console: jest.fn(),
+        Stream: jest.fn(),
     }
     const logger = {}
     return {

@@ -1,9 +1,13 @@
 import BigNumber from "bignumber.js"
+import stripAnsi from "strip-ansi"
+
+import socket from "./socket"
 import trader, {
     getOnSignalLogData,
     getTradeOpen,
     getTradeOpenFiltered,
     getTradingSequence,
+    executeTradingTask,
     onBuySignal,
     onCloseTradedSignal,
     onSellSignal,
@@ -26,6 +30,19 @@ import {
 import * as binance from "./apis/binance"
 import { Market } from "ccxt"
 import { getDefault, setDefault } from "./env"
+import { TradingData, TradingSequence } from "./types/trader"
+import { loggerOutput, resetLoggerOutput } from "../logger"
+
+beforeAll(() => {
+    const date = new Date(0)
+    date.setTime(date.getTime() + date.getTimezoneOffset() * 60 * 1000)
+    jest.useFakeTimers("modern")
+    jest.setSystemTime(date)
+})
+
+afterAll(() => {
+    jest.useRealTimers()
+})
 
 beforeEach(() => {
     tradingMetaData.strategies = {}
@@ -34,6 +51,7 @@ beforeEach(() => {
 
 afterEach(() => {
     jest.resetAllMocks()
+    resetLoggerOutput()
 })
 
 describe("trader", () => {
@@ -122,7 +140,7 @@ describe("trader", () => {
         expect(spy).toHaveBeenCalledTimes(1)
         expect(spy).toHaveBeenCalledWith(signalNew)
 
-        spy.mockReset()
+        spy.mockClear()
 
         await onBuySignal(signalJsonOld)
         expect(spy).toHaveBeenCalledTimes(1)
@@ -167,7 +185,7 @@ describe("trader", () => {
         expect(spy).toHaveBeenCalledTimes(1)
         expect(spy).toHaveBeenCalledWith(signalNew)
 
-        spy.mockReset()
+        spy.mockClear()
 
         await onSellSignal(signalJsonOld)
         expect(spy).toHaveBeenCalledTimes(1)
@@ -549,6 +567,192 @@ describe("trader", () => {
                 quantity: 0
             }))
             .catch((reason) => fail(reason))
+    })
+
+    it ("executes a trading task", async () => {
+        const market: Market = {
+            limits: {
+                amount: { min: 0.001, max: 100000 },
+                price: { min: 0.000001, max: 100000 },
+                cost: { min: 0.0001, max: 0 }, // "max" didn't come with this dataset originally and was added due to typescript constraints.
+                // market: { min: 0, max: 1695.00721821 },
+            },
+            precision: { base: 8, quote: 8, amount: 3, price: 6 },
+            tierBased: false,
+            percentage: true,
+            taker: 0.001,
+            maker: 0.001,
+            id: "ETHBTC",
+            symbol: "ETH/BTC",
+            base: "ETH",
+            quote: "BTC",
+            baseId: "ETH",
+            quoteId: "BTC",
+            info: {},
+            type: "spot",
+            spot: false,
+            margin: false,
+            future: false,
+            active: false
+        }
+
+        const signal: Signal = {
+            entryType: EntryType.ENTER,
+            nickname: "nickname",
+            positionType: PositionType.LONG,
+            price: new BigNumber(1),
+            score: "score",
+            strategyId: "strategyId",
+            strategyName: "strategyName",
+            symbol: "ETH/BTC",
+            userId: "userId",
+        }
+
+        const strategy: Strategy = {
+            tradeAmount: new BigNumber(1),
+            stopLoss: 1,
+            id: "strategyId",
+            takeProfit: 2,
+            isActive: false,
+            tradingType: TradingType.real,
+        }
+
+        const tradingData: TradingData = {
+            market, signal, strategy
+        }
+
+        const jestFunctionBefore = jest.fn()
+        const jestFunctionMainAction = jest.fn()
+        const jestFunctionAfter = jest.fn()
+
+        const tradingSequence: TradingSequence = {
+            before: new Promise((resolve) => {
+                jestFunctionBefore()
+                resolve(undefined)
+            }),
+            mainAction: new Promise((resolve) => {
+                jestFunctionMainAction()
+                resolve(undefined)
+            }),
+            after: new Promise((resolve) => {
+                jestFunctionAfter()
+                resolve(undefined)
+            }),
+            quantity: 3
+        }
+
+        const spy = jest.spyOn(socket, "emitSignalTraded").mockImplementation()
+
+        await executeTradingTask(tradingData, tradingSequence)
+
+        expect(stripAnsi(loggerOutput)).toBe(`1970-01-01 00:00:00 | info | Executing a real trade 3 units of symbol ETH/BTC (1 BTC) at price 1.
+1970-01-01 00:00:00 | info | Successfully executed the trading sequence's before step.
+1970-01-01 00:00:00 | info | Successfully executed the trading sequence's main action step.
+1970-01-01 00:00:00 | info | Successfully executed the trading sequence's after step.
+`)
+        expect(spy).toHaveBeenCalledWith("traded_buy_signal", signal, strategy, 3)
+        expect(jestFunctionBefore).toHaveBeenCalledTimes(1)
+        expect(jestFunctionMainAction).toHaveBeenCalledTimes(1)
+        expect(jestFunctionAfter).toHaveBeenCalledTimes(1)
+        expect(tradingMetaData.tradesOpen).toEqual([
+            {
+                "positionType": "LONG",
+                "quantity": 3,
+                "strategyId": "strategyId",
+                "strategyName": "strategyName",
+                "symbol": "ETH/BTC",
+                "timeUpdated": -3600000
+            }
+        ])
+
+        spy.mockClear()
+        jestFunctionBefore.mockClear()
+        jestFunctionMainAction.mockClear()
+        jestFunctionAfter.mockClear()
+        resetLoggerOutput()
+
+        const tradingSequenceReject = {
+            ...tradingSequence,
+            before: new Promise((_resolve, reject) => {
+                jestFunctionBefore()
+                reject(undefined)
+            }),
+            mainAction: new Promise((_resolve, reject) => {
+                jestFunctionMainAction()
+                reject(undefined)
+            }),
+            after: new Promise((_resolve, reject) => {
+                jestFunctionAfter()
+                reject(undefined)
+            }),
+        }
+
+        await executeTradingTask(tradingData, tradingSequenceReject)
+
+        expect(stripAnsi(loggerOutput)).toBe(`1970-01-01 00:00:00 | info | Executing a real trade 3 units of symbol ETH/BTC (1 BTC) at price 1.
+1970-01-01 00:00:00 | error | Failed to execute the trading sequence's before step: undefined
+1970-01-01 00:00:00 | error | Failed to execute the trading sequence's main action step: undefined
+1970-01-01 00:00:00 | error | Failed to execute the trading sequence's after step: undefined
+`)
+        expect(spy).toHaveBeenCalledTimes(0)
+        expect(jestFunctionBefore).toHaveBeenCalledTimes(1)
+        expect(jestFunctionMainAction).toHaveBeenCalledTimes(1)
+        expect(jestFunctionAfter).toHaveBeenCalledTimes(1)
+
+        const signalExit: Signal = {
+            ...signal,
+            entryType: EntryType.EXIT
+        }
+
+        const tradingDataExit: TradingData = {
+            ...tradingData,
+            signal: signalExit,
+        }
+
+        spy.mockClear()
+        jestFunctionBefore.mockClear()
+        jestFunctionMainAction.mockClear()
+        jestFunctionAfter.mockClear()
+        resetLoggerOutput()
+
+        const tradingSequenceNew = {
+            ...tradingSequence,
+            before: new Promise((resolve) => {
+                jestFunctionBefore()
+                resolve(undefined)
+            }),
+            mainAction: new Promise((resolve) => {
+                jestFunctionMainAction()
+                resolve(undefined)
+            }),
+            after: new Promise((resolve) => {
+                jestFunctionAfter()
+                resolve(undefined)
+            }),
+        }
+        expect(tradingMetaData.tradesOpen).toEqual([
+            {
+                "positionType": "LONG",
+                "quantity": 3,
+                "strategyId": "strategyId",
+                "strategyName": "strategyName",
+                "symbol": "ETH/BTC",
+                "timeUpdated": -3600000
+            }
+        ])
+
+        await executeTradingTask(tradingDataExit, tradingSequenceNew)
+
+        expect(stripAnsi(loggerOutput)).toBe(`1970-01-01 00:00:00 | info | Executing a real trade 3 units of symbol ETH/BTC (1 BTC) at price 1.
+1970-01-01 00:00:00 | info | Successfully executed the trading sequence's before step.
+1970-01-01 00:00:00 | info | Successfully executed the trading sequence's main action step.
+1970-01-01 00:00:00 | info | Successfully executed the trading sequence's after step.
+`)
+        expect(spy).toHaveBeenCalledTimes(1)
+        expect(jestFunctionBefore).toHaveBeenCalledTimes(1)
+        expect(jestFunctionMainAction).toHaveBeenCalledTimes(1)
+        expect(jestFunctionAfter).toHaveBeenCalledTimes(1)
+        expect(tradingMetaData.tradesOpen).toEqual([])
     })
 
     it ("gets on signal log data", () => {
