@@ -1,12 +1,10 @@
 // read .env file into proces.env
-import dotenvv from "dotenv"
-import envalid from "envalid"
+require("dotenv").config()
 
-import * as packageJson from "../../package.json"
+const envalid = require("envalid")
+var packageJson = require("../../package.json")
 
-dotenvv.config()
-
-export default envalid.cleanEnv(process.env, {
+module.exports = envalid.cleanEnv(process.env, {
     BACKTEST_TEST_PAIR: envalid.str({ default: "BTCUSDT" }),
     BVA_API_KEY: envalid.str(),
     CONNECT_SERVER_TO_BVA: envalid.bool({ default: true }),
