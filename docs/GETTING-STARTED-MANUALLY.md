@@ -36,9 +36,9 @@ It contains your most private information.
 
 **To start the server** to save pair data, define strategies and emit trading signals:
 ```
-npm run start
+npm run server
 // or
-docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" -p 4000:4000 jsappme/node-binance-trader npm run start
+docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" -p 4000:4000 jsappme/node-binance-trader npm run server
 ```
 
 **To start the auto trader** to monitor strategies and signals received from the server or the NBT Hub:
