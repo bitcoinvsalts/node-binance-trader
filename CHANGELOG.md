@@ -1,3 +1,11 @@
+# [0.5.0](https://github.com/jsappme/node-binance-trader/compare/0.4.1...0.5.0) (2021-05-19)
+
+
+### Features
+
+* **funding:** rename funding file ([b906477](https://github.com/jsappme/node-binance-trader/commit/b9064775557839d1e6810181bccc5cb2d2181022))
+* **funding:** temporarily disable funding ([5b2b5a3](https://github.com/jsappme/node-binance-trader/commit/5b2b5a3410be18809d9e530254f7433d3e2db271)), closes [#110](https://github.com/jsappme/node-binance-trader/issues/110)
+
 ## [0.4.1](https://github.com/jsappme/node-binance-trader/compare/0.4.0...0.4.1) (2021-03-22)
 
 
