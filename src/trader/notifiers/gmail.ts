@@ -1,10 +1,11 @@
 import env from "../env"
 import nodeMailer from "nodemailer"
 import { Notifier, NotifierMessage } from "../types/notifier"
+import logger from "../../logger"
 
 export default function (): Notifier {
     return {
-        notify
+        notify,
     }
 }
 
@@ -20,11 +21,13 @@ const mailTransport = nodeMailer.createTransport(
 async function notify(message: NotifierMessage): Promise<void> {
     if (!env().IS_NOTIFIER_GMAIL_ENABLED) return
 
-    return mailTransport.sendMail({
-        from: "\"🐬  BVA \" <no-reply@gmail.com>",
-        to: gmailAddress,
-        subject: message.subject,
-        text: message.content,
-        html: message.contentHtml,
-    })
+    return mailTransport
+        .sendMail({
+            from: "\"🐬  BVA \" <no-reply@gmail.com>",
+            to: gmailAddress,
+            subject: message.subject,
+            text: message.content,
+            html: message.contentHtml,
+        })
+        .catch((reason) => logger.error(reason))
 }

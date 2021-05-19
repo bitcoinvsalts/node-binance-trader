@@ -20,10 +20,11 @@ describe("notifiers", () => {
         expect(notifierMessage)
             .toEqual({
                 subject: "0 symbol LONG trade.",
-                content: `<b>0 symbol LONG trade.</b>
+                content: `0 symbol LONG trade.
 strategy: strategyName
 price: 1
 score: score`,
+                contentHtml: "<b>0 symbol LONG trade.</b><br/>strategy: strategyName<br/>price: 1<br/>score: score",
             })
     })
 })
