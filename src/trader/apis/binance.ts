@@ -13,6 +13,10 @@ if (process.env.NODE_ENV !== "test") {
         enableRateLimit: true,
         secret: env().BINANCE_SECRET_KEY,
     })
+
+    if (process.env.NODE_ENV === "staging") {
+        binanceClient.setSandboxMode(true)
+    }
 }
 
 export function getMarketsBva(markets: ccxt.Dictionary<ccxt.Market>): ccxt.Dictionary<ccxt.Market> {
