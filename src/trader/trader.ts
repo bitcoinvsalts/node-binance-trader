@@ -1,12 +1,13 @@
 // TODO: Add MinMax-Check for amount / quantity in trade functions.
 // TODO: Fallback to spot trading, even if margin trading is allowed.
 
+import BigNumber from "bignumber.js"
 import PQueue from "p-queue"
 
 import logger from "../logger"
 import {
     createMarketOrder,
-    loadMarkets,
+    fetchMarkets,
     marginBorrow,
     marginRepay,
 } from "./apis/binance"
@@ -137,6 +138,9 @@ export async function onCloseTradedSignal(
     signalJson: SignalJson
 ): Promise<void> {
     const signal = new Signal(signalJson)
+
+    signal.entryType = EntryType.EXIT
+
     await exportFunctions.trade(signal).catch((reason) => {
         return Promise.reject(reason)
     })
@@ -162,19 +166,19 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
     const strategy = tradingMetaData.strategies[signal.strategyId]
 
     if (!strategy) {
-        const logMessage = `Skipping signal as strategy ${signal.strategyName} isn't followed.`
-        logger.info(logMessage)
+        const logMessage = `Skipping signal as strategy ${signal.strategyId} "${signal.strategyName}" isn't followed.`
+        logger.warn(logMessage)
         return Promise.reject(logMessage)
     }
 
     if (!strategy.isActive) {
-        const logMessage = `Skipping signal as strategy ${signal.strategyName} isn't active.`
-        logger.info(logMessage)
+        const logMessage = `Skipping signal as strategy ${signal.strategyId} "${signal.strategyName}" isn't active.`
+        logger.warn(logMessage)
         return Promise.reject(logMessage)
     }
 
     const market = (
-        await loadMarkets().catch((reason) => {
+        await fetchMarkets().catch((reason) => {
             return Promise.reject(reason)
         })
     )[signal.symbol]
@@ -197,7 +201,20 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
         return Promise.reject(logMessage)
     }
 
-    switch (signal.positionType) {
+    let positionType = signal.positionType
+
+    if (signal.entryType === EntryType.EXIT) {
+        const tradeOpen = getTradeOpen(signal)
+
+        if (!tradeOpen) {
+            logger.error(logTradeOpenNone)
+            return Promise.reject(logTradeOpenNone)
+        }
+
+        positionType = tradeOpen.positionType
+    }
+
+    switch (positionType) {
         case PositionType.LONG: {
             if (!market.spot) {
                 const logMessage = `Failed to trade as spot trading is unavailable for a long position on symbol ${market.symbol}.`
@@ -211,7 +228,7 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
             if (!env().IS_TRADE_MARGIN_ENABLED) {
                 const logMessage =
                     "Skipping signal as margin trading is disabled but required to exit a short position."
-                logger.warn(logMessage)
+                logger.error(logMessage)
                 return Promise.reject(logMessage)
             }
 
@@ -260,8 +277,8 @@ export function getTradingSequence(
             switch (signal.positionType) {
                 // Enter long.
                 case PositionType.LONG: {
-                    const order = createMarketOrder(
-                        signal.symbol,
+                    const order = () => createMarketOrder(
+                        market.symbol,
                         "buy",
                         quantity,
                         undefined,
@@ -271,44 +288,46 @@ export function getTradingSequence(
                                 type: "margin",
                             }),
                         }
-                    ).catch((reason) => logger.error(reason))
+                    )
 
                     tradingSequence = {
                         before:
                             env().IS_TRADE_MARGIN_ENABLED && market.margin
-                                ? marginBorrow(
+                                ? () => marginBorrow(
                                     market.quote,
                                     quantity,
                                     Date.now()
-                                ).catch((reason) => logger.error(reason))
+                                )
                                 : undefined,
                         mainAction: order,
                         after: undefined,
                         quantity,
+                        socketChannel: "traded_buy_signal",
                     }
                     break
                 }
                 case PositionType.SHORT: {
                     // Enter short.
-                    const order = createMarketOrder(
-                        signal.symbol,
+                    const order = () => createMarketOrder(
+                        market.symbol,
                         "sell",
                         quantity,
                         undefined,
                         {
                             type: "margin", // Short trades must be a margin trade unconditionally.
                         }
-                    ).catch((reason) => logger.error(reason))
+                    )
 
                     tradingSequence = {
-                        before: marginBorrow(
+                        before: () => marginBorrow(
                             market.quote,
                             quantity,
                             Date.now()
-                        ).catch((reason) => logger.error(reason)),
+                        ),
                         mainAction: order,
                         after: undefined,
                         quantity,
+                        socketChannel: "traded_sell_signal",
                     }
                     break
                 }
@@ -342,8 +361,8 @@ export function getTradingSequence(
             switch (tradeOpen.positionType) {
                 case PositionType.LONG: {
                     // Exit long.
-                    const order = createMarketOrder(
-                        signal.symbol,
+                    const order = () => createMarketOrder(
+                        market.symbol,
                         "sell",
                         quantity,
                         undefined,
@@ -353,44 +372,46 @@ export function getTradingSequence(
                                 type: "margin",
                             }),
                         }
-                    ).catch((reason) => logger.error(reason))
+                    )
 
                     tradingSequence = {
                         before: undefined,
                         mainAction: order,
                         after:
                             env().IS_TRADE_MARGIN_ENABLED && market.margin
-                                ? marginRepay(
+                                ? () => marginRepay(
                                     market.quote,
                                     quantity,
                                     Date.now()
-                                ).catch((reason) => logger.error(reason))
+                                )
                                 : undefined,
                         quantity,
+                        socketChannel: "traded_sell_signal",
                     }
                     break
                 }
                 case PositionType.SHORT: {
                     // Exit short.
-                    const order = createMarketOrder(
-                        signal.symbol,
+                    const order = () => createMarketOrder(
+                        market.symbol,
                         "buy",
                         quantity,
                         undefined,
                         {
                             type: "margin", // Short trades must be a margin trade unconditionally.
                         }
-                    ).catch((reason) => logger.error(reason))
+                    )
 
                     tradingSequence = {
                         before: undefined,
                         mainAction: order,
-                        after: marginRepay(
+                        after: () => marginRepay(
                             market.quote,
                             quantity,
                             Date.now()
-                        ).catch((reason) => logger.error(reason)),
+                        ),
                         quantity,
+                        socketChannel: "traded_buy_signal",
                     }
                     break
                 }
@@ -407,14 +428,21 @@ export function getTradingSequence(
             break
     }
 
+    if (!tradingSequence) {
+        const logMessage = "A trading sequence should have been found by now!"
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
+    }
+
     // Shall not be moved before the previous switch
     // so that paper trading gives the most realistic experience.
     if (strategy.tradingType === TradingType.virtual) {
+        logger.info("Clearing trade sequence functions due to the trade being virtual.")
         tradingSequence = {
-            before: Promise.resolve(),
-            mainAction: Promise.resolve(),
-            after: Promise.resolve(),
-            quantity: 0,
+            ...tradingSequence,
+            before: () => Promise.resolve(),
+            mainAction: () => Promise.resolve(),
+            after: () => Promise.resolve(),
         }
     }
 
@@ -434,13 +462,14 @@ export async function executeTradingTask(
     const signal = tradingData.signal
     const strategy = tradingData.strategy
     const quantity = tradingSequence.quantity
+    const socketChannel = tradingSequence.socketChannel
 
     logger.info(
-        `Executing a ${strategy.tradingType} trade ${quantity} units of symbol ${signal.symbol} (${strategy.tradeAmount} BTC) at price ${signal.price}.`
+        `Executing a ${strategy.tradingType} trade of ${quantity} units of symbol ${signal.symbol} at price ${signal.price} (${strategy.tradeAmount} total).`
     )
 
     if (tradingSequence.before) {
-        await tradingSequence.before
+        await tradingSequence.before()
             .then(() => {
                 logger.info(
                     "Successfully executed the trading sequence's before step."
@@ -454,21 +483,18 @@ export async function executeTradingTask(
             })
     }
 
-    await tradingSequence.mainAction
+    await tradingSequence.mainAction()
         .then(() => {
             logger.info(
                 "Successfully executed the trading sequence's main action step."
             )
 
             socket.emitSignalTraded(
-                "traded_buy_signal",
+                socketChannel,
                 signal,
                 strategy,
                 quantity
             )
-
-            notifyAll(getNotifierMessage(signal, true))
-            // TODO: Notify on failure.
 
             switch (signal.entryType) {
                 case EntryType.ENTER: {
@@ -512,7 +538,7 @@ export async function executeTradingTask(
         })
 
     if (tradingSequence.after) {
-        await tradingSequence.after
+        await tradingSequence.after()
             .then(() => {
                 logger.info(
                     "Successfully executed the trading sequence's after step."
@@ -525,6 +551,8 @@ export async function executeTradingTask(
                 return
             })
     }
+
+    notifyAll(getNotifierMessage(signal, true)) // TODO: Notify on failure.
 }
 
 export async function trade(signal: Signal): Promise<void> {
@@ -553,7 +581,7 @@ export async function trade(signal: Signal): Promise<void> {
 }
 
 export function getOnSignalLogData(signal: Signal): string {
-    return `for strategy ${signal.strategyName} (${signal.strategyId}) and symbol ${signal.symbol}`
+    return `for strategy ${signal.strategyId} "${signal.strategyName}" and symbol ${signal.symbol}`
 }
 
 export function getTradeOpen(signal: Signal): TradeOpen | undefined {
@@ -602,7 +630,7 @@ async function run() {
     tradingMetaData.tradesOpen = await getTradeOpenList().catch((reason) => {
         return Promise.reject(reason)
     })
-    await loadMarkets(true).catch((reason) => {
+    await fetchMarkets().catch((reason) => {
         return Promise.reject(reason)
     })
 

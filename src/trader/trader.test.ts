@@ -55,7 +55,7 @@ afterEach(() => {
 })
 
 describe("trader", () => {
-    it ("acts on user payload", () => {
+    it("acts on user payload", () => {
         const strategyJsonList: StrategyJson[] = [
             {
                 buy_amount: 1,
@@ -75,8 +75,7 @@ describe("trader", () => {
             },
         ]
 
-        expect(tradingMetaData.strategies)
-            .toEqual({})
+        expect(tradingMetaData.strategies).toEqual({})
 
         onUserPayload(strategyJsonList)
 
@@ -98,12 +97,16 @@ describe("trader", () => {
             tradingType: TradingType.virtual,
         }
 
-        expect(tradingMetaData.strategies)
-            .toEqual({ stratid1: strategy1, stratid2: strategy2 })
+        expect(tradingMetaData.strategies).toEqual({
+            stratid1: strategy1,
+            stratid2: strategy2,
+        })
     })
 
-    it ("acts on buy signal", async () => {
-        const spy = jest.spyOn(trader, "trade").mockImplementation(() => Promise.resolve())
+    it("acts on buy signal", async () => {
+        const spy = jest
+            .spyOn(trader, "trade")
+            .mockImplementation(() => Promise.resolve())
         const signalJsonNew: SignalJson = {
             new: true,
             nickname: "nickname",
@@ -147,8 +150,10 @@ describe("trader", () => {
         expect(spy).toHaveBeenCalledWith(signalOld)
     })
 
-    it ("acts on sell signal", async () => {
-        const spy = jest.spyOn(trader, "trade").mockImplementation(() => Promise.resolve())
+    it("acts on sell signal", async () => {
+        const spy = jest
+            .spyOn(trader, "trade")
+            .mockImplementation(() => Promise.resolve())
         const signalJsonNew: SignalJson = {
             new: true,
             nickname: "nickname",
@@ -192,8 +197,10 @@ describe("trader", () => {
         expect(spy).toHaveBeenCalledWith(signalOld)
     })
 
-    it ("acts on close traded signal", async () => {
-        const spy = jest.spyOn(trader, "trade").mockImplementation(() => Promise.resolve())
+    it("acts on close traded signal", async () => {
+        const spy = jest
+            .spyOn(trader, "trade")
+            .mockImplementation(() => Promise.resolve())
         const signalJson: SignalJson = {
             new: false,
             nickname: "nickname",
@@ -222,7 +229,7 @@ describe("trader", () => {
         expect(spy).toHaveBeenCalledWith(signal)
     })
 
-    it ("acts on stop traded signal", async () => {
+    it("acts on stop traded signal", async () => {
         const signalJson: SignalJson = {
             new: false,
             nickname: "nickname",
@@ -258,7 +265,7 @@ describe("trader", () => {
         expect(tradingMetaData.tradesOpen[0].isStopped).toBe(true)
     })
 
-    it ("validates trading data", async () => {
+    it("validates trading data", async () => {
         const signal: Signal = {
             entryType: EntryType.ENTER,
             nickname: "nickname",
@@ -282,21 +289,35 @@ describe("trader", () => {
 
         await trade(signal)
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toBe("Skipping signal as strategy strategyName isn't followed."))
+            .catch((reason) =>
+                expect(reason).toBe(
+                    "Skipping signal as strategy strategyId \"strategyName\" isn't followed."
+                )
+            )
 
         tradingMetaData.strategies = { strategyId: strategy }
 
         await trade(signal)
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toBe("Skipping signal as strategy strategyName isn't active."))
+            .catch((reason) =>
+                expect(reason).toBe(
+                    "Skipping signal as strategy strategyId \"strategyName\" isn't active."
+                )
+            )
 
         tradingMetaData.strategies.strategyId.isActive = true
 
-        const spy = jest.spyOn(binance, "loadMarkets").mockImplementation(() => Promise.resolve({}))
+        const spy = jest
+            .spyOn(binance, "fetchMarkets")
+            .mockImplementation(() => Promise.resolve({}))
 
         await trade(signal)
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toBe("Skipping signal as there is no market data for symbol ETH/BTC."))
+            .catch((reason) =>
+                expect(reason).toBe(
+                    "Skipping signal as there is no market data for symbol ETH/BTC."
+                )
+            )
 
         const market: Market = {
             limits: {
@@ -321,22 +342,32 @@ describe("trader", () => {
             spot: false,
             margin: false,
             future: false,
-            active: false
+            active: false,
         }
 
-        spy.mockImplementation(() => Promise.resolve({
-            "ETH/BTC": market
-        }))
+        spy.mockImplementation(() =>
+            Promise.resolve({
+                "ETH/BTC": market,
+            })
+        )
 
         await trade(signal)
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toBe("Failed to trade as the market for symbol ETH/BTC is inactive."))
+            .catch((reason) =>
+                expect(reason).toBe(
+                    "Failed to trade as the market for symbol ETH/BTC is inactive."
+                )
+            )
 
         market.active = true
 
         await trade(signal)
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toBe("Failed to trade as neither margin trading nor spot trading is available for symbol ETH/BTC."))
+            .catch((reason) =>
+                expect(reason).toBe(
+                    "Failed to trade as neither margin trading nor spot trading is available for symbol ETH/BTC."
+                )
+            )
 
         signal.entryType = EntryType.ENTER
         signal.positionType = PositionType.LONG
@@ -345,7 +376,11 @@ describe("trader", () => {
 
         await trade(signal)
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toBe("Failed to trade as spot trading is unavailable for a long position on symbol ETH/BTC."))
+            .catch((reason) =>
+                expect(reason).toBe(
+                    "Failed to trade as spot trading is unavailable for a long position on symbol ETH/BTC."
+                )
+            )
 
         signal.entryType = EntryType.ENTER
         signal.positionType = PositionType.SHORT
@@ -356,22 +391,34 @@ describe("trader", () => {
 
         await trade(signal)
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toBe("Skipping signal as margin trading is disabled but required to exit a short position."))
+            .catch((reason) =>
+                expect(reason).toBe(
+                    "Skipping signal as margin trading is disabled but required to exit a short position."
+                )
+            )
 
         setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: false })
 
         await trade(signal)
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toBe("Skipping signal as margin trading is disabled but required to exit a short position."))
+            .catch((reason) =>
+                expect(reason).toBe(
+                    "Skipping signal as margin trading is disabled but required to exit a short position."
+                )
+            )
 
         setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: true })
 
         await trade(signal)
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toBe("Failed to trade as margin trading is unavailable for a short position on symbol ETH/BTC."))
+            .catch((reason) =>
+                expect(reason).toBe(
+                    "Failed to trade as margin trading is unavailable for a short position on symbol ETH/BTC."
+                )
+            )
     })
 
-    it ("gets trading sequence", async () => {
+    it("gets trading sequence", async () => {
         const signal: Signal = {
             entryType: EntryType.ENTER,
             nickname: "nickname",
@@ -416,43 +463,57 @@ describe("trader", () => {
             spot: false,
             margin: false,
             future: false,
-            active: false
+            active: false,
         }
 
         signal.entryType = EntryType.ENTER
         signal.positionType = PositionType.LONG
         market.margin = true
-        setDefault({...getDefault, IS_TRADE_MARGIN_ENABLED: false})
+        setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: false })
 
         await getTradingSequence({
             market,
             signal,
             strategy,
         })
-            .then((value) => expect(value).toEqual({
-                after: undefined,
-                before: undefined,
-                mainAction: Promise.resolve(),
-                quantity: 1
-            }))
+            .then((value) =>
+                expect(JSON.stringify(value)).toBe(
+                    JSON.stringify({
+                        after: undefined,
+                        before: undefined,
+                        mainAction: function order() {
+                            return Promise.resolve()
+                        },
+                        quantity: 1,
+                        socketChannel: "traded_buy_signal",
+                    })
+                )
+            )
             .catch((reason) => fail(reason))
 
         signal.entryType = EntryType.ENTER
         signal.positionType = PositionType.LONG
         market.margin = true
-        setDefault({...getDefault, IS_TRADE_MARGIN_ENABLED: true})
+        setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: true })
 
         await getTradingSequence({
             market,
             signal,
             strategy,
         })
-            .then((value) => expect(value).toEqual({
-                after: undefined,
-                before: Promise.resolve(),
-                mainAction: Promise.resolve(),
-                quantity: 1
-            }))
+            .then((value) =>
+                expect(JSON.stringify(value)).toBe(
+                    JSON.stringify({
+                        after: undefined,
+                        before: () => Promise.resolve(),
+                        mainAction: function order() {
+                            return Promise.resolve()
+                        },
+                        quantity: 1,
+                        socketChannel: "traded_buy_signal",
+                    })
+                )
+            )
             .catch((reason) => fail(reason))
 
         signal.entryType = EntryType.ENTER
@@ -463,18 +524,25 @@ describe("trader", () => {
             signal,
             strategy,
         })
-            .then((value) => expect(value).toEqual({
-                after: undefined,
-                before: Promise.resolve(),
-                mainAction: Promise.resolve(),
-                quantity: 1
-            }))
+            .then((value) =>
+                expect(JSON.stringify(value)).toBe(
+                    JSON.stringify({
+                        after: undefined,
+                        before: () => Promise.resolve(),
+                        mainAction: function order() {
+                            return Promise.resolve()
+                        },
+                        quantity: 1,
+                        socketChannel: "traded_sell_signal",
+                    })
+                )
+            )
             .catch((reason) => fail(reason))
 
         signal.entryType = EntryType.EXIT
         signal.positionType = PositionType.LONG
         market.margin = true
-        setDefault({...getDefault, IS_TRADE_MARGIN_ENABLED: true})
+        setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: true })
 
         await getTradingSequence({
             market,
@@ -482,7 +550,11 @@ describe("trader", () => {
             strategy,
         })
             .then((value) => fail(value))
-            .catch((reason) => expect(reason).toEqual("Skipping signal as there was no associated open trade found."))
+            .catch((reason) =>
+                expect(reason).toEqual(
+                    "Skipping signal as there was no associated open trade found."
+                )
+            )
 
         const tradeOpen: TradeOpen = {
             id: "matches",
@@ -499,42 +571,59 @@ describe("trader", () => {
             timeUpdated: 3,
         }
 
-        tradingMetaData.tradesOpen = [tradeOpen, {...tradeOpen, positionType: PositionType.SHORT}]
+        tradingMetaData.tradesOpen = [
+            tradeOpen,
+            { ...tradeOpen, positionType: PositionType.SHORT },
+        ]
 
         signal.entryType = EntryType.EXIT
         signal.positionType = PositionType.LONG
         market.margin = true
-        setDefault({...getDefault, IS_TRADE_MARGIN_ENABLED: true})
+        setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: true })
 
         await getTradingSequence({
             market,
             signal,
             strategy,
         })
-            .then((value) => expect(value).toEqual({
-                after: Promise.resolve(),
-                before: undefined,
-                mainAction: Promise.resolve(),
-                quantity: 10
-            }))
+            .then((value) =>
+                expect(JSON.stringify(value)).toBe(
+                    JSON.stringify({
+                        after: () => Promise.resolve(),
+                        before: undefined,
+                        mainAction: function order() {
+                            return Promise.resolve()
+                        },
+                        quantity: 10,
+                        socketChannel: "traded_sell_signal",
+                    })
+                )
+            )
             .catch((reason) => fail(reason))
 
         signal.entryType = EntryType.EXIT
         signal.positionType = PositionType.LONG
         market.margin = false
-        setDefault({...getDefault, IS_TRADE_MARGIN_ENABLED: true})
+        setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: true })
 
         await getTradingSequence({
             market,
             signal,
             strategy,
         })
-            .then((value) => expect(value).toEqual({
-                after: undefined,
-                before: undefined,
-                mainAction: Promise.resolve(),
-                quantity: 10
-            }))
+            .then((value) =>
+                expect(JSON.stringify(value)).toBe(
+                    JSON.stringify({
+                        after: undefined,
+                        before: undefined,
+                        mainAction: function order() {
+                            return Promise.resolve()
+                        },
+                        quantity: 10,
+                        socketChannel: "traded_sell_signal",
+                    })
+                )
+            )
             .catch((reason) => fail(reason))
 
         signal.entryType = EntryType.EXIT
@@ -545,12 +634,19 @@ describe("trader", () => {
             signal,
             strategy,
         })
-            .then((value) => expect(value).toEqual({
-                after: Promise.resolve(),
-                before: undefined,
-                mainAction: Promise.resolve(),
-                quantity: 10
-            }))
+            .then((value) =>
+                expect(JSON.stringify(value)).toBe(
+                    JSON.stringify({
+                        after: () => Promise.resolve(),
+                        before: undefined,
+                        mainAction: function order() {
+                            return Promise.resolve()
+                        },
+                        quantity: 10,
+                        socketChannel: "traded_buy_signal",
+                    })
+                )
+            )
             .catch((reason) => fail(reason))
 
         strategy.tradingType = TradingType.virtual
@@ -560,16 +656,21 @@ describe("trader", () => {
             signal,
             strategy,
         })
-            .then((value) => expect(value).toEqual({
-                after: Promise.resolve(),
-                before: Promise.resolve(),
-                mainAction: Promise.resolve(),
-                quantity: 0
-            }))
+            .then((value) =>
+                expect(JSON.stringify(value)).toBe(
+                    JSON.stringify({
+                        after: () => Promise.resolve(),
+                        before: () => Promise.resolve(),
+                        mainAction: () => Promise.resolve(),
+                        quantity: 10,
+                        socketChannel: "traded_buy_signal",
+                    })
+                )
+            )
             .catch((reason) => fail(reason))
     })
 
-    it ("executes a trading task", async () => {
+    it("executes a trading task", async () => {
         const market: Market = {
             limits: {
                 amount: { min: 0.001, max: 100000 },
@@ -593,7 +694,7 @@ describe("trader", () => {
             spot: false,
             margin: false,
             future: false,
-            active: false
+            active: false,
         }
 
         const signal: Signal = {
@@ -618,7 +719,9 @@ describe("trader", () => {
         }
 
         const tradingData: TradingData = {
-            market, signal, strategy
+            market,
+            signal,
+            strategy,
         }
 
         const jestFunctionBefore = jest.fn()
@@ -626,43 +729,53 @@ describe("trader", () => {
         const jestFunctionAfter = jest.fn()
 
         const tradingSequence: TradingSequence = {
-            before: new Promise((resolve) => {
-                jestFunctionBefore()
-                resolve(undefined)
-            }),
-            mainAction: new Promise((resolve) => {
-                jestFunctionMainAction()
-                resolve(undefined)
-            }),
-            after: new Promise((resolve) => {
-                jestFunctionAfter()
-                resolve(undefined)
-            }),
-            quantity: 3
+            before: () =>
+                new Promise((resolve) => {
+                    jestFunctionBefore()
+                    resolve(undefined)
+                }),
+            mainAction: () =>
+                new Promise((resolve) => {
+                    jestFunctionMainAction()
+                    resolve(undefined)
+                }),
+            after: () =>
+                new Promise((resolve) => {
+                    jestFunctionAfter()
+                    resolve(undefined)
+                }),
+            quantity: 3,
+            socketChannel: "socketChannel"
         }
 
         const spy = jest.spyOn(socket, "emitSignalTraded").mockImplementation()
 
         await executeTradingTask(tradingData, tradingSequence)
 
-        expect(stripAnsi(loggerOutput)).toBe(`1970-01-01 00:00:00 | info | Executing a real trade 3 units of symbol ETH/BTC (1 BTC) at price 1.
+        expect(stripAnsi(loggerOutput))
+            .toBe(`1970-01-01 00:00:00 | info | Executing a real trade of 3 units of symbol ETH/BTC at price 1 (1 total).
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's before step.
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's main action step.
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's after step.
 `)
-        expect(spy).toHaveBeenCalledWith("traded_buy_signal", signal, strategy, 3)
+        expect(spy).toHaveBeenCalledWith(
+            "socketChannel",
+            signal,
+            strategy,
+            3
+        )
         expect(jestFunctionBefore).toHaveBeenCalledTimes(1)
         expect(jestFunctionMainAction).toHaveBeenCalledTimes(1)
         expect(jestFunctionAfter).toHaveBeenCalledTimes(1)
         expect(tradingMetaData.tradesOpen).toEqual([
             {
-                "positionType": "LONG",
-                "quantity": 3,
-                "strategyId": "strategyId",
-                "strategyName": "strategyName",
-                "symbol": "ETH/BTC",
-                "timeUpdated": new Date().getTimezoneOffset() * 60 * 1000,
-            }
+                positionType: "LONG",
+                quantity: 3,
+                strategyId: "strategyId",
+                strategyName: "strategyName",
+                symbol: "ETH/BTC",
+                timeUpdated: new Date().getTimezoneOffset() * 60 * 1000,
+            },
         ])
 
         spy.mockClear()
@@ -673,23 +786,27 @@ describe("trader", () => {
 
         const tradingSequenceReject = {
             ...tradingSequence,
-            before: new Promise((_resolve, reject) => {
-                jestFunctionBefore()
-                reject(undefined)
-            }),
-            mainAction: new Promise((_resolve, reject) => {
-                jestFunctionMainAction()
-                reject(undefined)
-            }),
-            after: new Promise((_resolve, reject) => {
-                jestFunctionAfter()
-                reject(undefined)
-            }),
+            before: () =>
+                new Promise((_resolve, reject) => {
+                    jestFunctionBefore()
+                    reject(undefined)
+                }),
+            mainAction: () =>
+                new Promise((_resolve, reject) => {
+                    jestFunctionMainAction()
+                    reject(undefined)
+                }),
+            after: () =>
+                new Promise((_resolve, reject) => {
+                    jestFunctionAfter()
+                    reject(undefined)
+                }),
         }
 
         await executeTradingTask(tradingData, tradingSequenceReject)
 
-        expect(stripAnsi(loggerOutput)).toBe(`1970-01-01 00:00:00 | info | Executing a real trade 3 units of symbol ETH/BTC (1 BTC) at price 1.
+        expect(stripAnsi(loggerOutput))
+            .toBe(`1970-01-01 00:00:00 | info | Executing a real trade of 3 units of symbol ETH/BTC at price 1 (1 total).
 1970-01-01 00:00:00 | error | Failed to execute the trading sequence's before step: undefined
 1970-01-01 00:00:00 | error | Failed to execute the trading sequence's main action step: undefined
 1970-01-01 00:00:00 | error | Failed to execute the trading sequence's after step: undefined
@@ -701,7 +818,7 @@ describe("trader", () => {
 
         const signalExit: Signal = {
             ...signal,
-            entryType: EntryType.EXIT
+            entryType: EntryType.EXIT,
         }
 
         const tradingDataExit: TradingData = {
@@ -717,33 +834,37 @@ describe("trader", () => {
 
         const tradingSequenceNew = {
             ...tradingSequence,
-            before: new Promise((resolve) => {
-                jestFunctionBefore()
-                resolve(undefined)
-            }),
-            mainAction: new Promise((resolve) => {
-                jestFunctionMainAction()
-                resolve(undefined)
-            }),
-            after: new Promise((resolve) => {
-                jestFunctionAfter()
-                resolve(undefined)
-            }),
+            before: () =>
+                new Promise((resolve) => {
+                    jestFunctionBefore()
+                    resolve(undefined)
+                }),
+            mainAction: () =>
+                new Promise((resolve) => {
+                    jestFunctionMainAction()
+                    resolve(undefined)
+                }),
+            after: () =>
+                new Promise((resolve) => {
+                    jestFunctionAfter()
+                    resolve(undefined)
+                }),
         }
         expect(tradingMetaData.tradesOpen).toEqual([
             {
-                "positionType": "LONG",
-                "quantity": 3,
-                "strategyId": "strategyId",
-                "strategyName": "strategyName",
-                "symbol": "ETH/BTC",
-                "timeUpdated": new Date().getTimezoneOffset() * 60 * 1000,
-            }
+                positionType: "LONG",
+                quantity: 3,
+                strategyId: "strategyId",
+                strategyName: "strategyName",
+                symbol: "ETH/BTC",
+                timeUpdated: new Date().getTimezoneOffset() * 60 * 1000,
+            },
         ])
 
         await executeTradingTask(tradingDataExit, tradingSequenceNew)
 
-        expect(stripAnsi(loggerOutput)).toBe(`1970-01-01 00:00:00 | info | Executing a real trade 3 units of symbol ETH/BTC (1 BTC) at price 1.
+        expect(stripAnsi(loggerOutput))
+            .toBe(`1970-01-01 00:00:00 | info | Executing a real trade of 3 units of symbol ETH/BTC at price 1 (1 total).
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's before step.
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's main action step.
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's after step.
@@ -755,7 +876,7 @@ describe("trader", () => {
         expect(tradingMetaData.tradesOpen).toEqual([])
     })
 
-    it ("gets on signal log data", () => {
+    it("gets on signal log data", () => {
         const signal: Signal = {
             entryType: EntryType.ENTER,
             nickname: "nickname",
@@ -768,8 +889,9 @@ describe("trader", () => {
             userId: "userId",
         }
 
-        expect(getOnSignalLogData(signal))
-            .toBe("for strategy strategyName (strategyId) and symbol symbol")
+        expect(getOnSignalLogData(signal)).toBe(
+            "for strategy strategyId \"strategyName\" and symbol symbol"
+        )
     })
 
     it("gets trade open (filtered)", () => {
@@ -826,17 +948,12 @@ describe("trader", () => {
             },
         ]
 
-        expect(getTradeOpenFiltered(signal).length)
-            .toEqual(1)
-        expect(getTradeOpenFiltered(signalPositionTypeUnset).length)
-            .toEqual(2)
+        expect(getTradeOpenFiltered(signal).length).toEqual(1)
+        expect(getTradeOpenFiltered(signalPositionTypeUnset).length).toEqual(2)
 
-        expect(getTradeOpen(signal))
-            .toEqual(tradeOpenMatching)
-        expect(getTradeOpen(signalPositionTypeUnset))
-            .toEqual(undefined)
+        expect(getTradeOpen(signal)).toEqual(tradeOpenMatching)
+        expect(getTradeOpen(signalPositionTypeUnset)).toEqual(undefined)
     })
 
-    it("rounds step", () => expect(roundStep("10.987", "0.1"))
-        .toEqual(10.9))
+    it("rounds step", () => expect(roundStep("10.987", "0.1")).toEqual(10.9))
 })

@@ -7,22 +7,15 @@ export interface TradingData {
     strategy: Strategy
 }
 
-// export interface TradingDataEnter extends TradingData {
-//     quantity: number
-// }
-
-// export interface TradingDataExit extends TradingData {
-//     tradeOpen: TradeOpen
-// }
-
 export interface TradingMetaData {
     strategies: Record<string, Strategy>
     tradesOpen: TradeOpen[]
 }
 
 export interface TradingSequence {
-    after?: Promise<unknown>
-    before?: Promise<unknown>
-    mainAction: Promise<unknown>
+    after?: () => Promise<unknown>
+    before?: () => Promise<unknown>
+    mainAction: () => Promise<unknown>
     quantity: number
+    socketChannel: string
 }

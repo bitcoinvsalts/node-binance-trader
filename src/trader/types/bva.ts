@@ -160,10 +160,10 @@ export interface SignalJson {
     nickname: string
     pair: string
     price: string
-    score: string
+    score: string // A stringified number or "NA".
     stratid: string
     stratname: string
-    userid: string // A stringified number or "NA".
+    userid: string
 }
 
 /////

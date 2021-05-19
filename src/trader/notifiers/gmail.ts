@@ -29,5 +29,5 @@ async function notify(message: NotifierMessage): Promise<void> {
             text: message.content,
             html: message.contentHtml,
         })
-        .catch((reason) => logger.error(reason))
+        .catch((reason) => logger.error(`Failed to send mail: ${reason}`))
 }

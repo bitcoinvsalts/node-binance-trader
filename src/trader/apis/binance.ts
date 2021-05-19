@@ -19,22 +19,18 @@ if (process.env.NODE_ENV !== "test") {
     }
 }
 
-export function getMarketsBva(markets: ccxt.Dictionary<ccxt.Market>): ccxt.Dictionary<ccxt.Market> {
-    Object.keys(markets).forEach((key) => {
-        const keyNew = markets[key].id
-        markets[keyNew] = markets[key]
-        delete markets[key]
-    })
-    return markets
-}
-
-export function loadMarkets(isReload?: boolean): Promise<ccxt.Dictionary<ccxt.Market>> {
+export function fetchMarkets(): Promise<ccxt.Dictionary<ccxt.Market>> {
     return new Promise((resolve, reject) => {
         binanceClient
-            .loadMarkets(isReload)
-            .then((markets) => {
-                logger.info(`Loaded ${Object.keys(markets).length} markets.`)
-                resolve(getMarketsBva(markets))
+            .fetchMarkets()
+            .then((value) => {
+                logger.info(`Loaded ${Object.keys(value).length} markets.`)
+                resolve(
+                    Object.assign(
+                        {},
+                        ...value.map((market) => ({ [market.id]: market }))
+                    )
+                )
             })
             .catch((reason) => {
                 logger.error(`Failed to get markets: ${reason}`)

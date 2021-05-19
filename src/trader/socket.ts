@@ -29,7 +29,7 @@ export function connect(): void {
     socket.on("connect", () => logger.info("Trader connected."))
     socket.on("disconnect", () => logger.info("Trader disconnected."))
 
-    socket.on("error", (error: any) => logger.error(error))
+    socket.on("error", (error: any) => logger.error(`Received error from socket: ${error}`))
 
     socket.on("message", (message: string) => {
         logger.info(`Received a message: "${message}"`)
