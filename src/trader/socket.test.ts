@@ -1,6 +1,13 @@
 import BigNumber from "bignumber.js"
 
-import { EntryType, PositionType, Signal, SignalTradedJson, Strategy, TradingType } from "./types/bva"
+import {
+    EntryType,
+    PositionType,
+    Signal,
+    SignalTradedJson,
+    Strategy,
+    TradingType,
+} from "./types/bva"
 import { getSignalTradedJson } from "./socket"
 
 describe("socket", () => {
@@ -35,7 +42,8 @@ describe("socket", () => {
             trading_type: TradingType.virtual,
         }
 
-        expect(getSignalTradedJson(signal, strategy, quantity))
-            .toEqual(signalTradedJson)
+        expect(getSignalTradedJson(signal, strategy, quantity)).toEqual(
+            signalTradedJson
+        )
     })
 })

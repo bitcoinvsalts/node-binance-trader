@@ -23,8 +23,8 @@ import { format } from "winston"
 
 describe("logger", () => {
     it("should pass", () => {
-        const templateFunctions: any[] = [];
-        (format.printf as jest.Mock).mockImplementation((templateFn) => {
+        const templateFunctions: any[] = []
+        ;(format.printf as jest.Mock).mockImplementation((templateFn) => {
             templateFunctions.push(templateFn)
         })
         require("./logger")
@@ -34,7 +34,8 @@ describe("logger", () => {
             message: "haha",
         }
         const templateFunction1 = templateFunctions.shift()
-        expect(templateFunction1(info))
-            .toBe(`${info.timestamp} | ${info.level} | ${info.message}`)
+        expect(templateFunction1(info)).toBe(
+            `${info.timestamp} | ${info.level} | ${info.message}`
+        )
     })
 })

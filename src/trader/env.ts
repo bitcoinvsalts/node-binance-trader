@@ -11,13 +11,16 @@ export function testOnly(value: string): string | undefined {
 
 export function getDefault(): Readonly<any> {
     dotenv.config({
-        path: path.resolve(process.cwd(), process.env.NODE_ENV === "test" ? ".env.testing" : ".env")
+        path: path.resolve(
+            process.cwd(),
+            process.env.NODE_ENV === "test" ? ".env.testing" : ".env"
+        ),
     })
 
     return cleanEnv(process.env, {
-        BINANCE_API_KEY: str({devDefault: testOnly("BINANCE_API_KEY")}),
-        BINANCE_SECRET_KEY: str({devDefault: testOnly("BINANCE_SECRET_KEY")}),
-        BVA_API_KEY: str({devDefault: testOnly("BVA_API_KEY")}),
+        BINANCE_API_KEY: str({ devDefault: testOnly("BINANCE_API_KEY") }),
+        BINANCE_SECRET_KEY: str({ devDefault: testOnly("BINANCE_SECRET_KEY") }),
+        BVA_API_KEY: str({ devDefault: testOnly("BVA_API_KEY") }),
         IS_NOTIFIER_GMAIL_ENABLED: bool({ default: false }),
         IS_NOTIFIER_TELEGRAM_ENABLED: bool({ default: false }),
         IS_TRADE_MARGIN_ENABLED: bool({ default: true }),

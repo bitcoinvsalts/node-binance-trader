@@ -22,18 +22,22 @@ describe("bva", () => {
                     sell_price: null,
                     qty: "800",
                     stopped: null,
-                }
-            ]
-        };
+                },
+            ],
+        }
 
-        (axios.get as jest.Mock).mockImplementationOnce(() => Promise.resolve({ data: bvaCommand }))
-        await expect(getTradeOpenList()).resolves
-            .toEqual([new TradeOpen(bvaCommand.rows[0])])
+        ;(axios.get as jest.Mock).mockImplementationOnce(() =>
+            Promise.resolve({ data: bvaCommand })
+        )
+        await expect(getTradeOpenList()).resolves.toEqual([
+            new TradeOpen(bvaCommand.rows[0]),
+        ])
     })
 
     it("fails to get trade open list", async () => {
-        (axios.get as jest.Mock).mockImplementationOnce(() => Promise.reject("ERROR"))
-        await expect(getTradeOpenList()).rejects
-            .toEqual("ERROR")
+        (axios.get as jest.Mock).mockImplementationOnce(() =>
+            Promise.reject("ERROR")
+        )
+        await expect(getTradeOpenList()).rejects.toEqual("ERROR")
     })
 })

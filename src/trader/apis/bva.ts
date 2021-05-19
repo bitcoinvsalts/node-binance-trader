@@ -8,7 +8,9 @@ export async function getTradeOpenList(): Promise<TradeOpen[]> {
     return new Promise((resolve, reject) => {
         axios
             .get(
-                `https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=${env().BVA_API_KEY}`
+                `https://bitcoinvsaltcoins.com/api/useropentradedsignals?key=${
+                    env().BVA_API_KEY
+                }`
             )
             .then((response) => {
                 const bvaCommand: BvaCommand = response.data
@@ -16,8 +18,14 @@ export async function getTradeOpenList(): Promise<TradeOpen[]> {
                     (tradeOpenJson) => new TradeOpen(tradeOpenJson)
                 )
 
-                const tradeOpenSymbols = tradeOpens.map((tradeOpen) => tradeOpen.symbol).join(", ")
-                logger.info(`Fetched ${tradeOpens.length} open trades${tradeOpenSymbols && ": " + tradeOpenSymbols}.`)
+                const tradeOpenSymbols = tradeOpens
+                    .map((tradeOpen) => tradeOpen.symbol)
+                    .join(", ")
+                logger.info(
+                    `Fetched ${tradeOpens.length} open trades${
+                        tradeOpenSymbols && ": " + tradeOpenSymbols
+                    }.`
+                )
 
                 resolve(tradeOpens)
             })

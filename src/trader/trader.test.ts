@@ -745,7 +745,7 @@ describe("trader", () => {
                     resolve(undefined)
                 }),
             quantity: 3,
-            socketChannel: "socketChannel"
+            socketChannel: "socketChannel",
         }
 
         const spy = jest.spyOn(socket, "emitSignalTraded").mockImplementation()
@@ -758,12 +758,7 @@ describe("trader", () => {
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's main action step.
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's after step.
 `)
-        expect(spy).toHaveBeenCalledWith(
-            "socketChannel",
-            signal,
-            strategy,
-            3
-        )
+        expect(spy).toHaveBeenCalledWith("socketChannel", signal, strategy, 3)
         expect(jestFunctionBefore).toHaveBeenCalledTimes(1)
         expect(jestFunctionMainAction).toHaveBeenCalledTimes(1)
         expect(jestFunctionAfter).toHaveBeenCalledTimes(1)

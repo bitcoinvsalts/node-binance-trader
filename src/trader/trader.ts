@@ -277,27 +277,29 @@ export function getTradingSequence(
             switch (signal.positionType) {
                 // Enter long.
                 case PositionType.LONG: {
-                    const order = () => createMarketOrder(
-                        market.symbol,
-                        "buy",
-                        quantity,
-                        undefined,
-                        {
-                            ...(env().IS_TRADE_MARGIN_ENABLED &&
-                                market.margin && {
-                                type: "margin",
-                            }),
-                        }
-                    )
+                    const order = () =>
+                        createMarketOrder(
+                            market.symbol,
+                            "buy",
+                            quantity,
+                            undefined,
+                            {
+                                ...(env().IS_TRADE_MARGIN_ENABLED &&
+                                    market.margin && {
+                                    type: "margin",
+                                }),
+                            }
+                        )
 
                     tradingSequence = {
                         before:
                             env().IS_TRADE_MARGIN_ENABLED && market.margin
-                                ? () => marginBorrow(
-                                    market.quote,
-                                    quantity,
-                                    Date.now()
-                                )
+                                ? () =>
+                                    marginBorrow(
+                                        market.quote,
+                                        quantity,
+                                        Date.now()
+                                    )
                                 : undefined,
                         mainAction: order,
                         after: undefined,
@@ -308,22 +310,20 @@ export function getTradingSequence(
                 }
                 case PositionType.SHORT: {
                     // Enter short.
-                    const order = () => createMarketOrder(
-                        market.symbol,
-                        "sell",
-                        quantity,
-                        undefined,
-                        {
-                            type: "margin", // Short trades must be a margin trade unconditionally.
-                        }
-                    )
+                    const order = () =>
+                        createMarketOrder(
+                            market.symbol,
+                            "sell",
+                            quantity,
+                            undefined,
+                            {
+                                type: "margin", // Short trades must be a margin trade unconditionally.
+                            }
+                        )
 
                     tradingSequence = {
-                        before: () => marginBorrow(
-                            market.quote,
-                            quantity,
-                            Date.now()
-                        ),
+                        before: () =>
+                            marginBorrow(market.quote, quantity, Date.now()),
                         mainAction: order,
                         after: undefined,
                         quantity,
@@ -361,29 +361,31 @@ export function getTradingSequence(
             switch (tradeOpen.positionType) {
                 case PositionType.LONG: {
                     // Exit long.
-                    const order = () => createMarketOrder(
-                        market.symbol,
-                        "sell",
-                        quantity,
-                        undefined,
-                        {
-                            ...(env().IS_TRADE_MARGIN_ENABLED &&
-                                market.margin && {
-                                type: "margin",
-                            }),
-                        }
-                    )
+                    const order = () =>
+                        createMarketOrder(
+                            market.symbol,
+                            "sell",
+                            quantity,
+                            undefined,
+                            {
+                                ...(env().IS_TRADE_MARGIN_ENABLED &&
+                                    market.margin && {
+                                    type: "margin",
+                                }),
+                            }
+                        )
 
                     tradingSequence = {
                         before: undefined,
                         mainAction: order,
                         after:
                             env().IS_TRADE_MARGIN_ENABLED && market.margin
-                                ? () => marginRepay(
-                                    market.quote,
-                                    quantity,
-                                    Date.now()
-                                )
+                                ? () =>
+                                    marginRepay(
+                                        market.quote,
+                                        quantity,
+                                        Date.now()
+                                    )
                                 : undefined,
                         quantity,
                         socketChannel: "traded_sell_signal",
@@ -392,24 +394,22 @@ export function getTradingSequence(
                 }
                 case PositionType.SHORT: {
                     // Exit short.
-                    const order = () => createMarketOrder(
-                        market.symbol,
-                        "buy",
-                        quantity,
-                        undefined,
-                        {
-                            type: "margin", // Short trades must be a margin trade unconditionally.
-                        }
-                    )
+                    const order = () =>
+                        createMarketOrder(
+                            market.symbol,
+                            "buy",
+                            quantity,
+                            undefined,
+                            {
+                                type: "margin", // Short trades must be a margin trade unconditionally.
+                            }
+                        )
 
                     tradingSequence = {
                         before: undefined,
                         mainAction: order,
-                        after: () => marginRepay(
-                            market.quote,
-                            quantity,
-                            Date.now()
-                        ),
+                        after: () =>
+                            marginRepay(market.quote, quantity, Date.now()),
                         quantity,
                         socketChannel: "traded_buy_signal",
                     }
@@ -437,7 +437,9 @@ export function getTradingSequence(
     // Shall not be moved before the previous switch
     // so that paper trading gives the most realistic experience.
     if (strategy.tradingType === TradingType.virtual) {
-        logger.info("Clearing trade sequence functions due to the trade being virtual.")
+        logger.info(
+            "Clearing trade sequence functions due to the trade being virtual."
+        )
         tradingSequence = {
             ...tradingSequence,
             before: () => Promise.resolve(),
@@ -469,7 +471,8 @@ export async function executeTradingTask(
     )
 
     if (tradingSequence.before) {
-        await tradingSequence.before()
+        await tradingSequence
+            .before()
             .then(() => {
                 logger.info(
                     "Successfully executed the trading sequence's before step."
@@ -483,18 +486,14 @@ export async function executeTradingTask(
             })
     }
 
-    await tradingSequence.mainAction()
+    await tradingSequence
+        .mainAction()
         .then(() => {
             logger.info(
                 "Successfully executed the trading sequence's main action step."
             )
 
-            socket.emitSignalTraded(
-                socketChannel,
-                signal,
-                strategy,
-                quantity
-            )
+            socket.emitSignalTraded(socketChannel, signal, strategy, quantity)
 
             switch (signal.entryType) {
                 case EntryType.ENTER: {
@@ -538,7 +537,8 @@ export async function executeTradingTask(
         })
 
     if (tradingSequence.after) {
-        await tradingSequence.after()
+        await tradingSequence
+            .after()
             .then(() => {
                 logger.info(
                     "Successfully executed the trading sequence's after step."
