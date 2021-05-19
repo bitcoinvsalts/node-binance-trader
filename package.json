@@ -26,10 +26,10 @@
     ],
     "license": "ISC",
     "scripts": {
-        "backtest": "node ./src/backtest.js",
+        "backtest": "node ./src/server/backtest.js",
         "build": "tsc",
         "lint": "eslint --cache src",
-        "start": "node ./src/server.js",
+        "server": "node ./src/server/server.js",
         "test": "jest",
         "trader": "node ./dist/src/trader/trader.js"
     },
