@@ -94,7 +94,9 @@ export async function onBuySignal(signalJson: SignalJson): Promise<void> {
             break
     }
 
-    await exportFunctions.trade(signal)
+    await exportFunctions.trade(signal).catch((reason) => {
+        return Promise.reject(reason)
+    })
 }
 
 export async function onSellSignal(signalJson: SignalJson): Promise<void> {
@@ -126,14 +128,18 @@ export async function onSellSignal(signalJson: SignalJson): Promise<void> {
             break
     }
 
-    await exportFunctions.trade(signal)
+    await exportFunctions.trade(signal).catch((reason) => {
+        return Promise.reject(reason)
+    })
 }
 
 export async function onCloseTradedSignal(
     signalJson: SignalJson
 ): Promise<void> {
     const signal = new Signal(signalJson)
-    await exportFunctions.trade(signal)
+    await exportFunctions.trade(signal).catch((reason) => {
+        return Promise.reject(reason)
+    })
 }
 
 export function onStopTradedSignal(signalJson: SignalJson): boolean {
@@ -167,7 +173,11 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
         return Promise.reject(logMessage)
     }
 
-    const market = (await loadMarkets())[signal.symbol]
+    const market = (
+        await loadMarkets().catch((reason) => {
+            return Promise.reject(reason)
+        })
+    )[signal.symbol]
 
     if (!market) {
         const logMessage = `Skipping signal as there is no market data for symbol ${signal.symbol}.`
@@ -266,7 +276,11 @@ export function getTradingSequence(
                     tradingSequence = {
                         before:
                             env().IS_TRADE_MARGIN_ENABLED && market.margin
-                                ? marginBorrow(market.quote, quantity, Date.now()).catch((reason) => logger.error(reason))
+                                ? marginBorrow(
+                                    market.quote,
+                                    quantity,
+                                    Date.now()
+                                ).catch((reason) => logger.error(reason))
                                 : undefined,
                         mainAction: order,
                         after: undefined,
@@ -287,7 +301,11 @@ export function getTradingSequence(
                     ).catch((reason) => logger.error(reason))
 
                     tradingSequence = {
-                        before: marginBorrow(market.quote, quantity, Date.now()).catch((reason) => logger.error(reason)),
+                        before: marginBorrow(
+                            market.quote,
+                            quantity,
+                            Date.now()
+                        ).catch((reason) => logger.error(reason)),
                         mainAction: order,
                         after: undefined,
                         quantity,
@@ -342,7 +360,11 @@ export function getTradingSequence(
                         mainAction: order,
                         after:
                             env().IS_TRADE_MARGIN_ENABLED && market.margin
-                                ? marginRepay(market.quote, quantity, Date.now()).catch((reason) => logger.error(reason))
+                                ? marginRepay(
+                                    market.quote,
+                                    quantity,
+                                    Date.now()
+                                ).catch((reason) => logger.error(reason))
                                 : undefined,
                         quantity,
                     }
@@ -363,7 +385,11 @@ export function getTradingSequence(
                     tradingSequence = {
                         before: undefined,
                         mainAction: order,
-                        after: marginRepay(market.quote, quantity, Date.now()).catch((reason) => logger.error(reason)),
+                        after: marginRepay(
+                            market.quote,
+                            quantity,
+                            Date.now()
+                        ).catch((reason) => logger.error(reason)),
                         quantity,
                     }
                     break
@@ -395,7 +421,9 @@ export function getTradingSequence(
     if (tradingSequence) {
         return Promise.resolve(tradingSequence)
     } else {
-        return Promise.reject("It shouldn't be possible that no trading sequence could be found!")
+        return Promise.reject(
+            "It shouldn't be possible that no trading sequence could be found!"
+        )
     }
 }
 
@@ -463,10 +491,11 @@ export async function executeTradingTask(
                         return
                     }
 
-                    tradingMetaData.tradesOpen = tradingMetaData.tradesOpen.filter(
-                        (tradesOpenElement) =>
-                            tradesOpenElement !== tradeOpen
-                    )
+                    tradingMetaData.tradesOpen =
+                        tradingMetaData.tradesOpen.filter(
+                            (tradesOpenElement) =>
+                                tradesOpenElement !== tradeOpen
+                        )
 
                     break
                 }
@@ -499,15 +528,28 @@ export async function executeTradingTask(
 }
 
 export async function trade(signal: Signal): Promise<void> {
-    await notifyAll(getNotifierMessage(signal))
-
-    const tradingData = await checkTradingData(signal)
+    const tradingData = await checkTradingData(signal).catch((reason) => {
+        return Promise.reject(reason)
+    })
     if (!tradingData) return
 
-    const tradingSequence = await getTradingSequence(tradingData)
+    // Notify after signal check.
+    await notifyAll(getNotifierMessage(signal)).catch((reason) => {
+        return Promise.reject(reason)
+    })
+
+    const tradingSequence = await getTradingSequence(tradingData).catch(
+        (reason) => {
+            return Promise.reject(reason)
+        }
+    )
     if (!tradingSequence) return
 
-    await queue.add(() => executeTradingTask(tradingData, tradingSequence)) // TODO: Check if async-await is needed.
+    await queue
+        .add(() => executeTradingTask(tradingData, tradingSequence))
+        .catch((reason) => {
+            return Promise.reject(reason)
+        }) // TODO: Check if async-await is needed.
 }
 
 export function getOnSignalLogData(signal: Signal): string {
@@ -557,15 +599,19 @@ export function roundStep(qty: string, stepSize: string): number | string {
 async function run() {
     initializeNotifiers()
 
-    tradingMetaData.tradesOpen = await getTradeOpenList()
-    await loadMarkets(true)
+    tradingMetaData.tradesOpen = await getTradeOpenList().catch((reason) => {
+        return Promise.reject(reason)
+    })
+    await loadMarkets(true).catch((reason) => {
+        return Promise.reject(reason)
+    })
 
     socket.connect()
     startWebserver()
 }
 
 if (process.env.NODE_ENV !== "test") {
-    run().then(() => undefined)
+    run().catch(() => process.exit())
 }
 
 const exportFunctions = {

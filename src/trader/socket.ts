@@ -2,8 +2,20 @@ import io from "socket.io-client"
 
 import env from "./env"
 import logger from "../logger"
-import { onBuySignal, onCloseTradedSignal, onSellSignal, onStopTradedSignal, onUserPayload } from "./trader"
-import { Signal, SignalJson, SignalTradedJson, Strategy, StrategyJson } from "./types/bva"
+import {
+    onBuySignal,
+    onCloseTradedSignal,
+    onSellSignal,
+    onStopTradedSignal,
+    onUserPayload,
+} from "./trader"
+import {
+    Signal,
+    SignalJson,
+    SignalTradedJson,
+    Strategy,
+    StrategyJson,
+} from "./types/bva"
 
 let socket: SocketIOClient.Socket
 
@@ -30,31 +42,47 @@ export function connect(): void {
 
     socket.on("buy_signal", async (signalJson: SignalJson) => {
         logger.debug(`Received buy_signal: ${JSON.stringify(signalJson)}`)
-        await onBuySignal(signalJson)
+        await onBuySignal(signalJson).catch(() => {
+            return
+        })
     })
     socket.on("sell_signal", async (signalJson: SignalJson) => {
         logger.debug(`Received sell_signal: ${JSON.stringify(signalJson)}`)
-        await onSellSignal(signalJson)
+        await onSellSignal(signalJson).catch(() => {
+            return
+        })
     })
 
     socket.on("close_traded_signal", async (signalJson: SignalJson) => {
-        logger.debug(`Received close_traded_signal: ${JSON.stringify(signalJson)}`)
-        await onCloseTradedSignal(signalJson)
+        logger.debug(
+            `Received close_traded_signal: ${JSON.stringify(signalJson)}`
+        )
+        await onCloseTradedSignal(signalJson).catch(() => {
+            return
+        })
     })
     socket.on("stop_traded_signal", async (signalJson: SignalJson) => {
-        logger.debug(`Received stop_traded_signal: ${JSON.stringify(signalJson)}`)
+        logger.debug(
+            `Received stop_traded_signal: ${JSON.stringify(signalJson)}`
+        )
         onStopTradedSignal(signalJson)
     })
 }
 
-export function emitSignalTraded(channel: string, signal: Signal, strategy: Strategy, quantity: number): void {
-    socket.emit(
-        channel,
-        getSignalTradedJson(signal, strategy, quantity)
-    )
+export function emitSignalTraded(
+    channel: string,
+    signal: Signal,
+    strategy: Strategy,
+    quantity: number
+): void {
+    socket.emit(channel, getSignalTradedJson(signal, strategy, quantity))
 }
 
-export function getSignalTradedJson(signal: Signal, strategy: Strategy, quantity: number): SignalTradedJson {
+export function getSignalTradedJson(
+    signal: Signal,
+    strategy: Strategy,
+    quantity: number
+): SignalTradedJson {
     return new SignalTradedJson({
         bvaApiKey: env().BVA_API_KEY,
         quantity: quantity.toString(),

@@ -9,7 +9,9 @@ let telBot: TeleBot
 export default function (): Notifier {
     telBot = new TeleBot(env().NOTIFIER_TELEGRAM_API_KEY)
     telBot.on("/info", async (msg) => {
-        const tradeOpenList = await getTradeOpenList()
+        const tradeOpenList = await getTradeOpenList().catch((reason) => {
+            return Promise.reject(reason)
+        })
         return notify({
             content:
                 `Open Trades: ${tradeOpenList.length} - ${tradeOpenList
@@ -20,6 +22,8 @@ export default function (): Notifier {
     telBot.on("start", async () => {
         await notify({
             content: "Trader Bot started!",
+        }).catch((reason) => {
+            return Promise.reject(reason)
         })
     })
     telBot.start()
@@ -29,11 +33,8 @@ export default function (): Notifier {
     }
 }
 
-function notify(notifierMessage: NotifierMessage): Promise<void> {
-    if (!env().IS_NOTIFIER_TELEGRAM_ENABLED || !telBot)
-        return new Promise((resolve) => {
-            resolve()
-        })
+async function notify(notifierMessage: NotifierMessage): Promise<void> {
+    if (!env().IS_NOTIFIER_TELEGRAM_ENABLED || !telBot) return
 
     return new Promise((resolve, reject) => {
         try {
