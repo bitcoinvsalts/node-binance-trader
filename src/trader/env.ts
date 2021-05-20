@@ -1,7 +1,7 @@
 import path from "path"
 
 import dotenv from "dotenv"
-import { bool, cleanEnv, port, str } from "envalid"
+import { bool, cleanEnv, port, str, num } from "envalid"
 
 import * as packageJson from "../../package.json"
 
@@ -33,6 +33,13 @@ export function getDefault(): Readonly<any> {
             desc: "The port to trader webserver runs",
         }),
         VERSION: str({ default: packageJson.version }),
+
+        EXCLUDE_COINS: str({ default: "" }), // Comma delimited list of coins to exclude from trading (e.g. DOGE)
+        MARGIN_WALLET_ENABLED: bool({ default: true }), // Disable to prevent use of margin trading, this will also prevent short trades
+        WALLET_BUFFER: num({ default: 0.0 }), // Decimal fraction of the total balance of each wallet that should be reserved for slippage, spread, and bad short trades (especially when rebalancing)
+        BALANCE_MODEL: str({ default: "" }), // "", "fraction", "all", or "largest" - see consts in trader.js for explanation
+        BALANCE_MIN_TRADES: num({ default: 0 }), // The number of trades that should be allowed to run without rebalancing (only used with model 'all' or 'largest'), for the primary wallet only
+        VIRTUAL_WALLET: num({ default: 1 }), // The default balance for all virtual wallets
     })
 }
 
