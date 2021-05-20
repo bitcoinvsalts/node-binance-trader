@@ -15,6 +15,7 @@ The new features that I have added to the trader include:
     * **Fraction**: This will interpret the buy quantity (that you have configured in BVA) as a fraction of your total balance in Binance. E.g. if you say 0.1 it will use 10% of your balance.
     * **All**: This will use the maximum balance, then re-sell a small portion of every active trade in order to free up funds for the new trades. All active trades will have the same investment. E.g. 4 active trades will use 25% of your balance each, if a 5th trade opens then it will sell a portion from the previous 4 so that all 5 trades are using 20% of your balance.
     * **Largest**: This will use the maximum balance, then re-sell half of the largest trade. E.g. (assuming no minimum) 1 trade will use 100% of your balance, the 2nd trade will sell 50% of the first trade and use that, the 3rd trade will sell 50% of the first trade so now you have 1st @ 25%, 2nd @ 50%, 3rd @ 25% of your total balance. The difference between this and the "All" model is that it only re-sells from a single existing trade whenever a new one comes in, but it does mean that not all trade sizes are equal.
+  * **All** and **Largest** also have an option for minimum number of trades, this stops the first trade from using 100% of your balance. E.g. if you set this value to 4, the first trade will only use 25% of your balance.
 * **Disable Coins**
   * You can provide a comma delimited list of coins that you want to ignore trade signals for.
 * **Disable Margin**
@@ -23,6 +24,8 @@ The new features that I have added to the trader include:
   * If you do not have sufficient funds in your margin wallet, it will automatically try to make the trade from your spot wallet.
 * **Comments**
   * I've added extensive comments to the trader.js code to help newbies better understand it themselves.
+
+See the **[Quick start guide 🚀](./docs/GETTING-STARTED.md)** for instructions on configuring any of these options.
 
 ## Table of contents
 
