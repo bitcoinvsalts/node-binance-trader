@@ -1,7 +1,6 @@
 // TODO: Add MinMax-Check for amount / quantity in trade functions.
 // TODO: Fallback to spot trading, even if margin trading is allowed.
 
-import BigNumber from "bignumber.js"
 import PQueue from "p-queue"
 
 import logger from "../logger"
