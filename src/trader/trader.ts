@@ -267,9 +267,7 @@ export function getTradingSequence(
             quantity = Number(
                 roundStep(
                     strategy.tradeAmount.dividedBy(signal.price).toString(),
-                    market.limits.amount.min.toString()
-                    // TODO: For Binance use the LOT_SIZE filter's stepSize property.
-                    // It's currently simplified to minimum amount limit here.
+                    market.precision.amount
                 )
             )
 
@@ -322,7 +320,7 @@ export function getTradingSequence(
 
                     tradingSequence = {
                         before: () =>
-                            marginBorrow(market.quote, quantity, Date.now()),
+                            marginBorrow(market.base, quantity, Date.now()),
                         mainAction: order,
                         after: undefined,
                         quantity,
@@ -492,13 +490,18 @@ export async function executeTradingTask(
                 "Successfully executed the trading sequence's main action step."
             )
 
+            if (signal.positionType === undefined) {
+                logger.error(logDefaultPositionType)
+                return
+            }
+
             socket.emitSignalTraded(socketChannel, signal, strategy, quantity)
 
             switch (signal.entryType) {
                 case EntryType.ENTER: {
                     tradingMetaData.tradesOpen.push({
                         // Remember the trade as opened.
-                        positionType: PositionType.LONG,
+                        positionType: signal.positionType,
                         quantity: quantity,
                         strategyId: signal.strategyId,
                         strategyName: signal.strategyName,
@@ -614,13 +617,12 @@ export function getTradeOpenFiltered(signal: Signal): TradeOpen[] {
 
 // https://github.com/jaggedsoft/node-binance-api/blob/28e1162ccb62bc3fdfc311cdf8e8953c6e14f42c/node-binance-api.js#L2578
 // https://github.com/jaggedsoft/node-binance-api/blob/28e1162ccb62bc3fdfc311cdf8e8953c6e14f42c/LICENSE
-export function roundStep(qty: string, stepSize: string): number | string {
+export function roundStep(qty: string, precision: number): number | string {
     // Integers do not require rounding
     if (Number.isInteger(qty)) return qty
     const qtyString = parseFloat(qty).toFixed(16)
-    const desiredDecimals = Math.max(stepSize.indexOf("1") - 1, 0)
     const decimalIndex = qtyString.indexOf(".")
-    return parseFloat(qtyString.slice(0, decimalIndex + desiredDecimals + 1))
+    return parseFloat(qtyString.slice(0, decimalIndex + precision + 1))
 }
 
 async function run() {

@@ -950,5 +950,7 @@ describe("trader", () => {
         expect(getTradeOpen(signalPositionTypeUnset)).toEqual(undefined)
     })
 
-    it("rounds step", () => expect(roundStep("10.987", "0.1")).toEqual(10.9))
+    it("rounds step to 1 decimal place", () => expect(roundStep("10.987", 1)).toEqual(10.9))
+    it("rounds step to 2 decimal places", () => expect(roundStep("100.987", 2)).toEqual(100.98))
+    it("rounds step to 3 decimal places", () => expect(roundStep("9.987", 3)).toEqual(9.987))
 })
