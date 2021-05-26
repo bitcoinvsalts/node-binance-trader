@@ -19,18 +19,19 @@ if (process.env.NODE_ENV !== "test") {
     }
 }
 
-export function fetchMarkets(): Promise<ccxt.Dictionary<ccxt.Market>> {
+export function loadMarkets(isReload?: boolean): Promise<ccxt.Dictionary<ccxt.Market>> {
     return new Promise((resolve, reject) => {
         binanceClient
-            .fetchMarkets()
+            .loadMarkets(isReload)
             .then((value) => {
-                logger.info(`Loaded ${Object.keys(value).length} markets.`)
-                resolve(
-                    Object.assign(
-                        {},
-                        ...value.map((market) => ({ [market.id]: market }))
-                    )
-                )
+                const markets = JSON.parse(JSON.stringify(value)) // Clone object.
+                Object.keys(markets).forEach((key) => { // Work around the missing slash ("/") in BVA's signal data.
+                    const keyNew = markets[key].id
+                    markets[keyNew] = markets[key]
+                    delete markets[key]
+                })
+                logger.info(`Loaded ${Object.keys(markets).length} markets.`)
+                resolve(markets)
             })
             .catch((reason) => {
                 logger.error(`Failed to get markets: ${reason}`)

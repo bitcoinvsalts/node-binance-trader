@@ -6,7 +6,7 @@ import PQueue from "p-queue"
 import logger from "../logger"
 import {
     createMarketOrder,
-    fetchMarkets,
+    loadMarkets,
     marginBorrow,
     marginRepay,
 } from "./apis/binance"
@@ -177,7 +177,7 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
     }
 
     const market = (
-        await fetchMarkets().catch((reason) => {
+        await loadMarkets().catch((reason) => {
             return Promise.reject(reason)
         })
     )[signal.symbol]
@@ -631,7 +631,7 @@ async function run() {
     tradingMetaData.tradesOpen = await getTradeOpenList().catch((reason) => {
         return Promise.reject(reason)
     })
-    await fetchMarkets().catch((reason) => {
+    await loadMarkets(true).catch((reason) => {
         return Promise.reject(reason)
     })
 
