@@ -138,6 +138,8 @@ export async function onCloseTradedSignal(
 ): Promise<void> {
     const signal = new Signal(signalJson)
 
+    logger.info(`Received a close traded signal ${getOnSignalLogData(signal)}.`)
+
     signal.entryType = EntryType.EXIT
 
     await exportFunctions.trade(signal).catch((reason) => {
@@ -148,7 +150,7 @@ export async function onCloseTradedSignal(
 export function onStopTradedSignal(signalJson: SignalJson): boolean {
     const signal = new Signal(signalJson)
 
-    logger.info(`Received an stop trade signal ${getOnSignalLogData(signal)}.`)
+    logger.info(`Received an stop traded signal ${getOnSignalLogData(signal)}.`)
 
     const tradeOpen = getTradeOpen(signal)
 
@@ -200,8 +202,6 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
         return Promise.reject(logMessage)
     }
 
-    let positionType = signal.positionType
-
     if (signal.entryType === EntryType.EXIT) {
         const tradeOpen = getTradeOpen(signal)
 
@@ -210,10 +210,11 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
             return Promise.reject(logTradeOpenNone)
         }
 
-        positionType = tradeOpen.positionType
+        logger.debug(`Getting position type from open tade: ${tradeOpen.positionType}.`)
+        signal.positionType = tradeOpen.positionType
     }
 
-    switch (positionType) {
+    switch (signal.positionType) {
         case PositionType.LONG: {
             if (!market.spot) {
                 const logMessage = `Failed to trade as spot trading is unavailable for a long position on symbol ${market.symbol}.`
