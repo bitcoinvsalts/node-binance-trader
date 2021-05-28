@@ -31,7 +31,7 @@
         "lint": "eslint --cache src",
         "server": "node ./src/server/server.js",
         "test": "jest",
-        "trader": "node ./dist/src/trader/trader.js"
+        "trader": "ts-node ./src/trader/trader.ts"
     },
     "dependencies": {
         "axios": "0.21.1",
