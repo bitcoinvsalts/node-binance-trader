@@ -10,12 +10,12 @@ import {
     onUserPayload,
 } from "./trader"
 import {
-    Signal,
     SignalJson,
     SignalTradedJson,
-    Strategy,
     StrategyJson,
+    TradingType,
 } from "./types/bva"
+import BigNumber from "bignumber.js"
 
 let socket: SocketIOClient.Socket
 
@@ -39,7 +39,9 @@ export function connect(): void {
 
     socket.on("user_payload", async (strategies: StrategyJson[]) => {
         logger.debug(`Received user_payload: ${JSON.stringify(strategies)}`)
-        onUserPayload(strategies)
+        await onUserPayload(strategies).catch(() => {
+            return
+        })
     })
 
     socket.on("buy_signal", async (signalJson: SignalJson) => {
@@ -73,25 +75,29 @@ export function connect(): void {
 
 export function emitSignalTraded(
     channel: string,
-    signal: Signal,
-    strategy: Strategy,
-    quantity: number
+    symbol: string,
+    strategyId: string,
+    strategyName: string,
+    quantity: BigNumber,
+    tradingType: TradingType
 ): void {
-    socket.emit(channel, getSignalTradedJson(signal, strategy, quantity))
+    socket.emit(channel, getSignalTradedJson(symbol, strategyId, strategyName, quantity, tradingType))
 }
 
 export function getSignalTradedJson(
-    signal: Signal,
-    strategy: Strategy,
-    quantity: number
+    symbol: string,
+    strategyId: string,
+    strategyName: string,
+    quantity: BigNumber,
+    tradingType: TradingType
 ): SignalTradedJson {
     return new SignalTradedJson({
         bvaApiKey: env().BVA_API_KEY,
         quantity: quantity.toString(),
-        strategyId: signal.strategyId,
-        strategyName: signal.strategyName,
-        symbol: signal.symbol,
-        tradingType: strategy.tradingType,
+        strategyId: strategyId,
+        strategyName: strategyName,
+        symbol: symbol,
+        tradingType: tradingType,
     })
 }
 
