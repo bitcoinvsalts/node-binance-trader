@@ -1,10 +1,11 @@
 import BigNumber from "bignumber.js"
+import { WalletType } from "./trader"
 
 /////
 
 export enum EntryType {
-    ENTER,
-    EXIT,
+    ENTER, // New/open signal from BVA Hub
+    EXIT, // Stop signal from BVA Hub
 }
 
 export enum PositionType {
@@ -80,31 +81,39 @@ export interface TradeOpenJson {
 
 export class TradeOpen {
     id?: string
-    isStopped?: boolean
+    isStopped: boolean
     positionType: PositionType
+    tradingType?: TradingType // Comes from the strategy
     priceBuy?: BigNumber
     priceSell?: BigNumber
-    quantity: number
+    quantity: BigNumber
+    cost?: BigNumber // Comes from the strategy or is calculated
+    borrow?: BigNumber // This doesn't come from BVA, needs to be derived from trader logic
+    wallet?: WalletType // This doesn't come from BVA, needs to be derived from trader logic
     strategyId: string
     strategyName: string
     symbol: string
     timeBuy?: number
     timeSell?: number
     timeUpdated: number
+    executed: boolean
 
     constructor(tradeOpenJson: TradeOpenJson) {
+        this.id = tradeOpenJson.id
+        this.isStopped = tradeOpenJson.stopped != null && tradeOpenJson.stopped
         this.positionType = tradeOpenJson.type as PositionType
         this.priceBuy = new BigNumber(tradeOpenJson.buy_price)
         this.priceSell = tradeOpenJson.sell_price
             ? new BigNumber(tradeOpenJson.sell_price)
             : undefined
-        this.quantity = Number(tradeOpenJson.qty)
+        this.quantity = new BigNumber(tradeOpenJson.qty)
         this.strategyId = tradeOpenJson.stratid
         this.strategyName = tradeOpenJson.stratname
         this.symbol = tradeOpenJson.pair
         this.timeBuy = Number(tradeOpenJson.buy_time)
         this.timeSell = Number(tradeOpenJson.sell_time)
         this.timeUpdated = Number(tradeOpenJson.updated_time)
+        this.executed = true
     }
 }
 
@@ -134,7 +143,7 @@ export class Signal {
     ) {
         this.entryType = signalJson.new ? EntryType.ENTER : EntryType.EXIT
         this.nickname = signalJson.nickname
-        this.positionType = positionType
+        this.positionType = positionType // Will typically be null initially, then set once the signal is decoded
         this.price = new BigNumber(signalJson.price)
         this.score = signalJson.score
         this.strategyId = signalJson.stratid
