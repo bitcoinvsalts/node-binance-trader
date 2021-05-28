@@ -27,7 +27,7 @@ export interface Loan {
     interest: number
 }
 
-// Gets all of the supported 
+// Gets all of the supported coin pairs (symbols) and associated flags and limits
 export function loadMarkets(isReload?: boolean): Promise<ccxt.Dictionary<ccxt.Market>> {
     return new Promise((resolve, reject) => {
         binanceClient

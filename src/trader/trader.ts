@@ -451,6 +451,8 @@ export async function onSellSignal(signalJson: SignalJson) {
 export async function onCloseTradedSignal(signalJson: SignalJson) {
     const signal = new Signal(signalJson)
 
+    logger.info(`Received a close traded signal ${getOnSignalLogData(signal)}.`)
+
     signal.entryType = EntryType.EXIT
 
     await exportFunctions.trade(signal).catch((reason) => {
@@ -526,8 +528,6 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
         return Promise.reject(logMessage)
     }
 
-    let positionType = signal.positionType
-
     if (signal.entryType === EntryType.EXIT) {
         // Find the previous open trade
         const tradeOpen = getTradeOpen(signal)
@@ -538,11 +538,12 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
             return Promise.reject(logTradeOpenNone)
         }
 
-        positionType = tradeOpen.positionType
+        logger.debug(`Getting position type from open tade: ${tradeOpen.positionType}.`)
+        signal.positionType = tradeOpen.positionType
     }
 
     // Check if this type of trade can be executed
-    switch (positionType) {
+    switch (signal.positionType) {
         case PositionType.LONG: {
             if (!market.spot) {
                 // I don't think this would ever happen              
@@ -551,7 +552,7 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
                 return Promise.reject(logMessage)
             }
 
-            if (signal.entryType === EntryType.ENTER && env().MAX_LONG_TRADES && getOpenTradeCount(positionType, strategy.tradingType) >= env().MAX_LONG_TRADES) {
+            if (signal.entryType === EntryType.ENTER && env().MAX_LONG_TRADES && getOpenTradeCount(signal.positionType, strategy.tradingType) >= env().MAX_LONG_TRADES) {
                 const logMessage =
                     "Skipping signal as maximum number of short trades has been reached."
                 logger.error(logMessage)
@@ -577,7 +578,7 @@ export async function checkTradingData(signal: Signal): Promise<TradingData> {
                     return Promise.reject(logMessage)
                 }
 
-                if (env().MAX_SHORT_TRADES && getOpenTradeCount(positionType, strategy.tradingType) >= env().MAX_SHORT_TRADES) {
+                if (env().MAX_SHORT_TRADES && getOpenTradeCount(signal.positionType, strategy.tradingType) >= env().MAX_SHORT_TRADES) {
                     const logMessage =
                         "Skipping signal as maximum number of short trades has been reached."
                     logger.error(logMessage)

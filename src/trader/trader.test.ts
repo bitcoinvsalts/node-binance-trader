@@ -308,7 +308,7 @@ describe("trader", () => {
         tradingMetaData.strategies.strategyId.isActive = true
 
         const spy = jest
-            .spyOn(binance, "fetchMarkets")
+            .spyOn(binance, "loadMarkets")
             .mockImplementation(() => Promise.resolve({}))
 
         await trade(signal)
