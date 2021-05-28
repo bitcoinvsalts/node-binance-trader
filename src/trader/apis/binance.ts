@@ -1,11 +1,14 @@
-import ccxt from "ccxt"
+import ccxt, { Dictionary } from "ccxt"
 
 import env from "../env"
 import logger from "../../logger"
+import BigNumber from "bignumber.js"
+import { WalletType } from "../types/trader"
 
 const logBinanceUndefined = "Binance client is undefined!"
 
 let binanceClient: ccxt.binance
+const sandbox = process.env.NODE_ENV === "staging"
 
 if (process.env.NODE_ENV !== "test") {
     binanceClient = new ccxt.binance({
@@ -14,23 +17,30 @@ if (process.env.NODE_ENV !== "test") {
         secret: env().BINANCE_SECRET_KEY,
     })
 
-    if (process.env.NODE_ENV === "staging") {
+    if (sandbox) {
         binanceClient.setSandboxMode(true)
     }
 }
 
-export function fetchMarkets(): Promise<ccxt.Dictionary<ccxt.Market>> {
+export interface Loan {
+    borrowed: number
+    interest: number
+}
+
+// Gets all of the supported 
+export function loadMarkets(isReload?: boolean): Promise<ccxt.Dictionary<ccxt.Market>> {
     return new Promise((resolve, reject) => {
         binanceClient
-            .fetchMarkets()
+            .loadMarkets(isReload)
             .then((value) => {
-                logger.info(`Loaded ${Object.keys(value).length} markets.`)
-                resolve(
-                    Object.assign(
-                        {},
-                        ...value.map((market) => ({ [market.id]: market }))
-                    )
-                )
+                const markets = JSON.parse(JSON.stringify(value)) // Clone object.
+                Object.keys(markets).forEach((key) => { // Work around the missing slash ("/") in BVA's signal data.
+                    const keyNew = markets[key].id
+                    markets[keyNew] = markets[key]
+                    delete markets[key]
+                })
+                logger.info(`Loaded ${Object.keys(markets).length} markets.`)
+                resolve(markets)
             })
             .catch((reason) => {
                 logger.error(`Failed to get markets: ${reason}`)
@@ -39,20 +49,73 @@ export function fetchMarkets(): Promise<ccxt.Dictionary<ccxt.Market>> {
     })
 }
 
+// Gets the current balances for a given wallet type 'margin' or 'spot'
+export function fetchBalance(type: WalletType): Promise<ccxt.Balances> {
+    // Hack, as you can't look up margin balances on testnet (NotSupported error), but this is only for testing
+    if (sandbox) type = WalletType.SPOT
+
+    return new Promise((resolve, reject) => {
+        binanceClient
+            .fetchBalance({
+                type: type,
+                //timestamp: Date.now(),
+                //recvWindow: 60000
+            })
+            .then((value) => {
+                logger.info(`Loaded ${Object.keys(value).length} ${type} balances.`)
+                resolve(value)
+            })
+            .catch((reason) => {
+                logger.error(`Failed to get ${type} balance: ${reason}`)
+                reject(reason)
+            })
+    })
+}
+
+// Takes the output from fetchBalance(MARGIN) and extracts the borrowed and interest values for each asset
+export function getMarginLoans(marginBalance: ccxt.Balances): Dictionary<Loan> {
+    if (sandbox) {
+        // Hack, as you can't look up margin balances on testnet (NotSupported error), but this is only for testing
+        const fake: Dictionary<Loan> = {}
+        for (let asset of Object.keys(marginBalance)) {
+            if (marginBalance[asset] instanceof Object && 'free' in marginBalance[asset]) {
+                fake[asset] = {
+                    borrowed: 0.0,
+                    interest: 0.0
+                }
+            }
+        }
+        return fake
+    } else {
+        if (!('userAssets' in marginBalance.info)) {
+            logger.error("Invalid margin balances, cannot extract loans.")
+        }
+
+        // Extract the loans from the secret property, and remap to a dictionary of assets
+        return marginBalance.info.userAssets.reduce((output: Dictionary<Loan>, asset: {asset: string, borrowed: string, interest: string}) => {
+            output[asset.asset] = { // Use asset as the key
+                borrowed: parseFloat(asset.borrowed),
+                interest: parseFloat(asset.interest)
+            }
+            return output
+        }, {})
+    }
+}
+
 export async function createMarketOrder(
     symbol: string,
     side: "buy" | "sell",
-    amount: number,
-    price?: number,
+    amount: BigNumber,
+    price?: BigNumber,
     params?: ccxt.Params
 ): Promise<ccxt.Order> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
-    return binanceClient.createMarketOrder(symbol, side, amount, price, params)
+    return binanceClient.createMarketOrder(symbol, side, amount.toNumber(), price?.toNumber(), params)
 }
 
 export async function marginBorrow(
     asset: string,
-    amount: number,
+    amount: BigNumber,
     timestamp: number
 ): Promise<ccxt.Order> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
@@ -66,7 +129,7 @@ export async function marginBorrow(
 
 export async function marginRepay(
     asset: string,
-    amount: number,
+    amount: BigNumber,
     timestamp: number
 ): Promise<ccxt.Order> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
