@@ -249,7 +249,7 @@ describe("trader", () => {
             positionType: PositionType.LONG,
             priceBuy: new BigNumber(1),
             priceSell: new BigNumber(2),
-            quantity: 10,
+            quantity: new BigNumber(10),
             strategyId: "stratid",
             strategyName: "stratname",
             symbol: "pair",
@@ -950,5 +950,7 @@ describe("trader", () => {
         expect(getTradeOpen(signalPositionTypeUnset)).toEqual(undefined)
     })
 
-    it("rounds step", () => expect(roundStep("10.987", "0.1")).toEqual(10.9))
+    it("rounds step to 1 decimal place", () => expect(roundStep(new BigNumber("10.987"), 1)).toEqual(10.9))
+    it("rounds step to 2 decimal places", () => expect(roundStep(new BigNumber("100.987"), 2)).toEqual(100.98))
+    it("rounds step to 3 decimal places", () => expect(roundStep(new BigNumber("9.987"), 3)).toEqual(9.987))
 })
