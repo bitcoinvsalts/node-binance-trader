@@ -28,6 +28,7 @@ const logger = winston.createLogger({
         }),
         new winston.transports.Stream({ stream }),
     ],
+    level: process.env.LOG_LEVEL || "info"
 })
 
 export default logger
