@@ -13,6 +13,7 @@ export async function getTradeOpenList(): Promise<TradeOpen[]> {
                 }`
             )
             .then((response) => {
+                logger.debug(`Fetched trades: ${JSON.stringify(response.data)}`)
                 const bvaCommand: BvaCommand = response.data
                 const tradeOpens = bvaCommand.rows.map(
                     (tradeOpenJson) => new TradeOpen(tradeOpenJson)

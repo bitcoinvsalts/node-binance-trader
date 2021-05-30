@@ -33,6 +33,7 @@ export function loadMarkets(isReload?: boolean): Promise<ccxt.Dictionary<ccxt.Ma
         binanceClient
             .loadMarkets(isReload)
             .then((value) => {
+                logger.debug(`Loaded markets: ${JSON.stringify(value)}`)
                 const markets = JSON.parse(JSON.stringify(value)) // Clone object.
                 Object.keys(markets).forEach((key) => { // Work around the missing slash ("/") in BVA's signal data.
                     const keyNew = markets[key].id
@@ -62,6 +63,7 @@ export function fetchBalance(type: WalletType): Promise<ccxt.Balances> {
                 //recvWindow: 60000
             })
             .then((value) => {
+                logger.debug(`Fetched balance: ${JSON.stringify(value)}`)
                 logger.info(`Loaded ${Object.keys(value).length} ${type} balances.`)
                 resolve(value)
             })
