@@ -89,13 +89,13 @@ export async function onUserPayload(strategies: StrategyJson[]) {
     if (Object.keys(tradingMetaData.strategies).length == 0) {
         tradingMetaData.tradesOpen = await getTradeOpenList().catch((reason) => {
             // This will prevent the strategies from being saved too, so this will prevent the trader from functioning until the problem is resolved
-            logger.debug(reason)
+            logger.debug("onUserPayload->getTradeOpenList: " + reason)
             logger.error("Trader is not operational, please restart.")
             return Promise.reject(reason)
         })        
     } else {
         await checkStrategyChanges(newStrategies).catch((reason) => {
-            logger.debug(reason)
+            logger.debug("onUserPayload->checkStrategyChanges: " + reason)
             logger.error("Trader is not operational, please restart.")
             return Promise.reject(reason)
         })  
@@ -109,7 +109,7 @@ export async function onUserPayload(strategies: StrategyJson[]) {
 export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise<TradeOpen[]> {
     // Retrieve the existing open trades from the BVA hub
     let prevTrades = await getTradeOpenList().catch((reason) => {
-        logger.debug(reason)
+        logger.debug("loadPreviousOpenTrades->getTradeOpenList: " + reason)
         return Promise.reject(reason)
     })
 
@@ -400,7 +400,7 @@ export async function onBuySignal(signalJson: SignalJson) {
 
     // Process the trade signal
     await exportFunctions.trade(signal).catch((reason) => {
-        logger.debug(reason)
+        logger.debug("onBuySignal->trade: " + reason)
         return Promise.reject(reason)
     })
 }
@@ -441,7 +441,7 @@ export async function onSellSignal(signalJson: SignalJson) {
 
     // Process the trade signal
     await exportFunctions.trade(signal).catch((reason) => {
-        logger.debug(reason)
+        logger.debug("onSellSignal->trade: " + reason)
         return Promise.reject(reason)
     })
 }
@@ -456,7 +456,7 @@ export async function onCloseTradedSignal(signalJson: SignalJson) {
     signal.entryType = EntryType.EXIT
 
     await exportFunctions.trade(signal).catch((reason) => {
-        logger.debug(reason)
+        logger.debug("onCloseTradedSignal->trade: " + reason)
         return Promise.reject(reason)
     })
 }
@@ -737,11 +737,7 @@ export async function createVirtualOrder(
     action: ActionType
 ) {
     const market = tradingMetaData.markets[tradeOpen.symbol]
-
-    // Initialise the virtual balances if not already used for these coins
-    if (virtualBalances[tradeOpen.wallet!][market.base] == undefined) virtualBalances[tradeOpen.wallet!][market.base] = new BigNumber(0) // Start with zero base (e.g. ETH for ETHBTC)
-    if (virtualBalances[tradeOpen.wallet!][market.quote] == undefined) virtualBalances[tradeOpen.wallet!][market.quote] = new BigNumber(env().VIRTUAL_WALLET_FUNDS) // Start with the default balance for quote (e.g. BTC for ETHBTC)
-
+    
     // Update virtual balances with buy and sell quantities
     switch (action) {
         case ActionType.BUY:
@@ -754,9 +750,7 @@ export async function createVirtualOrder(
             break
     }
 
-    logger.info(
-        `After ${action}, current virtual balances are now ${virtualBalances[tradeOpen.wallet!][market.base]} ${market.base} and ${virtualBalances[tradeOpen.wallet!][market.quote]} ${market.quote}.`
-    )
+    logger.info(`After ${action}, current virtual balances are now ${virtualBalances[tradeOpen.wallet!][market.base]} ${market.base} and ${virtualBalances[tradeOpen.wallet!][market.quote]} ${market.quote}.`)
 }
 
 // Simulates borrowing on the virtual balances
@@ -764,9 +758,7 @@ export async function virtualBorrow(quantity: BigNumber, asset: string) {
     if (quantity.isGreaterThan(0)) {
         virtualBalances[WalletType.MARGIN][asset] = virtualBalances[WalletType.MARGIN][asset].plus(quantity)
 
-        logger.info(
-            `After borrow, current virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`
-        )
+        logger.info(`After borrow, current virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
     }
 }
 
@@ -775,9 +767,7 @@ export async function virtualRepay(quantity: BigNumber, asset: string) {
     if (quantity.isGreaterThan(0)) {
         virtualBalances[WalletType.MARGIN][asset] = virtualBalances[WalletType.MARGIN][asset].minus(quantity)
 
-        logger.info(
-            `After repay, current virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`
-        )
+        logger.info(`After repay, current virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
     }
 }
 
@@ -861,7 +851,7 @@ export async function scheduleTrade(tradeOpen: TradeOpen, entryType: EntryType, 
     // Create the borrow / buy / sell sequence for the trade queue
     const tradingSequence = await getTradingSequence(tradeOpen!, entryType).catch(
         (reason) => {
-            logger.debug(reason)
+            logger.debug("scheduleTrade->getTradingSequence: " + reason)
             return Promise.reject(reason)
         }
     )
@@ -869,7 +859,7 @@ export async function scheduleTrade(tradeOpen: TradeOpen, entryType: EntryType, 
     await queue
         .add(() => executeTradingTask(tradeOpen!, tradingSequence, signal))
         .catch((reason) => {
-            logger.debug(reason)
+            logger.debug("scheduleTrade->executeTradingTask: " + reason)
             return Promise.reject(reason)
         }) // TODO: Check if async-await is needed.
 }
@@ -878,14 +868,13 @@ export async function scheduleTrade(tradeOpen: TradeOpen, entryType: EntryType, 
 export async function trade(signal: Signal) {
     // Check that this is a signal we want to process
     const tradingData = await checkTradingData(signal).catch((reason) => {
-        logger.debug(reason)
+        logger.debug("trade->checkTradingData: " + reason)
         return Promise.reject(reason)
     })
-    if (!tradingData) return
 
     // Notify after signal check.
     await notifyAll(getNotifierMessage(signal)).catch((reason) => {
-        logger.debug(reason)
+        logger.debug("trade->notifyAll: " + reason)
         return Promise.reject(reason)
     })
 
@@ -895,7 +884,7 @@ export async function trade(signal: Signal) {
         // Calculate the cost and quantity for the new trade
         tradeOpen = await createTradeOpen(tradingData).catch(
             (reason) => {
-                logger.debug(reason)
+                logger.debug("trade->createTradeOpen: " + reason)
                 return Promise.reject(reason)
             }
         )
@@ -911,7 +900,7 @@ export async function trade(signal: Signal) {
     // Create the before / main action / after tasks and add to the trading queue
     await scheduleTrade(tradeOpen!, tradingData.signal.entryType, tradingData.signal).catch(
         (reason) => {
-            logger.debug(reason)
+            logger.debug("trade->scheduleTrade: " + reason)
             return Promise.reject(reason)
         }
     )
@@ -969,7 +958,7 @@ export async function rebalanceTrade(tradeOpen: TradeOpen, cost: BigNumber, wall
     // Simulate closing the trade, but only for the difference in quantity
     await scheduleTrade(tmpTrade, EntryType.EXIT).catch(
         (reason) => {
-            logger.debug(reason)
+            logger.debug("rebalanceTrade->scheduleTrade: " + reason)
             return Promise.reject(reason)
         }
     )
@@ -991,7 +980,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
     // Initialise all wallets
     const wallets: Dictionary<WalletData> = {}
     Object.values(WalletType).forEach(w => wallets[w] = new WalletData(w))
-    const primary = WalletType[env().PRIMARY_WALLET.toLowerCase() as keyof typeof WalletType] // Primary wallet for reference balance
+    const primary = env().PRIMARY_WALLET.toLowerCase() as WalletType // Primary wallet for reference balance
     let preferred: WalletType[] = [WalletType.MARGIN] // Available wallets for this trade, sorted by priority, default to margin
 
     // Check which wallets can be used for this trade, SHORT will always be margin
@@ -1004,9 +993,18 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
         Object.values(WalletType).filter(w => w != primary && tradingData.market[w]).forEach(w => preferred.push(w))
     }
 
-    logger.info(
-        `Identified ${preferred.length} potential wallet(s) to use for this trade, ${preferred[0]} is preferred.`
-    )
+    // Remove margin if disabled
+    if (!env().IS_TRADE_MARGIN_ENABLED) {
+        preferred = preferred.filter(w => w != WalletType.MARGIN)
+    }
+
+    logger.info(`Identified ${preferred.length} potential wallet(s) to use for this trade, ${preferred[0]} is preferred.`)
+
+    if (!preferred.length) {
+        const logMessage = `Failed to trade as no potential wallets for this ${tradingData.signal.positionType} trade.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
+    }
 
     // Get the available balances each potential wallet
     for (let wallet of Object.values(wallets)) {
@@ -1017,13 +1015,16 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
             if (wallet.type == primary || preferred.includes(wallet.type)) {
                 // Get the current balance from Binance for the base coin (e.g. BTC)
                 wallet.free = new BigNumber((await fetchBalance(wallet.type).catch((reason) => {
-                    logger.debug(reason)
+                    logger.debug("createTradeOpen->fetchBalance: " + reason)
                     return Promise.reject(reason)
                 }))[tradingData.market.quote].free) // We're just going to use 'free', but I'm not sure whether 'total' is better
             }
         } else {
-            // TODO: Track Virtual Balances
-            wallet.free = new BigNumber(0)
+            // Initialise the virtual balances if not already used for these coins
+            if (virtualBalances[wallet.type][tradingData.market.base] == undefined) virtualBalances[wallet.type][tradingData.market.base] = new BigNumber(0) // Start with zero base (e.g. ETH for ETHBTC)
+            if (virtualBalances[wallet.type][tradingData.market.quote] == undefined) virtualBalances[wallet.type][tradingData.market.quote] = new BigNumber(env().VIRTUAL_WALLET_FUNDS) // Start with the default balance for quote (e.g. BTC for ETHBTC)
+
+            wallet.free = virtualBalances[wallet.type][tradingData.market.quote]
         }
     }
 
@@ -1067,6 +1068,9 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
         }
     }
 
+    // Calculate wallet totals
+    Object.values(wallets).forEach(wallet => wallet.total = wallet.free.plus(wallet.locked))
+
     // See if the cost should be converted to a fraction of the balance
     if (env().IS_BUY_QTY_FRACTION) {
         // Check that the quantity can actually be used as a fraction
@@ -1078,6 +1082,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
 
         // Calculate the fraction of the total balance
         cost = wallets[primary].total.multipliedBy(cost)
+        logger.info(`${primary} wallet is ${wallets[primary].total} so target trade cost will be ${cost} ${tradingData.market.quote}`)
     }
 
     // Check for the minimum trade cost supported by the 
@@ -1091,7 +1096,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
 
     // Calculate the cost for LONG trades based on the configured funding model
     if (tradingData.signal.positionType == PositionType.LONG) {
-        const model = LongFundsType[env().TRADE_LONG_FUNDS.toLowerCase() as keyof typeof LongFundsType]
+        const model = env().TRADE_LONG_FUNDS.toLowerCase() as LongFundsType
         if (model == LongFundsType.BORROW_ALL && tradingData.market.margin) {
             // Special case for always borrowing for LONG trades
             borrow = cost
@@ -1198,7 +1203,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
 
     // Calculate the purchase quantity based on the new cost
     quantity = getLegalQty(cost.dividedBy(tradingData.signal.price), tradingData.market, tradingData.signal.price)
-    // Recalculate the cost because the quantity may have been rounded up to the minimum
+    // Recalculate the cost because the quantity may have been rounded up to the minimum, it may also cause it to drop below the minimum cost due to precision
     // Note this may result in the trade failing due to insufficient funds, but hopefully the buffer will compensate
     cost = quantity.multipliedBy(tradingData.signal.price)
 
@@ -1336,7 +1341,7 @@ async function refreshMarkets() {
     
     if (reload) {
         tradingMetaData.markets = await loadMarkets(reload).catch((reason) => {
-            logger.debug(reason)
+            logger.debug("refreshMarkets->loadMarkets: " + reason)
             return Promise.reject(reason)
         })
 
@@ -1349,14 +1354,18 @@ async function run() {
     logger.info("Trader starting...")
 
     // TODO: Validate configuration
+    logger.debug(`Primary wallet is ${env().PRIMARY_WALLET.toLowerCase() as WalletType}`)
 
     initializeNotifiers()
 
     // Make sure the markets data is loaded at least once
     await refreshMarkets().catch((reason) => {
-        logger.debug(reason)
+        logger.debug("run->refreshMarkets: " + reason)
         return Promise.reject(reason)
     })
+
+    // Set up virtual wallets
+    Object.values(WalletType).forEach(wallet => virtualBalances[wallet] = {})
 
     // Note, we can't get previously open trades here because we need to know whether they are real or virtual, so we have to wait for the payload
 
