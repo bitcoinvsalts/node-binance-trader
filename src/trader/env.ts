@@ -22,7 +22,7 @@ export function getDefault(): Readonly<any> {
         BINANCE_API_KEY: str({ devDefault: testOnly("BINANCE_API_KEY") }),
         BINANCE_SECRET_KEY: str({ devDefault: testOnly("BINANCE_SECRET_KEY") }),
         BVA_API_KEY: str({ devDefault: testOnly("BVA_API_KEY") }),
-        
+
         IS_NOTIFIER_GMAIL_ENABLED: bool({ default: false }),
         NOTIFIER_GMAIL_ADDRESS: str({ default: "" }),
         NOTIFIER_GMAIL_APP_PASSWORD: str({ default: "" }),
@@ -48,6 +48,7 @@ export function getDefault(): Readonly<any> {
         MAX_LONG_TRADES: num({ default: 0 }), // Maximum number of LONG trades that can be open concurrently (i.e. limit borrowing or rebalancing), zero is no limit
         EXCLUDE_COINS: str({ default: "" }), // Comma delimited list of coins to exclude from trading (e.g. DOGE)
         IS_TRADE_SHORT_ENABLED: bool({ default: true }), // SHORT trades will always borrow funds in margin to execute
+        IS_TRADE_MARGIN_ENABLED: bool({ default: true}), // Used to disable margin trading for both LONG and SHORT trades
         VIRTUAL_WALLET_FUNDS: num({ default: 1 }), // The default starting balance for all virtual wallets (note this is really only intended for testing with one coin at a time due to different scales)
     })
 }

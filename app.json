@@ -76,6 +76,10 @@
         "description": "Selects if short trades are enabled - short trades will always borrow funds in margin to execute",
         "required": false
       },
+      "IS_TRADE_MARGIN_ENABLED": {
+        "description": "Selects if margin trades are enabled for both short and long trades",
+        "required": false
+      },
       "VIRTUAL_WALLET_FUNDS": {
         "description": "The default starting balance for all virtual wallets (note this is really only intended for testing with one coin at a time due to different scales)",
         "required": false
