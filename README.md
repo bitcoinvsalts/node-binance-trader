@@ -37,6 +37,12 @@ The new features that I have added to the trader include:
   * You can set a default balance for virtual trades, this allows you to simulate some of the auto-balancing or funding models above.
 * **Individual Tracking of Real/Virtual Trades**
   * In the original trader if you started a strategy in virtual trading and switched to real trading, or vice versa, it would attempt to close trades based on the current status of the strategy, rather than how the trade was originally opened. This means it could try to close a trade on Binance that was originally opened virtually, or worse, never close the open trade on Binance because you've now switched the strategy to virtual. Now, if the trade opened on Binance it will close on Binance even if the strategy has been switched to virtual. If you don't want this to happen, make sure you close or stop the open trades before switching modes.
+* **Web Diagnostics**
+  * You can connect to the trader web server to view the internal information that is being tracked (e.g. http://localhost:8003/log). The following commands are available:
+    * /log - Internal log (newest entries at the top)
+    * /trades - Current open trades list
+    * /virtual - Current virtual balances
+    * /strategies - Configured strategies
 * **Comments**
   * I've added extensive comments to the trader.ts code to (hopefully) help you understand how it works. But please feel free to find me on Discord if you have any questions.
 
