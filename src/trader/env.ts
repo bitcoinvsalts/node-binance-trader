@@ -39,6 +39,7 @@ export function getDefault(): Readonly<any> {
             desc: "The port to trader webserver runs",
         }),
         VERSION: str({ default: packageJson.version }),
+        MAX_LOG_LENGTH: num({ default: 10000 }),
 
         IS_BUY_QTY_FRACTION: bool({ default: false }), // Uses the "Quantity to Buy" from BVA as a fraction of your wallet balance (e.g. 0.1 is 10%)
         TRADE_LONG_FUNDS: str({ default: LongFundsType.NONE }), // '', 'borrow min', 'borrow all', 'sell all', or 'sell largest' - see README for explanation
