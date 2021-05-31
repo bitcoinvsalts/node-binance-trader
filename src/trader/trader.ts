@@ -47,7 +47,7 @@ export const tradingMetaData: TradingMetaData = {
 }
 
 // Initialise the virtual wallets and attempt to keep track of the balance for simulations
-const virtualBalances: Dictionary<Dictionary<BigNumber>> = {}
+export const virtualBalances: Dictionary<Dictionary<BigNumber>> = {}
 
 // Configuration for the asynchronous queue that executes the trades on Binance
 const queue = new PQueue({
@@ -85,11 +85,11 @@ export async function onUserPayload(strategies: StrategyJson[]) {
     )
 
     // If there were no strategies previously then this is probably the first time we've got them
-    // Technically you may have had no strategies configured before, but they you should have no trades either
+    // Technically you may have had no strategies configured before, but then you should have no trades either
     if (Object.keys(tradingMetaData.strategies).length == 0) {
-        tradingMetaData.tradesOpen = await getTradeOpenList().catch((reason) => {
+        tradingMetaData.tradesOpen = await loadPreviousOpenTrades(newStrategies).catch((reason) => {
             // This will prevent the strategies from being saved too, so this will prevent the trader from functioning until the problem is resolved
-            logger.debug("onUserPayload->getTradeOpenList: " + reason)
+            logger.debug("onUserPayload->loadPreviousOpenTrades: " + reason)
             logger.error("Trader is not operational, please restart.")
             return Promise.reject(reason)
         })        
@@ -122,7 +122,7 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
     }
 
     // Make sure trades are valid, then we don't have to check later
-    for (let trade of prevTrades) {
+    for (let trade of prevTrades.filter(t => !badTrades.includes(t))) {
         // There is no way to know how the trade was previously opened, so have to assume it is still the same as the current strategy
         trade.tradingType = strategies[trade.strategyId].tradingType
 
@@ -158,7 +158,7 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
 
     // Can only match real trades to balances
     if (realTrades.length) {
-        // BVA hub is not aware of the funding and balancing models, so we need to try to match these trades to Binance balances to estimate the original quantities and costs
+        // BVA hub is not aware of the funding and balancing models, so we need to try to match these trades to Binance balances to estimate the remaining trade quantities and costs
         // Start by loading the current balances for each wallet
         const balances: Dictionary<Balances> = {}
         for (let wallet of Object.values(WalletType)) {
@@ -189,39 +189,32 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
         }
 
         // First lets start with SHORT trades, because the loans are less obscured
-        // It may be possible for both a SHORT trade and a LONG trade to borrow the same asset, this is too hard to determine, so the SHORT trade will get the full loan instead
+        // It may be possible for both a SHORT trade and a LONG trade to borrow the same asset, so the SHORT trade will get it first
         for (let trade of realTrades.filter(t => t.positionType == PositionType.SHORT)) {
             const market = tradingMetaData.markets[trade.symbol]
 
             // All SHORT trades are from margin
             trade.wallet = WalletType.MARGIN
 
-            // Estimate the proportion of the borrowed funds that belong to this trade
-            // Technically rounding it to a legal quantity could use up more than was borrowed if there were multiple uneven trades, may need something fancier
-            trade.quantity = getLegalQty(trade.quantity.dividedBy(borrowed[market.base]).multipliedBy(marginLoans[market.base].borrowed), market, trade.priceSell!)
+            // As SHORT trades can't be rebalanced, the original quantity should be correct, so calculate cost and borrow
             trade.cost = trade.quantity.multipliedBy(trade.priceSell!)
             trade.borrow = trade.quantity
 
             // Now we need to take these funds away from the balances, because they can't be used for LONG trades
             // For example if you had a SHORT trade on ETHBTC and a LONG trade on BTCUSD, these would share the same balance
             balances[trade.wallet][market.quote].free -= trade.cost.toNumber()
+            marginLoans[market.base].borrowed -= trade.borrow.toNumber()
 
             if (balances[trade.wallet][market.quote].free < 0) {
                 logger.warn(`Insufficient funds in ${market.quote} ${trade.wallet} wallet, you might not be able to repay the short trade.`)
                 balances[trade.wallet][market.quote].free = 0
             }
-        }
 
-        // We needed to know the total borrowed amount to proportion the SHORT trades, but now we can clean them up
-        for (let trade of realTrades.filter(t => t.positionType == PositionType.SHORT)) {
-            const market = tradingMetaData.markets[trade.symbol]
-
-            marginLoans[market.base].borrowed -= trade.borrow!.toNumber()
             // Check if we will pay back too much
             if (marginLoans[market.base].borrowed < 0) {
                 // Take off the difference
-                trade.borrow = trade.borrow!.plus(marginLoans[market.base].borrowed)
-                logger.warn(`Loaned amount for ${market.base} doesn't match open short trades (possibly due to rounding), reducing the repayment amount for this trade.`)
+                trade.borrow = trade.borrow.plus(marginLoans[market.base].borrowed)
+                logger.warn(`Loaned amount for ${market.base} doesn't match open short trades, reducing the repayment amount for this trade.`)
             }
         }
 
@@ -239,6 +232,7 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
                 // Work out a proportional number of trades for margin
                 // E.g. if 80% of the total free balance is in margin and there are 10 LONG trades, 8 will go to margin and 2 to spot
                 // This doesn't take into consideration the size of the trades, we just assume they are generally equal
+                // TODO: may need to check the minimum trade size
                 marginCount = new BigNumber(balances[WalletType.MARGIN][coin].free).dividedBy(total).multipliedBy(longTrades[coin]).decimalPlaces(0).toNumber()
             }
             // Whatever is left over will go to spot
@@ -265,9 +259,15 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
             for (let trade of coinTrades) {
                 const market = tradingMetaData.markets[trade.symbol]
 
-                // Estimate the proportion of the available funds that belong to this trade
-                // Technically rounding it to a legal quantity could use up more than is available if there were multiple uneven trades, may need something fancier
-                trade.quantity = getLegalQty(trade.quantity.dividedBy(walletQty[trade.wallet!]).multipliedBy(balances[trade.wallet!][market.base].free), market, trade.priceBuy!)
+                // The quantity coming from BVA should be the correct open amount, so check if there are enough funds
+                // Maybe there was rebalancing, or maybe we guessed the wallet allocation incorrectly
+                if (walletQty[trade.wallet!].isGreaterThan(balances[trade.wallet!][market.base].free)) {
+                    // Estimate the proportion of the available funds that belong to this trade
+                    // Technically rounding it to a legal quantity could use up more than is available if there were multiple uneven trades, may need something fancier
+                    trade.quantity = getLegalQty(trade.quantity.dividedBy(walletQty[trade.wallet!]).multipliedBy(balances[trade.wallet!][market.base].free), market, trade.priceBuy!)
+
+                    logger.info(`Insufficient funds in ${trade.wallet}, reducing this trade to ${trade.quantity} ${market.base}.`)
+                }
                 trade.cost = trade.quantity.multipliedBy(trade.priceBuy!)
 
                 // Check if we need to mop up any loans
@@ -289,6 +289,7 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
 
     // Update optional properties for virtual trades, no way of matching the quantity so just use what was sent
     virtualTrades.forEach(trade => {
+        const market = tradingMetaData.markets[trade.symbol]
         switch (trade.positionType) {
             case PositionType.SHORT:
                 trade.wallet = WalletType.MARGIN
@@ -296,7 +297,7 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
                 trade.borrow = trade.quantity
                 break
             case PositionType.LONG:
-                if (!tradingMetaData.markets[trade.symbol].margin) {
+                if (!market.margin) {
                     trade.wallet = WalletType.SPOT
                 } else {
                     trade.wallet = env().PRIMARY_WALLET
@@ -305,7 +306,22 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
                 trade.borrow = new BigNumber(0)
                 break
         }
+        initialiseVirtualBalances(trade.wallet!, market)
+        switch (trade.positionType) {
+            case PositionType.SHORT:
+                virtualBalances[trade.wallet!][market.quote] = virtualBalances[trade.wallet!][market.quote].plus(trade.cost!)
+                break
+            case PositionType.LONG:
+                virtualBalances[trade.wallet!][market.base] = virtualBalances[trade.wallet!][market.base].plus(trade.quantity!)
+                virtualBalances[trade.wallet!][market.quote] = virtualBalances[trade.wallet!][market.quote].minus(trade.cost!)
+                break
+        }
     })
+
+    // Log results
+    prevTrades.forEach(trade =>
+        logger.info(`Previous ${trade.tradingType} ${trade.positionType} trade from ${trade.strategyId} ${trade.strategyName} for ${trade.symbol} assigned to ${trade.wallet}, quantity = ${trade.quantity}, cost = ${trade.cost}`)
+    )
 
     // Keep the list of trades
     return prevTrades
@@ -783,6 +799,8 @@ export async function executeTradingTask(
         `Executing a ${tradeOpen.tradingType} trade of ${tradeOpen.quantity} units of symbol ${tradeOpen.symbol} at price ${tradeOpen.priceBuy ? tradeOpen.priceBuy : tradeOpen.priceSell} (${tradeOpen.cost} total).`
     )
 
+    // TODO: Track whether trade failed
+
     // This might be a borrow request for margin trading
     if (tradingSequence.before) {
         await tradingSequence
@@ -1020,10 +1038,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
                 }))[tradingData.market.quote].free) // We're just going to use 'free', but I'm not sure whether 'total' is better
             }
         } else {
-            // Initialise the virtual balances if not already used for these coins
-            if (virtualBalances[wallet.type][tradingData.market.base] == undefined) virtualBalances[wallet.type][tradingData.market.base] = new BigNumber(0) // Start with zero base (e.g. ETH for ETHBTC)
-            if (virtualBalances[wallet.type][tradingData.market.quote] == undefined) virtualBalances[wallet.type][tradingData.market.quote] = new BigNumber(env().VIRTUAL_WALLET_FUNDS) // Start with the default balance for quote (e.g. BTC for ETHBTC)
-
+            initialiseVirtualBalances(wallet.type, tradingData.market)
             wallet.free = virtualBalances[wallet.type][tradingData.market.quote]
         }
     }
@@ -1255,6 +1270,12 @@ function getBestWallet(cost: BigNumber, preferred: WalletType[], wallets: Dictio
     return largest
 }
 
+// Initialise the virtual balances if not already used for these coins
+function initialiseVirtualBalances(walletType: WalletType, market: Market) {
+    if (virtualBalances[walletType][market.base] == undefined) virtualBalances[walletType][market.base] = new BigNumber(0) // Start with zero base (e.g. ETH for ETHBTC)
+    if (virtualBalances[walletType][market.quote] == undefined) virtualBalances[walletType][market.quote] = new BigNumber(env().VIRTUAL_WALLET_FUNDS) // Start with the default balance for quote (e.g. BTC for ETHBTC)
+}
+
 export function getOnSignalLogData(signal: Signal): string {
     return `for strategy ${signal.strategyId} "${signal.strategyName}" and symbol ${signal.symbol}`
 }
@@ -1354,7 +1375,7 @@ async function run() {
     logger.info("Trader starting...")
 
     // TODO: Validate configuration
-    logger.debug(`Primary wallet is ${env().PRIMARY_WALLET.toLowerCase() as WalletType}`)
+    logger.debug(`Primary wallet is ${env().PRIMARY_WALLET.toLowerCase() as WalletType}.`)
 
     initializeNotifiers()
 
