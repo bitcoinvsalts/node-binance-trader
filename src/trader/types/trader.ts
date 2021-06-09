@@ -1,7 +1,7 @@
 import BigNumber from "bignumber.js"
 
 import { Dictionary, Market } from "ccxt"
-import { Signal, Strategy, TradeOpen } from "./bva"
+import { PositionType, Signal, Strategy, TradeOpen, TradingType } from "./bva"
 
 // Represents the different wallet types in Binance
 export enum WalletType {
@@ -21,7 +21,16 @@ export enum LongFundsType {
 // Actions to execute trades
 export enum ActionType {
     BUY = "buy",
-    SELL = "sell"
+    SELL = "sell",
+    BORROW = "borrow",
+    REPAY = "repay"
+}
+
+// Source of trade actions
+export enum SourceType {
+    SIGNAL = "BVA Signal",
+    MANUAL = "User Action",
+    REBALANCE = "Auto Balancing"
 }
 
 export interface TradingData {
@@ -49,7 +58,7 @@ export class WalletData {
     free: BigNumber // Total funds available for trade
     locked: BigNumber // Total funds locked in open trades
     total: BigNumber // Free + Locked
-    trades: number // Number of open trades
+    trades: TradeOpen[] // List of associated open trades
     largest?: TradeOpen // Largest open trade
     potential?: BigNumber // Potental funds after rebalancing
 
@@ -58,6 +67,56 @@ export class WalletData {
         this.free = new BigNumber(0)
         this.locked = new BigNumber(0)
         this.total = new BigNumber(0)
-        this.trades = 0
+        this.trades = []
+    }
+}
+
+// Transaction log entries
+export class Transaction {
+    timestamp: Date // Date and time of this transaction
+    tradeId: string // ID of the trade
+    strategyId: string // ID of the strategy that initiated the trade
+    strategyName: string // Name of the strategy that initiated the trade
+    tradingType: TradingType // REAL or VIRTUAL
+    source: SourceType // SIGNAL, MANUAL, or REBALANCE
+    positionType: PositionType // SHORT or LONG
+    action: ActionType // BUY, SELL, BORROW, or REPAY
+    wallet: WalletType // MARGIN or SPOT
+    symbolAsset: string // Either the symbol pair for buy/sell (e.g. ETHBTC) or just the individual asset for borrow/repay (e.g. ETH)
+    quantity: BigNumber // They quantity of this transaction
+    price?: BigNumber // The price for this transaction (only for buy/sell)
+    value?: BigNumber // Either the original cost when the trade was opened or the recalcuated value when closed (only for buy/sell)
+
+    constructor(tradeOpen: TradeOpen, source: SourceType, action: ActionType, symbolAsset: string, quantity: BigNumber) {
+        this.timestamp = new Date()
+        this.tradeId = tradeOpen.id
+        this.strategyId = tradeOpen.strategyId
+        this.strategyName = tradeOpen.strategyName
+        this.tradingType = tradeOpen.tradingType!
+        this.source = source
+        this.positionType = tradeOpen.positionType
+        this.action = action
+        this.wallet = tradeOpen.wallet!
+        this.symbolAsset = symbolAsset
+        this.quantity = quantity
+        if (action == ActionType.BUY) {
+            this.price = tradeOpen.priceBuy
+        } else if (action == ActionType.SELL) {
+            this.price = tradeOpen.priceSell
+        }
+        if (this.price) this.value = this.quantity.multipliedBy(this.price)
+    }
+}
+
+// Used for tracking history over time to calculate Profit and Loss
+export class BalanceHistory {
+    timestamp: Date // Date and time that this history slice started
+    openBalance: BigNumber // Opening balance
+    closeBalance: BigNumber // Last observed balance
+
+    constructor(balance: BigNumber) {
+        this.timestamp = new Date()
+        this.openBalance = balance
+        this.closeBalance = balance
     }
 }
