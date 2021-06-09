@@ -83,6 +83,10 @@
       "VIRTUAL_WALLET_FUNDS": {
         "description": "The default starting balance for all virtual wallets (note this is really only intended for testing with one coin at a time due to different scales)",
         "required": false
+      },
+      "WEB_PASSWORD": {
+        "description": "Optional password to restrict access to the internal diagnostics webserver",
+        "required": false
       }
     }
   }

@@ -39,7 +39,7 @@ export function getDefault(): Readonly<any> {
             desc: "The port to trader webserver runs",
         }),
         VERSION: str({ default: packageJson.version }),
-        MAX_LOG_LENGTH: num({ default: 10000 }),
+        MAX_LOG_LENGTH: num({ default: 5000 }),
 
         IS_BUY_QTY_FRACTION: bool({ default: false }), // Uses the "Quantity to Buy" from BVA as a fraction of your wallet balance (e.g. 0.1 is 10%)
         TRADE_LONG_FUNDS: str({ default: LongFundsType.NONE }), // '', 'borrow min', 'borrow all', 'sell all', or 'sell largest' - see README for explanation
@@ -51,6 +51,7 @@ export function getDefault(): Readonly<any> {
         IS_TRADE_SHORT_ENABLED: bool({ default: true }), // SHORT trades will always borrow funds in margin to execute
         IS_TRADE_MARGIN_ENABLED: bool({ default: true}), // Used to disable margin trading for both LONG and SHORT trades
         VIRTUAL_WALLET_FUNDS: num({ default: 1 }), // The default starting balance for all virtual wallets (note this is really only intended for testing with one coin at a time due to different scales)
+        WEB_PASSWORD: str({ default: "" }), // Optional password to restrict access to the internal diagnostics webserver
     })
 }
 
