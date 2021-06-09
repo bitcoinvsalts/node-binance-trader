@@ -220,3 +220,4 @@ modules.xml
 .vscode/.env.private
 .vscode/.env.sandbox
 .vscode/launch.json
+src/server/server.spam.js
