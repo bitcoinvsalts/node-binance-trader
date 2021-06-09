@@ -1,5 +1,3 @@
-[![build status](https://github.com/PostmanSpat/node-binance-trader/workflows/CI/badge.svg)](https://github.com/PostmanSpat/node-binance-trader/actions?query=workflow%3ACI "build status")
-
 <h1 align="center">Node Binance Trader (NBT)</h1>
 
 <h4 align="center">NBT is a Cryptocurrency Trading Strategy & Portfolio Management Development Framework for <a href='https://www.binance.com/en-AU/register?ref=141340247' target="_new">Binance</a>.</h4>
@@ -16,15 +14,13 @@ The new features that I have added to the trader include:
     * **(Default)**: This will use the available funds in margin or spot wallets, and will stop opening new trades when funds run out (low risk).
     * **Borrow Minimum**: This will use the available funds in margin or spot wallets, and will then start borrowing funds in margin to execute new trades (medium risk).
     * **Borrow All**: This will always borrow funds in margin to execute new trades regardless of available funds (high risk).
-    * **Sell All**: This will use the available funds in margin or spot wallets, then re-sell a small portion of every active trade in order to free up funds for the new trades. All active trades will have the same investment. E.g. 4 active trades will use 25% of your balance each, if a 5th trade opens then it will sell a portion from the previous 4 so that all 5 trades are using 20% of your balance. However, once trades start to close it will not re-buy the remaining open trades.
+    * **Sell All**: This will use the available funds in margin or spot wallets, then re-sell a small portion of every active trade in order to free up funds for the new trades. The aim is to have all active trades will have the same investment. E.g. 4 active trades will use 25% of your balance each, if a 5th trade opens then it will sell a portion from the previous 4 so that all 5 trades are using 20% of your balance. However, once trades start to close it will not re-buy the remaining open trades, so this can result in some variation over time.
     * **Sell Largest**: This will use the available funds in margin or spot wallets, then re-sell half of the largest trade. E.g. (assuming you set the quantity to 1) 1st trade will use 100% of your balance, the 2nd trade will sell 50% of the first trade and use that, the 3rd trade will sell 50% of the first trade so now you have 1st @ 25%, 2nd @ 50%, 3rd @ 25% of your total balance. The difference between this and the "All" model is that it only re-sells from a single existing trade whenever a new one comes in. This means that sometimes the trade sizes will not be equal. This also will not re-buy for remaining open trades.
   * Each model will first attempt to use the "Quantity to Buy" from BVA (either as an absolute or a fraction), this will represent the largets possible trade value. Only if there are insufficient funds, then it will apply one of the options or reduce the trade quantity.
   * The models that calculate a quantity relative to your current balance will only use the total balance from the primary wallet (margin by default). Also, if some or all of that balance is locked up in active LONG trades, it will estimate the total balance based on the original opening price of those trades (not current market price).
   * Only LONG trades consume your available balance (all SHORT trades are done through borrowing).
 * **CONFIG: Primary Wallet**
   * You can choose whether to use the spot or margin wallet as your primary wallet for LONG trades. It will also use the total balance from this primary wallet to calculate the size of SHORT trades if you are using **Quantity as Fraction**.
-* **Alternate Wallet Fall Back**
-  * If you do not have sufficient funds in your primary wallet (e.g. margin) to make LONG trades, it will automatically try to make the trade from your other wallet (e.g. spot).
 * **CONFIG: Wallet Buffer**
   * As slippage, spread, and bad trades are difficult to predict, it is good to keep some additional funds in your wallet to cover these costs. You can specify a buffer amount as a fraction of your wallet (e.g. 0.1 is 10%), which will not be used for opening LONG trades.
 * **CONFIG: Maximum Count of Trades**
@@ -35,14 +31,23 @@ The new features that I have added to the trader include:
   * You can provide a comma delimited list of coins that you want to ignore trade signals for (e.g. DOGE).
 * **CONFIG: Virtual Trading Balance**
   * You can set a default balance for virtual trades, this allows you to simulate some of the auto-balancing or funding models above.
+  * NOTE: All virtual balances will be reset if the trader restarts, but it will attempt to recreate them using the open trades. However, as BVA has no record of auto balancing, all virtual trades and balances will reset based on the original opening quantity/cost.
+* **Alternate Wallet Fall Back**
+  * If you do not have sufficient funds in your primary wallet (e.g. margin) to make LONG trades, it will automatically try to make the trade from your other wallet (e.g. spot).
+* **Web Diagnostics**
+  * You can connect to the trader webserver to view the internal information that is being tracked (e.g. http://localhost:8003/log). The following commands are available:
+    * /log - Internal log (newest entries at the top)
+    * /pnl - Calculated rate of return and history of open and close balances (close estimation based on available data)
+    * /trades - Current open trades list
+    * /trans - Log of actual buy, sell, borrow, repay transactions (newest entries at the top)
+    * /strategies - Configured strategies
+    * /virtual - Current virtual balances
+  * You can also configure a **Web Password** in the environment variables to restrict access to these commands (e.g. http://localhost:8003/log?mysecret).
 * **Individual Tracking of Real/Virtual Trades**
   * In the original trader if you started a strategy in virtual trading and switched to real trading, or vice versa, it would attempt to close trades based on the current status of the strategy, rather than how the trade was originally opened. This means it could try to close a trade on Binance that was originally opened virtually, or worse, never close the open trade on Binance because you've now switched the strategy to virtual. Now, if the trade opened on Binance it will close on Binance even if the strategy has been switched to virtual. If you don't want this to happen, make sure you close or stop the open trades before switching modes.
-* **Web Diagnostics**
-  * You can connect to the trader web server to view the internal information that is being tracked (e.g. http://localhost:8003/log). The following commands are available:
-    * /log - Internal log (newest entries at the top)
-    * /trades - Current open trades list
-    * /virtual - Current virtual balances
-    * /strategies - Configured strategies
+  * NOTE: It can only remember the previous state while the trader is running. If the trader restarts with mixed states, all trades will be reloaded with the current state of the strategy.
+* **Clean Up Stopped Trades**
+  * If you stop a trade in the BVA hub then manually close it, first it will actually try to close the trade on Binance, but if that fails it will still respond to the BVA hub with a close signal so that the open trade does not hang around forever. This is important for the calculations used in the auto balancing, as they rely on the current list of open trades. So if you want to purge a stopped trade like this, first make sure you have moved any funds from Binance so that it cannot execute the close.
 * **Comments**
   * I've added extensive comments to the trader.ts code to (hopefully) help you understand how it works. But please feel free to find me on Discord if you have any questions.
 
