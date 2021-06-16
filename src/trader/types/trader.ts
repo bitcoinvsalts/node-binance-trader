@@ -28,7 +28,7 @@ export enum ActionType {
 
 // Source of trade actions
 export enum SourceType {
-    SIGNAL = "BVA Signal",
+    SIGNAL = "Trade Signal",
     MANUAL = "User Action",
     REBALANCE = "Auto Balancing"
 }
@@ -113,10 +113,16 @@ export class BalanceHistory {
     timestamp: Date // Date and time that this history slice started
     openBalance: BigNumber // Opening balance
     closeBalance: BigNumber // Last observed balance
+    minOpenTrades?: number // Lowest number of concurrent open trades
+    maxOpenTrades?: number // Highest number of concurrent open trades
+    totalOpenedTrades: number // Total number of trades opened
+    totalClosedTrades: number // Total number of trades closed
 
     constructor(balance: BigNumber) {
         this.timestamp = new Date()
         this.openBalance = balance
         this.closeBalance = balance
+        this.totalOpenedTrades = 0
+        this.totalClosedTrades = 0
     }
 }

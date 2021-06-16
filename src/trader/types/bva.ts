@@ -4,18 +4,18 @@ import { WalletType } from "./trader"
 /////
 
 export enum EntryType {
-    ENTER, // New/open signal from BVA Hub
-    EXIT, // Stop signal from BVA Hub
+    ENTER = "ENTER", // New/open signal from the NBT Hub
+    EXIT = "EXIT", // Stop signal from the NBT Hub
 }
 
 export enum PositionType {
-    LONG = "LONG",
-    SHORT = "SHORT",
+    LONG = "LONG", // Buy first then sell
+    SHORT = "SHORT", // Borrow to sell first then buy to repay
 }
 
 export enum TradingType {
-    real = "real",
-    virtual = "virtual",
+    real = "real", // Execute trades on Binance
+    virtual = "virtual", // Simulate trades in memory
 }
 
 /////
@@ -28,6 +28,9 @@ export class Strategy {
     tradeAmount: BigNumber
     tradingType: TradingType
 
+    isStopped: boolean
+    lossTradeRun: number
+
     constructor(bvaStrategyJson: StrategyJson) {
         this.id = bvaStrategyJson.stratid
         this.isActive = bvaStrategyJson.trading
@@ -38,6 +41,9 @@ export class Strategy {
             TradingType[
                 bvaStrategyJson.trading_type as keyof typeof TradingType
             ]
+
+        this.isStopped = false // Default doesn't come from the NBT Hub, will be stopped if it hits the loss limit
+        this.lossTradeRun = 0 // Used to check for loss limit
     }
 }
 
@@ -88,8 +94,8 @@ export class TradeOpen {
     priceSell?: BigNumber
     quantity: BigNumber
     cost?: BigNumber // Comes from the strategy or is calculated
-    borrow?: BigNumber // This doesn't come from BVA, needs to be derived from trader logic
-    wallet?: WalletType // This doesn't come from BVA, needs to be derived from trader logic
+    borrow?: BigNumber // This doesn't come from the NBT Hub, needs to be derived from trader logic
+    wallet?: WalletType // This doesn't come from the NBT Hub, needs to be derived from trader logic
     strategyId: string
     strategyName: string
     symbol: string
@@ -150,7 +156,7 @@ export class Signal {
         this.entryType = signalJson.new ? EntryType.ENTER : EntryType.EXIT
         this.nickname = signalJson.nickname
         this.positionType = positionType // Will typically be null initially, then set once the signal is decoded
-        this.price = signalJson.price ? new BigNumber(signalJson.price) : undefined
+        this.price = signalJson.price ? new BigNumber(signalJson.price) : signalJson.close_price ? new BigNumber(signalJson.close_price) : undefined
         this.score = signalJson.score
         this.strategyId = signalJson.stratid
         this.strategyName = signalJson.stratname
@@ -175,6 +181,7 @@ export interface SignalJson {
     nickname: string
     pair: string
     price: string
+    close_price: string // Used instead of 'price' in a close_traded_signal
     score: string // A stringified number or "NA".
     stratid: string
     stratname: string

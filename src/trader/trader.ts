@@ -1,6 +1,3 @@
-// TODO: Add MinMax-Check for amount / quantity in trade functions.
-// TODO: Fallback to spot trading, even if margin trading is allowed.
-
 import BigNumber from "bignumber.js"
 import { Balances, Dictionary, Market } from "ccxt"
 import PQueue from "p-queue"
@@ -29,6 +26,7 @@ import {
     TradeOpen,
     TradingType,
 } from "./types/bva"
+import { MessageType } from "./types/notifier"
 import { WalletType, TradingData, TradingMetaData, TradingSequence, LongFundsType, WalletData, ActionType, SourceType, Transaction, BalanceHistory } from "./types/trader"
 
 // Standard error messages
@@ -41,13 +39,16 @@ const logTradeOpenNone =
 
 // Holds the information about the current strategies and open trades
 export const tradingMetaData: TradingMetaData = {
-    strategies: {}, // This comes from the payload data that is sent from BVA hub, it is a dictionary of type Strategy (see bva.ts) indexed by the strategy ID
+    strategies: {}, // This comes from the payload data that is sent from NBT Hub, it is a dictionary of type Strategy (see bva.ts) indexed by the strategy ID
     tradesOpen: [], // This is an array of type TradeOpen (see bva.ts) containing all the open trades
     markets: {} // This is a dictionary of the different trading symbols and limits that are supported on the Binance exchange
 }
 
 // Initialise the virtual wallets and attempt to keep track of the balance for simulations
 export const virtualBalances: Dictionary<Dictionary<BigNumber>> = {}
+let virtualWalletFunds = new BigNumber(env().VIRTUAL_WALLET_FUNDS) // Default to environment variable, but can be changed later
+const REFERENCE_SYMBOL = "BNBBTC" // Uses this market data to calculate wallet funds for other coins
+export function setVirtualWalletFunds(value: BigNumber) { virtualWalletFunds = value }
 
 // Initialise an array to keep a transaction history
 export const transactions: Transaction[] = []
@@ -61,7 +62,7 @@ const queue = new PQueue({
     interval: 250,
 })
 
-// Receives the information on selected strategies from the BVA hub
+// Receives the information on selected strategies from the NBT Hub
 export async function onUserPayload(strategies: StrategyJson[]) {
     // Convert list of strategy IDs into a comma delimited string for logging
     const strategyIds = strategies
@@ -74,9 +75,10 @@ export async function onUserPayload(strategies: StrategyJson[]) {
     )
 
     // Log if any are not yet configured
+    // These have to be ignored because we don't know whether the trades were real or virtual
     const invalid = strategies.filter(s => new Strategy(s).tradingType == undefined || s.buy_amount <= 0)
     if (invalid.length) {
-        logger.warn(`${invalid.length} strategies have not yet been configured, so will be ignored: ${invalid.map(s => s.stratid).join(", ")}.`)
+        logger.warn(`There are ${invalid.length} strategies that have not yet been configured, so will be ignored: ${invalid.map(s => s.stratid).join(", ")}.`)
     }
     
     // Processes the JSON data into the strategies dictionary (ignoring invalid strategies)
@@ -111,9 +113,9 @@ export async function onUserPayload(strategies: StrategyJson[]) {
     tradingMetaData.strategies = newStrategies
 }
 
-// Retrieves the open trade list from the BVA hub then tries to match them to existing balances and loans in Binance.
-export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise<TradeOpen[]> {
-    // Retrieve the existing open trades from the BVA hub
+// Retrieves the open trade list from the NBT Hub then tries to match them to existing balances and loans in Binance.
+async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise<TradeOpen[]> {
+    // Retrieve the existing open trades from the NBT Hub
     let prevTrades = await getTradeOpenList().catch((reason) => {
         logger.debug("loadPreviousOpenTrades->getTradeOpenList: " + reason)
         return Promise.reject(reason)
@@ -123,7 +125,7 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
     const badTrades = prevTrades.filter(trade => !(trade.strategyId in strategies))
     if (badTrades.length) {
         // There is no way to know if they were previously real or virtual
-        const logMessage = `${badTrades.length} previous open trades are no longer associated with any strategies, so will be discarded. If you want to close them, you will need to re-add the strategy in BVA and restart the trader.`
+        const logMessage = `There are ${badTrades.length} previous open trades are no longer associated with any strategies, so will be discarded. If you want to close them, you will need to re-add the strategy in the NBT Hub and restart the trader.`
         logger.error(logMessage)
     }
 
@@ -136,14 +138,14 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
             case PositionType.SHORT:
                 if (!trade.priceSell) {
                     // Hopefully this won't happen
-                    logger.error(`${trade.strategyId} ${trade.strategyName} ${trade.symbol} ${trade.positionType} trade is missing a sell price, it will be discarded.`)
+                    logger.error(`${getLogName(trade)} trade is missing a sell price, it will be discarded.`)
                     badTrades.push(trade)
                 }
                 break
             case PositionType.LONG:
                 if (!trade.priceBuy) {
                     // Hopefully this won't happen
-                    logger.error(`${trade.strategyId} ${trade.strategyName} ${trade.symbol} ${trade.positionType} trade is missing a buy price, it will be discarded.`)
+                    logger.error(`${getLogName(trade)} trade is missing a buy price, it will be discarded.`)
                     badTrades.push(trade)
                 }
                 break
@@ -151,10 +153,9 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
     }
 
     // Remove bad trades so that they don't get considered for balance allocation
-    // TODO: Notify of discarded trades
     prevTrades = prevTrades.filter(trade => !badTrades.includes(trade))
 
-    // BVA hub is not aware of the funding and balancing models, so we need to try to match these trades to Binance balances to estimate the remaining trade quantities and costs
+    // NBT Hub is not aware of the funding and balancing models, so we need to try to match these trades to Binance balances to estimate the remaining trade quantities and costs
     // Start by loading the current balances for each wallet
     const balances: Dictionary<Balances> = {}
     for (let wallet of Object.values(WalletType)) {
@@ -270,7 +271,7 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
 
                                 if (trade.quantity.isGreaterThan(wallet.free)) {
                                     // Still not enough to make this trade
-                                    logger.error(`${trade.strategyId} ${trade.strategyName} ${trade.symbol} ${trade.positionType} trade does not have sufficient funds, it will be discarded.`)
+                                    logger.error(`${getLogName(trade)} trade does not have sufficient funds, it will be discarded.`)
                                     badTrades.push(trade)
                                 }
                             }
@@ -303,14 +304,20 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
                     if (trade.borrow.isGreaterThan(trade.quantity)) trade.borrow = trade.quantity
                     marginLoans[market.quote].borrowed -= trade.borrow.toNumber()
 
-                    logger.info(`${trade.strategyId} ${trade.strategyName} ${trade.symbol} ${trade.positionType} trade will repay loan of ${trade.borrow} ${market.quote}.`)
+                    logger.info(`${getLogName(trade)} trade will repay loan of ${trade.borrow} ${market.quote}.`)
                 }
         }
 
         // Remove bad trades so that they don't get started
-        // TODO: Notify of discarded trades
         prevTrades = prevTrades.filter(trade => !badTrades.includes(trade))
     }
+
+    // Notify of discarded trades
+    badTrades.forEach(trade => 
+        notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, "This previous trade was received from the NBT Hub but could not be reloaded. Check the log for details.")).catch((reason) => {
+            logger.debug("loadPreviousOpenTrades->notifyAll: " + reason)
+        })
+    )
 
     // Better check that all the loans have been allocated to open real trades
     for (let coin of Object.keys(marginLoans).filter(c => marginLoans[c].borrowed)) {
@@ -336,32 +343,22 @@ export async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): 
                 trade.borrow = new BigNumber(0)
                 break
         }
-        initialiseVirtualBalances(trade.wallet!, market)
-        switch (trade.positionType) {
-            case PositionType.SHORT:
-                // We've already borrowed and sold the asset, so we should have surplus funds
-                virtualBalances[trade.wallet!][market.quote] = virtualBalances[trade.wallet!][market.quote].plus(trade.cost!)
-                break
-            case PositionType.LONG:
-                // We've already bought the asset, so we should have less funds
-                virtualBalances[trade.wallet!][market.base] = virtualBalances[trade.wallet!][market.base].plus(trade.quantity!)
-                virtualBalances[trade.wallet!][market.quote] = virtualBalances[trade.wallet!][market.quote].minus(trade.cost!)
-                // TODO: It would be better to rebalance the virtual trades to keep the defined open balance, but that will take some work
-                if (virtualBalances[trade.wallet!][market.quote].isLessThan(0)) virtualBalances[trade.wallet!][market.quote] = new BigNumber(0)
-                break
-        }
     })
+
+    // Update virtual balances to match existing trades
+    resetVirtualBalances(virtualTrades)
 
     // Log results
     prevTrades.forEach(trade =>
-        logger.info(`Previous ${trade.tradingType} ${trade.positionType} trade from ${trade.strategyId} ${trade.strategyName} for ${trade.symbol} assigned to ${trade.wallet}, quantity = ${trade.quantity}, cost = ${trade.cost}`)
+        logger.info(`Previous trade ${getLogName(trade)} assigned to ${trade.wallet}, quantity = ${trade.quantity}, cost = ${trade.cost}`)
     )
 
     // Keep the list of trades
     return prevTrades
 }
 
-export async function checkStrategyChanges(strategies: Dictionary<Strategy>) {
+// Compare differences between previously loaded strategy and the new strategies from the payload
+async function checkStrategyChanges(strategies: Dictionary<Strategy>) {
     // Check if a strategy has moved from real to virtual or vice versa and warn about open trades
     for (let strategy of Object.keys(strategies).filter(strategy =>
         strategy in tradingMetaData.strategies &&
@@ -371,50 +368,52 @@ export async function checkStrategyChanges(strategies: Dictionary<Strategy>) {
                 trade.strategyId == strategy &&
                 trade.tradingType != strategies[strategy].tradingType)
             if (stratTrades.length) {
-                const logMessage = `Strategy ${strategy} has moved from ${tradingMetaData.strategies[strategy].tradingType} to ${strategies[strategy].tradingType}, there are ${stratTrades.length} open trades that will remain as ${tradingMetaData.strategies[strategy].tradingType} so that they can be closed correctly.`
-                if (tradingMetaData.strategies[strategy].tradingType == TradingType.real) {
-                    logger.warn(logMessage + " If the trader restarts it will forget the original state of these trades, so you may want to close them in BVA now.")
-                    // TODO: Notify of risky trades
-                } else {
-                    logger.info(logMessage)
-                }
+                logger.warn(`Strategy ${strategy} has moved from ${tradingMetaData.strategies[strategy].tradingType} to ${strategies[strategy].tradingType}, there are ${stratTrades.length} open trades that will remain as ${tradingMetaData.strategies[strategy].tradingType} so that they can be closed correctly. If the trader restarts it will forget the original state of these trades, so you may want to close them in the NBT Hub now.`)
             }
     }
 
-    // Check if a strategy has been removed and stop the open trades
+    // Check if a strategy has been removed and notify of the paused open trades
     for (let strategy of Object.keys(tradingMetaData.strategies).filter(strategy => !(strategy in strategies))) {
         // Find all existing open trades for this strategy
         const stratTrades = tradingMetaData.tradesOpen.filter(trade => trade.strategyId == strategy)
         if (stratTrades.length) {
-            const logMessage = `Strategy ${strategy} has been removed, there are ${stratTrades.length} open ${tradingMetaData.strategies[strategy].tradingType} trades that will be stopped. You will need to re-add the strategy to close these trades.`
-            if (tradingMetaData.strategies[strategy].tradingType == TradingType.real) {
-                logger.warn(logMessage)
-                // TODO: Notify of stopped trades
-            } else {
-                logger.info(logMessage)
-            }
-            stratTrades.forEach(trade => trade.isStopped = true)
+            logger.warn(`Strategy ${strategy} has been removed, there are ${stratTrades.length} open trades that will be paused. You can still manually close them in the NBT Hub.`)
+            // Notify of paused trades
+            stratTrades.forEach(trade => 
+                notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, "The strategy has been removed so this trade will be paused.")).catch((reason) => {
+                    logger.debug("checkStrategyChanges->notifyAll: " + reason)
+                })
+            )
+            // Note, we don't actually need to pause the trades as the signals will be ignored for these strategies anyway
         }
     }
 
-    // Check if a strategy has been re-added an restart the open trades
+    // Check if a strategy has been re-added so notify about resuming the open trades
     for (let strategy of Object.keys(strategies).filter(strategy => !(strategy in tradingMetaData.strategies))) {
         // Find all existing open trades for this strategy
-        const stratTrades = tradingMetaData.tradesOpen.filter(trade => trade.strategyId == strategy && trade.isStopped)
+        const stratTrades = tradingMetaData.tradesOpen.filter(trade => trade.strategyId == strategy && !trade.isStopped)
         if (stratTrades.length) {
-            const logMessage = `Strategy ${strategy} has been restored, there are ${stratTrades.length} stopped ${tradingMetaData.strategies[strategy].tradingType} trades that will be restarted. If this is not intended, you will need to stop them again in BVA.`
-            if (tradingMetaData.strategies[strategy].tradingType == TradingType.real) {
-                logger.warn(logMessage)
-                // TODO: Notify of restarted trades
-            } else {
-                logger.info(logMessage)
-            }
-            stratTrades.forEach(trade => trade.isStopped = false)
+            logger.warn(`Strategy ${strategy} has been restored, there are ${stratTrades.length} paused trades that will be restarted.`)
+            // Notify of resumed trades
+            stratTrades.forEach(trade => 
+                notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, "The strategy has been restored so this trade will be resumed.")).catch((reason) => {
+                    logger.debug("checkStrategyChanges->notifyAll: " + reason)
+                })
+            )
         }
+    }
+
+    // Copy the stopped flag and count of lost trades because these aren't sent from NBT Hub, but only if the trade (active) flag has not been switched
+    // Note, I think if you turn trade off in the NBT Hub you don't get the strategy in the payload anyway
+    for (let strategy of Object.keys(strategies).filter(strategy =>
+        strategy in tradingMetaData.strategies &&
+        strategies[strategy].isActive == tradingMetaData.strategies[strategy].isActive)) {
+            strategies[strategy].isStopped = tradingMetaData.strategies[strategy].isStopped
+            strategies[strategy].lossTradeRun = tradingMetaData.strategies[strategy].lossTradeRun
     }
 }
 
-// Process automatic buy signal from BVA hub
+// Process automatic buy signal from NBT Hub
 // For a LONG trade it will buy first (then sell later on closing)
 // For a SHORT trade this will buy and repay the loan to close the trade
 export async function onBuySignal(signalJson: SignalJson) {
@@ -455,7 +454,7 @@ export async function onBuySignal(signalJson: SignalJson) {
     })
 }
 
-// Process automatic sell signal from BVA hub
+// Process automatic sell signal from NBT Hub
 // For a SHORT trade this will borrow and then sell first (then buy and replay later on closing)
 // For a LONG trade this will sell to close the trade
 export async function onSellSignal(signalJson: SignalJson) {
@@ -496,7 +495,7 @@ export async function onSellSignal(signalJson: SignalJson) {
     })
 }
 
-// Process close trade signal from BVA hub - this sells for LONG trades or buys for SHORT trades
+// Process close trade signal from NBT Hub - this sells for LONG trades or buys for SHORT trades
 // This is triggered when the user manually tells the trade to close
 export async function onCloseTradedSignal(signalJson: SignalJson) {
     const signal = new Signal(signalJson)
@@ -507,11 +506,32 @@ export async function onCloseTradedSignal(signalJson: SignalJson) {
 
     await trade(signal, SourceType.MANUAL).catch((reason) => {
         logger.debug("onCloseTradedSignal->trade: " + reason)
-        return Promise.reject(reason)
+        const tradeOpen = getTradeOpen(signal)
+        // This is a special case where the user has stopped a trade then tried to close it and it failed
+        if (tradeOpen && tradeOpen.isStopped) {
+            logger.error(`Could not close stopped trade ${getLogName(tradeOpen)}  properly, so just going to fake a signal back to the NBT Hub and drop the trade.`)
+            // Tell NBT Hub that the trade was closed even though it probably wasn't
+            emitSignalTraded(`traded_${tradeOpen!.positionType == PositionType.SHORT ? ActionType.BUY : ActionType.SELL}_signal`, tradeOpen!)
+
+            // Remove the closed trade
+            tradingMetaData.tradesOpen =
+            tradingMetaData.tradesOpen.filter(
+                (tradesOpenElement) =>
+                    tradesOpenElement !== tradeOpen
+            )
+
+            // Note, this doesn't update balances or PnL, so these might be incorrect now
+
+            if (tradeOpen.tradingType == TradingType.virtual) {
+                logger.warn(`A virtual trade was deleted, you will probably need to reset virtual balances.`)
+            }
+        } else {
+            return Promise.reject(reason)
+        }
     })
 }
 
-// Process stop trade signal from BVA hub - this just terminates the trade without buying or selling
+// Process stop trade signal from NBT Hub - this just terminates the trade without buying or selling
 // This is triggered when the user manually tells the trade to stop
 export function onStopTradedSignal(signalJson: SignalJson): boolean {
     const signal = new Signal(signalJson)
@@ -530,19 +550,22 @@ export function onStopTradedSignal(signalJson: SignalJson): boolean {
 }
 
 // Validates that the trading signal is consistent with the selected strategies and configuration
-export async function checkTradingData(signal: Signal, source: SourceType): Promise<TradingData> {
+async function checkTradingData(signal: Signal, source: SourceType): Promise<TradingData> {
     const strategy = tradingMetaData.strategies[signal.strategyId]
 
-    if (!strategy) {
-        const logMessage = `Skipping signal as strategy ${signal.strategyId} "${signal.strategyName}" isn't followed.`
-        logger.info(logMessage)
-        return Promise.reject(logMessage)
-    }
+    // Only check the strategy for auto trades, this allows you to manually close any trade
+    if (source == SourceType.SIGNAL) {
+        if (!strategy) {
+            const logMessage = `Skipping signal as strategy ${getLogName(undefined, signal)} isn't followed.`
+            logger.info(logMessage)
+            return Promise.reject(logMessage)
+        }
 
-    if (!strategy.isActive) {
-        const logMessage = `Skipping signal as strategy ${signal.strategyId} "${signal.strategyName}" isn't active.`
-        logger.warn(logMessage)
-        return Promise.reject(logMessage)
+        if (!strategy.isActive) {
+            const logMessage = `Skipping signal as strategy ${getLogName(undefined, signal)} isn't active.`
+            logger.warn(logMessage)
+            return Promise.reject(logMessage)
+        }
     }
 
     // Get the information on symbols and limits for this coin pair from Binance exchange
@@ -578,26 +601,26 @@ export async function checkTradingData(signal: Signal, source: SourceType): Prom
         return Promise.reject(logMessage)
     }
 
-    // Find the previous open trade
+    // Try to find a previous open trade
     const tradeOpen = getTradeOpen(signal)
 
     switch (signal.entryType) {
         case EntryType.ENTER:
-            // If this is supposed to be a new trade, check there wasn't an existing one
-            // This is a workaround for an issue in BVA hub, if you miss a close signal while your trader is offline then you may get another open signal for something that is already open
-            // It seems the BVA hub will ignore the second traded_buy/sell_signal and only track the first open trade, so if we open a second one in the trader it will be orphaned and never close
-            // So until we have a unique ID that is provided on the signal and BVA hub can track them correctly, we're just going to have to ignore concurrent trades and treat this as a continuation
-            if (tradeOpen) {
-                const logMessage = `Skipping signal as existing open trade already found for ${signal.strategyId} ${signal.strategyName} ${market.symbol}.`
+            // Check if strategy has hit the losing trade limit
+            if (!strategy || strategy.isStopped) {
+                const logMessage = `Skipping signal as strategy ${getLogName(undefined, signal)} has been stopped, toggle the trade flag in the NBT Hub to restart it.`
                 logger.error(logMessage)
                 return Promise.reject(logMessage)
-            }
+            }        
 
-            // Entry must have a starting price
-            if (!signal.price) {
-                const logMessage = `Skipping signal for ${signal.strategyId} "${signal.strategyName}" as price was missing.`
+            // If this is supposed to be a new trade, check there wasn't an existing one
+            // This is a workaround for an issue in the NBT Hub, if you miss a close signal while your trader is offline then you may get another open signal for something that is already open
+            // It seems the NBT Hub will ignore the second traded_buy/sell_signal and only track the first open trade, so if we open a second one in the trader it will be orphaned and never close
+            // So until we have a unique ID that is provided on the signal and NBT Hub can track them correctly, we're just going to have to ignore concurrent trades and treat this as a continuation
+            if (tradeOpen) {
+                const logMessage = `Skipping signal as existing open trade already found for ${getLogName(undefined, signal)}.`
                 logger.error(logMessage)
-                return Promise.reject(logMessage)        
+                return Promise.reject(logMessage)
             }
             break
         case EntryType.EXIT:
@@ -609,18 +632,46 @@ export async function checkTradingData(signal: Signal, source: SourceType): Prom
 
             // Can't automatically close a stopped trade, but will still let through a manual close
             if (source == SourceType.SIGNAL && tradeOpen.isStopped) {
-                const logMessage =
-                    "Skipping signal as trading is stopped for this position."
+                const logMessage = `Skipping signal as trade ${getLogName(tradeOpen)} is stopped.`
                 logger.warn(logMessage)
                 return Promise.reject(logMessage)
             }
 
-            logger.debug(`Getting position type from open tade: ${tradeOpen.positionType}.`)
+            logger.debug(`Getting position type from open trade: ${tradeOpen.positionType}.`)
             signal.positionType = tradeOpen.positionType
 
             // A manual close won't have a price, so just have to use the original open price
             if (!signal.price) signal.price = tradeOpen.priceBuy
             if (!signal.price) signal.price = tradeOpen.priceSell
+
+            // Check to satisfy the compiler, if no price it will fail later anyway
+            if (signal.price) {
+                // Calculate whether this trade will make a profit or loss
+                const net = tradeOpen.positionType == PositionType.LONG ? signal.price.minus(tradeOpen.priceBuy!) : tradeOpen.priceSell!.minus(signal.price)
+                logger.debug(`Closing price difference is: ${net.toFixed()}.`)
+
+                // Check if strategy has hit the losing trade limit, and this an automatic trade signal
+                // Strategy may be undefined if no longer followed, but then we should only get here for a manual close
+                if ((!strategy || strategy.isStopped) && source == SourceType.SIGNAL && signal.price) {
+                    if (net.isNegative()) {
+                        const logMessage = `Skipping signal as strategy ${getLogName(undefined, signal)} has been stopped and this trade will make another loss, close it manually or wait for a better close signal.`
+                        logger.error(logMessage)
+                        return Promise.reject(logMessage)
+                    } else {
+                        // Winning trades are allowed through
+                        logger.info(`Strategy ${getLogName(undefined, signal)} has been stopped, but this should be a winning trade.`)
+                    }
+                }
+            }
+            
+            break
+    }
+
+    // Always need a price
+    if (!signal.price) {
+        const logMessage = `Skipping signal for ${getLogName(undefined, signal)} as price was missing.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)        
     }
 
     // Check if this type of trade can be executed
@@ -634,8 +685,7 @@ export async function checkTradingData(signal: Signal, source: SourceType): Prom
             }
 
             if (signal.entryType === EntryType.ENTER && env().MAX_LONG_TRADES && getOpenTradeCount(signal.positionType, strategy.tradingType) >= env().MAX_LONG_TRADES) {
-                const logMessage =
-                    "Skipping signal as maximum number of short trades has been reached."
+                const logMessage = "Skipping signal as maximum number of short trades has been reached."
                 logger.error(logMessage)
                 return Promise.reject(logMessage)
             }
@@ -646,22 +696,19 @@ export async function checkTradingData(signal: Signal, source: SourceType): Prom
             // We can still close SHORT trades if they were previously opened on margin, so only skip the open trade signals
             if (signal.entryType === EntryType.ENTER) {
                 if (!env().IS_TRADE_SHORT_ENABLED) {
-                    const logMessage =
-                        "Skipping signal as short trading is disabled."
+                    const logMessage = "Skipping signal as short trading is disabled."
                     logger.error(logMessage)
                     return Promise.reject(logMessage)
                 }
 
                 if (!env().IS_TRADE_MARGIN_ENABLED) {
-                    const logMessage =
-                        "Skipping signal as margin trading is disabled but is required for short trading."
+                    const logMessage = "Skipping signal as margin trading is disabled but is required for short trading."
                     logger.error(logMessage)
                     return Promise.reject(logMessage)
                 }
 
                 if (env().MAX_SHORT_TRADES && getOpenTradeCount(signal.positionType, strategy.tradingType) >= env().MAX_SHORT_TRADES) {
-                    const logMessage =
-                        "Skipping signal as maximum number of short trades has been reached."
+                    const logMessage = "Skipping signal as maximum number of short trades has been reached."
                     logger.error(logMessage)
                     return Promise.reject(logMessage)
                 }
@@ -763,7 +810,7 @@ export function getTradingSequence(
         before: borrow,
         mainAction: order,
         after: repay,
-        // Cannot send sell signals to BVA for auto balancing because it will be treated as a close
+        // Cannot send sell signals to the NBT Hub for auto balancing because it will be treated as a close
         socketChannel: source != SourceType.REBALANCE ? `traded_${action}_signal` : '',
     }
 
@@ -771,7 +818,7 @@ export function getTradingSequence(
 }
 
 // Performs the actual buy, sell, borrow, or repay trade functions, and keeps a record of the transaction
-export async function executeTradeAction(
+async function executeTradeAction(
     tradeOpen: TradeOpen,
     source: SourceType,
     action: ActionType,
@@ -851,7 +898,7 @@ export async function executeTradeAction(
 }
 
 // Simulates buy and sell transactions on the virtual balances
-export async function createVirtualOrder(
+async function createVirtualOrder(
     tradeOpen: TradeOpen,
     action: ActionType
 ) {
@@ -869,24 +916,24 @@ export async function createVirtualOrder(
             break
     }
 
-    logger.info(`After ${action}, current ${tradeOpen.wallet} virtual balances are now ${virtualBalances[tradeOpen.wallet!][market.base]} ${market.base} and ${virtualBalances[tradeOpen.wallet!][market.quote]} ${market.quote}.`)
+    logger.debug(`After ${action}, current ${tradeOpen.wallet} virtual balances are now ${virtualBalances[tradeOpen.wallet!][market.base]} ${market.base} and ${virtualBalances[tradeOpen.wallet!][market.quote]} ${market.quote}.`)
 }
 
 // Simulates borrowing on the virtual balances
-export async function virtualBorrow(asset: string, quantity: BigNumber) {
+async function virtualBorrow(asset: string, quantity: BigNumber) {
     if (quantity.isGreaterThan(0)) {
         virtualBalances[WalletType.MARGIN][asset] = virtualBalances[WalletType.MARGIN][asset].plus(quantity)
 
-        logger.info(`After borrow, current ${WalletType.MARGIN} virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
+        logger.debug(`After borrow, current ${WalletType.MARGIN} virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
     }
 }
 
 // Simulates repaying borrowed funds on the virtual balances
-export async function virtualRepay(asset: string, quantity: BigNumber) {
+async function virtualRepay(asset: string, quantity: BigNumber) {
     if (quantity.isGreaterThan(0)) {
         virtualBalances[WalletType.MARGIN][asset] = virtualBalances[WalletType.MARGIN][asset].minus(quantity)
 
-        logger.info(`After repay, current ${WalletType.MARGIN} virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
+        logger.debug(`After repay, current ${WalletType.MARGIN} virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
     }
 }
 
@@ -896,26 +943,24 @@ export async function executeTradingTask(
     tradingSequence: TradingSequence,
     signal?: Signal
 ) {
-    logger.info(
-        `Executing a ${tradeOpen.tradingType} trade of ${tradeOpen.quantity} units of symbol ${tradeOpen.symbol} at price ${tradeOpen.priceBuy ? tradeOpen.priceBuy : tradeOpen.priceSell} (${tradeOpen.cost} total).`
-    )
+    logger.info(`${signal ? signal.entryType == EntryType.ENTER ? "Enter" : "Exit" : "Execut"}ing a ${tradeOpen.tradingType} ${tradeOpen.positionType} trade on ${tradeOpen.wallet} of ${tradeOpen.quantity} units of symbol ${tradeOpen.symbol}.`)
 
-    // TODO: Track whether trade failed
+    // TODO: Track whether parts of the trade failed, perhaps use a retry queue
 
     // This might be a borrow request for margin trading
     if (tradingSequence.before) {
         await tradingSequence
             .before()
             .then(() => {
-                logger.info(
-                    "Successfully executed the trading sequence's before step."
-                )
+                logger.debug("Successfully executed the trading sequence's before step.")
             })
             .catch((reason) => {
-                logger.error(
-                    `Failed to execute the trading sequence's before step: ${reason}`
-                )
-                return
+                const logMessage = `Failed to execute the trading sequence's before step: ${reason}`
+                logger.error(logMessage)
+                notifyAll(getNotifierMessage(MessageType.ERROR, signal, tradeOpen, logMessage)).catch((reason) => {
+                    logger.debug("executeTradingTask->notifyAll: " + reason)
+                })
+                return Promise.reject(logMessage)
             })
     }
 
@@ -923,18 +968,18 @@ export async function executeTradingTask(
     await tradingSequence
         .mainAction()
         .then(() => {
-            logger.info(
-                "Successfully executed the trading sequence's main action step."
-            )
+            logger.debug("Successfully executed the trading sequence's main action step.")
 
-            // Notify BVA hub that trade has been executed
+            // Notify NBT Hub that trade has been executed
             emitSignalTraded(tradingSequence.socketChannel, tradeOpen)
         })
         .catch((reason) => {
-            logger.error(
-                `Failed to execute the trading sequence's main action step: ${reason}`
-            )
-            return
+            const logMessage = `Failed to execute the trading sequence's main action step: ${reason}`
+            logger.error(logMessage)
+            notifyAll(getNotifierMessage(MessageType.ERROR, signal, tradeOpen, logMessage)).catch((reason) => {
+                logger.debug("executeTradingTask->notifyAll: " + reason)
+            })
+            return Promise.reject(logMessage)
         })
 
     // This might be a repayment request for margin trading
@@ -942,15 +987,15 @@ export async function executeTradingTask(
         await tradingSequence
             .after()
             .then(() => {
-                logger.info(
-                    "Successfully executed the trading sequence's after step."
-                )
+                logger.debug("Successfully executed the trading sequence's after step.")
             })
             .catch((reason) => {
-                logger.error(
-                    `Failed to execute the trading sequence's after step: ${reason}`
-                )
-                return
+                const logMessage = `Failed to execute the trading sequence's after step: ${reason}`
+                logger.error(logMessage)
+                notifyAll(getNotifierMessage(MessageType.ERROR, signal, tradeOpen, logMessage)).catch((reason) => {
+                    logger.debug("executeTradingTask->notifyAll: " + reason)
+                })
+                return Promise.reject(logMessage)
             })
     }
 
@@ -959,21 +1004,19 @@ export async function executeTradingTask(
 
     // Send notifications (e.g. email) that signal is complete
     // Some trades may be the result of rebalancing, so no signal is available
-    if (signal) {
-        notifyAll(getNotifierMessage(signal, true)) // TODO: Notify on failure.
-    } else {
-        // TODO: Notify of non-signal triggered trades
-    }
+    notifyAll(getNotifierMessage(MessageType.SUCCESS, signal, tradeOpen)).catch((reason) => {
+        logger.debug("executeTradingTask->notifyAll: " + reason)
+    })
 }
 
-// Notify BVA hub that the trade has been executed
+// Notify NBT Hub that the trade has been executed
 function emitSignalTraded(channel: string, tradeOpen: TradeOpen) {
     // Some trades may be silent (i.e. auto balancing)
     if (channel != '') socket.emitSignalTraded(channel, tradeOpen.symbol, tradeOpen.strategyId, tradeOpen.strategyName, tradeOpen.quantity, tradeOpen.tradingType!)
 }
 
 // Creates the trading sequence and adds it to the trading queue
-export async function scheduleTrade(
+async function scheduleTrade(
     tradeOpen: TradeOpen,
     entryType: EntryType,
     source: SourceType,
@@ -1003,10 +1046,10 @@ export async function trade(signal: Signal, source: SourceType) {
         return Promise.reject(reason)
     })
 
-    // Notify after signal check.
-    await notifyAll(getNotifierMessage(signal)).catch((reason) => {
+    // Notify of incoming signal that we want to process, we will also send a notification once the trade is executed
+    // There is no need to wait for this to finish
+    notifyAll(getNotifierMessage(MessageType.INFO, signal)).catch((reason) => {
         logger.debug("trade->notifyAll: " + reason)
-        return Promise.reject(reason)
     })
 
     let tradeOpen: TradeOpen | undefined
@@ -1038,14 +1081,7 @@ export async function trade(signal: Signal, source: SourceType) {
     await scheduleTrade(tradeOpen!, tradingData.signal.entryType, source, tradingData.signal).catch(
         (reason) => {
             logger.debug("trade->scheduleTrade: " + reason)
-            // This is a special case where the user has stopped a trade then tried to close it and it failed
-            if (tradeOpen!.isStopped && tradingData.signal.entryType == EntryType.EXIT) {
-                logger.error(`Could not close stopped ${tradeOpen!.symbol} trade properly, so just going to fake it.`)
-                // Tell BVA hub that the trade was closed even though it probably wasn't
-                emitSignalTraded(`traded_${tradeOpen!.positionType == PositionType.SHORT ? ActionType.BUY : ActionType.SELL}_signal`, tradeOpen!)
-            } else {
-                return Promise.reject(reason)
-            }
+            return Promise.reject(reason)
         }
     )
 
@@ -1063,21 +1099,48 @@ export async function trade(signal: Signal, source: SourceType) {
                     tradesOpenElement !== tradeOpen
             )
         
-        // Calculate the change in value
+        // Calculate the change in value, for checking loss limit and updating balance history
         // Note, we don't track the change in value for rebalancing, so the only time we will get a different price is when it is initiated by a signal
         const newCost = tradeOpen!.quantity.multipliedBy(tradingData.signal.price!)
         const change = tradeOpen!.positionType == PositionType.SHORT
             ? tradeOpen!.cost!.minus(newCost) 
             : newCost.minus(tradeOpen!.cost!)
-        
+
+        const strategy = tradingMetaData.strategies[tradeOpen!.strategyId]
+        // Manually closing a trade should not affect the count of losses
+        if (strategy && source == SourceType.SIGNAL) {
+            // Check for losing trade
+            if (change.isLessThan(0)) {
+                // Losing trade, increase the count
+                strategy.lossTradeRun++
+
+                // Check for the loss limit
+                // Losing trades may still come through if they are closed manually, so only log the stop once
+                if (!strategy.isStopped && env().STRATEGY_LOSS_LIMIT && strategy.lossTradeRun >= env().STRATEGY_LOSS_LIMIT) {
+                    const logMessage = `${getLogName(undefined, signal)} has had too many losing trades, stopping new trades for this strategy.`
+                    logger.error(logMessage)
+                    strategy.isStopped = true
+                    // Notify strategy is stopped
+                    notifyAll(getNotifierMessage(MessageType.WARN, signal, undefined, logMessage)).catch((reason) => {
+                        logger.debug("trade->notifyAll: " + reason)
+                    })
+                }
+            } else {
+                if (strategy.lossTradeRun > 0) logger.debug(`${getLogName(undefined, signal)} had ${strategy.lossTradeRun} losses in a row.`)
+
+                // Winning trade, reset the count
+                strategy.lossTradeRun = 0
+            }
+        }
+
         // Send the change value to the balance history
-        updateBalanceHistory(tradeOpen!.tradingType!, tradingData.market.quote, undefined, change)
+        updateBalanceHistory(tradeOpen!.tradingType!, tradingData.market.quote, tradingData.signal.entryType, undefined, change)
     }
     logger.debug(`Now ${tradingMetaData.tradesOpen.length} open trades.`)
 }
 
 // Schedule the sell commands to rebalance an existing trade to a new cost, also update the current balance in the wallet
-export async function rebalanceTrade(tradeOpen: TradeOpen, cost: BigNumber, wallet: WalletData) {
+async function rebalanceTrade(tradeOpen: TradeOpen, cost: BigNumber, wallet: WalletData) {
     if (!tradeOpen.cost) {
         // Hopefully this won't happen
         return Promise.reject(`Could not rebalance ${tradeOpen.symbol} trade, cost is undefined.`)
@@ -1144,8 +1207,8 @@ export async function rebalanceTrade(tradeOpen: TradeOpen, cost: BigNumber, wall
 }
 
 // Calculates the trade quantity/cost for an open trade signal based on the user configuration, then generates a new TradeOpen structure
-export async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
-    // Start with the default quantity to buy (cost) as entered into BVA hub
+async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
+    // Start with the default quantity to buy (cost) as entered into NBT Hub
     let cost = tradingData.strategy.tradeAmount // The amount of the quote coin to trade (e.g. BTC for ETHBTC)
     let quantity = new BigNumber(0) // The amount of the base coin to trade (e.g. ETH for ETHBTC)
     let borrow = new BigNumber(0) // The amount of either the base (for SHORT) or quote (for LONG) that needs to be borrowed
@@ -1215,15 +1278,21 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
         }
     }
 
-    // Calculate wallet totals
+    // Calculate wallet totals and subtract the buffer
     let totalBalance = new BigNumber(0)
     Object.values(wallets).forEach(wallet => {
         wallet.total = wallet.free.plus(wallet.locked)
         totalBalance = totalBalance.plus(wallet.total)
+
+        if (env().WALLET_BUFFER) {
+            const buffer = wallet.total.multipliedBy(env().WALLET_BUFFER)
+            wallet.free = wallet.free.minus(buffer)
+            wallet.total = wallet.total.minus(buffer)
+        }
     })
 
     // We only look at the balances when opening a trade, so keep them for the history
-    updateBalanceHistory(tradingData.strategy.tradingType, tradingData.market.quote, totalBalance)
+    updateBalanceHistory(tradingData.strategy.tradingType, tradingData.market.quote, EntryType.ENTER, totalBalance)
 
     // See if the cost should be converted to a fraction of the balance
     if (env().IS_BUY_QTY_FRACTION) {
@@ -1236,7 +1305,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
 
         // Calculate the fraction of the total balance
         cost = wallets[primary].total.multipliedBy(cost)
-        logger.info(`${primary} wallet is ${wallets[primary].total} so target trade cost will be ${cost} ${tradingData.market.quote}`)
+        logger.info(`Total usable ${primary} wallet is ${wallets[primary].total} so target trade cost will be ${cost} ${tradingData.market.quote}`)
     }
 
     // Check for the minimum trade cost supported by the exchange
@@ -1309,7 +1378,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
                                     while (smaller) {
                                         smaller = false
                                         // Calculate the average trade size of the remaining trades and assuming the free balance will also be a trade
-                                        wallet.potential = wallet.total.plus(wallet.free).dividedBy(wallet.trades.length + 1)
+                                        wallet.potential = wallet.total.dividedBy(wallet.trades.length + 1)
                                         // Note we're going to overwrie the total and trades for this wallet because it is easier for processing, we shouldn't need the originals anymore
                                         wallet.total = new BigNumber(0)
                                         const largeTrades: TradeOpen[] = []
@@ -1320,11 +1389,13 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
                                                 wallet.total = wallet.total.plus(trade.cost!)
                                             } else {
                                                 // This trade is below the average, so it won't get rebalanced
-                                                logger.debug(`${trade.strategyName} ${trade.symbol} cost of ${trade.cost} is below the average of ${wallet.potential} so won't be rebalanced.`)
+                                                logger.debug(`${getLogName(trade)} cost of ${trade.cost} is below the average of ${wallet.potential} so won't be rebalanced.`)
                                                 // The list of trades is different, so we'll need to loop again and calculate a new average
                                                 smaller = true
                                             }
                                         })
+                                        // Add the usable free balance back to the remaining total trades
+                                        wallet.total = wallet.total.plus(wallet.free)
                                         // Keep the remaining list of large trades
                                         wallet.trades = largeTrades
                                     }
@@ -1341,7 +1412,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
                         // Get the best wallet based on the new potential
                         use = getBestWallet(cost, preferred, wallets)
                         // Maybe rebalancing could give us more than we need for this trade, e.g. if we have more than the maximum trade volume
-                        if (cost.isGreaterThan(use.potential!)) cost = use.potential!
+                        if (use.potential!.isLessThan(cost)) cost = use.potential!
 
                         // Check for the minimum cost here as we don't want to start rebalancing if we can't make the trade
                         if (tradingData.market.limits.cost?.min && cost.isLessThan(tradingData.market.limits.cost.min)) {
@@ -1350,9 +1421,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
                             return Promise.reject(logMessage)            
                         }
 
-                        logger.info(
-                            `Attempting to rebalance ${use.trades.length} existing trade(s) to ${use.potential} ${tradingData.market.quote} to make a new trade of ${cost} ${tradingData.market.quote}.`
-                        )
+                        logger.info(`Attempting to rebalance ${use.trades.length} existing trade(s) on ${use.type} to ${use.potential} ${tradingData.market.quote} to make a new trade of ${cost} ${tradingData.market.quote}.`)
 
                         // Rebalance all the remaining trades in this wallet to the calculated trade size
                         for (let trade of use.trades) {
@@ -1363,10 +1432,13 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
                                 })
                         }
 
-                        // Just to be sure, let's check the free balance again, this will probably alway fire due to rounding
+                        // Just to be sure, let's check the free balance again, this will probably alway happen due to rounding
                         if (use.free.isLessThan(cost)) {
+                            // To limit spamming the logs, we'll only warn if there was more than 0.5% change
+                            if (use.free.multipliedBy(1.005).isLessThan(cost)) {
+                                logger.warn(`Rebalancing resulted in a lower trade of only ${use.free} ${tradingData.market.quote} instead of ${use.free} ${tradingData.market.quote}.`)
+                            }
                             cost = use.free
-                            logger.warn(`Rebalancing resulted in a lower trade of only ${cost} ${tradingData.market.quote}.`)
                         }
                         break
                 }
@@ -1387,7 +1459,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
         borrow = quantity
     }
 
-    let msg = `${tradingData.signal.symbol} ${tradingData.signal.positionType} trade will be executed on ${preferred[0]}, total of ${quantity} ${tradingData.market.base} for ${cost} ${tradingData.market.quote}.`
+    let msg = `${getLogName(undefined, tradingData.signal)} trade will be executed on ${preferred[0]}, total of ${quantity} ${tradingData.market.base} for ${cost} ${tradingData.market.quote}.`
     if (borrow.isGreaterThan(0)) {
         msg += `Also need to borrow ${borrow} ${tradingData.market.quote}.`
     }
@@ -1395,7 +1467,7 @@ export async function createTradeOpen(tradingData: TradingData): Promise<TradeOp
 
     // Create the new trade
     return Promise.resolve({
-        id: "T" + Date.now(), // Generate a temporary internal ID, because we only get one from BVA when reloading the payload
+        id: "T" + Date.now(), // Generate a temporary internal ID, because we only get one from the NBT Hub when reloading the payload
         isStopped: false,
         positionType: tradingData.signal.positionType!,
         tradingType: tradingData.strategy.tradingType,
@@ -1435,7 +1507,7 @@ function getPreferredWallets(market: Market, positionType = PositionType.LONG) {
         preferred = preferred.filter(w => w != WalletType.MARGIN)
     }
 
-    logger.info(`Identified ${preferred.length} potential wallet(s) to use for this trade, ${preferred[0]} is preferred.`)
+    logger.debug(`Identified ${preferred.length} potential wallet(s) to use for this trade, ${preferred[0]} is preferred.`)
 
     return { preferred, primary }
 }
@@ -1458,22 +1530,63 @@ function getBestWallet(cost: BigNumber, preferred: WalletType[], wallets: Dictio
     return largest
 }
 
+// Clears all virtual balances and corresponding balance history, then initialises balances from open trades
+export function resetVirtualBalances(virtualTrades?: TradeOpen[]) {
+    // Set up virtual wallets
+    Object.values(WalletType).forEach(wallet => virtualBalances[wallet] = {})
+    if (Object.keys(balanceHistory).includes(TradingType.virtual)) delete balanceHistory[TradingType.virtual]
+
+    if (!virtualTrades) {
+        virtualTrades = tradingMetaData.tradesOpen.filter(trade => trade.tradingType == TradingType.virtual)
+    }
+
+    virtualTrades.forEach(trade => {
+        const market = tradingMetaData.markets[trade.symbol]
+        initialiseVirtualBalances(trade.wallet!, market)
+        switch (trade.positionType) {
+            case PositionType.SHORT:
+                // We've already borrowed and sold the asset, so we should have surplus funds
+                virtualBalances[trade.wallet!][market.quote] = virtualBalances[trade.wallet!][market.quote].plus(trade.cost!)
+                break
+            case PositionType.LONG:
+                // We've already bought the asset, so we should have less funds
+                virtualBalances[trade.wallet!][market.base] = virtualBalances[trade.wallet!][market.base].plus(trade.quantity!)
+                virtualBalances[trade.wallet!][market.quote] = virtualBalances[trade.wallet!][market.quote].minus(trade.cost!)
+                // TODO: It would be better to rebalance the virtual trades to keep the defined open balance, but that will take some work
+                if (virtualBalances[trade.wallet!][market.quote].isLessThan(0)) virtualBalances[trade.wallet!][market.quote] = new BigNumber(0)
+                break
+        }
+    })
+}
+
 // Initialise the virtual balances if not already used for these coins
+// Note, If you have different strategies using different quote assets but actively trading in each other's asset, one of them may miss out on the initial balance
 function initialiseVirtualBalances(walletType: WalletType, market: Market) {
     if (virtualBalances[walletType][market.base] == undefined) virtualBalances[walletType][market.base] = new BigNumber(0) // Start with zero base (e.g. ETH for ETHBTC)
-    if (virtualBalances[walletType][market.quote] == undefined) virtualBalances[walletType][market.quote] = new BigNumber(env().VIRTUAL_WALLET_FUNDS) // Start with the default balance for quote (e.g. BTC for ETHBTC)
+    if (virtualBalances[walletType][market.quote] == undefined) {
+        let value = virtualWalletFunds
+        const btc = tradingMetaData.markets[REFERENCE_SYMBOL]
+        // If the quote asset is not BTC, then use the minimum costs to scale the opening balance
+        if (market.quote != "BTC" && market.limits.cost && btc && btc.limits.cost) {
+            value = value.dividedBy(btc.limits.cost.min).multipliedBy(market.limits.cost.min)
+            logger.debug(`Calculated virtual opening balance of ${value} ${market.quote}`)
+            if (!value.isGreaterThan(0)) value = virtualWalletFunds // Just in case
+        }
+    
+        virtualBalances[walletType][market.quote] = value // Start with the default balance for quote (e.g. BTC for ETHBTC)
+    }
 }
 
 // Updates the running balance for the current day
-function updateBalanceHistory(tradingType: TradingType, asset: string, balance?: BigNumber, change?: BigNumber) {
+function updateBalanceHistory(tradingType: TradingType, quote: string, entryType: EntryType, balance?: BigNumber, change?: BigNumber) {
     if (!Object.keys(balanceHistory).includes(tradingType)) balanceHistory[tradingType] = {}
-    if (!Object.keys(balanceHistory[tradingType]).includes(asset)) balanceHistory[tradingType][asset] = []
+    if (!Object.keys(balanceHistory[tradingType]).includes(quote)) balanceHistory[tradingType][quote] = []
 
     // Get last history slice
-    let h = balanceHistory[tradingType][asset].slice(-1).pop()
+    let h = balanceHistory[tradingType][quote].slice(-1).pop()
     if (!h && !balance) {
         // This usually happens when the trader is restarted with existing open trades, and a close signal comes through first
-        logger.error(`No previous PNL balance for ${tradingType} ${asset}, cannot track this change.`)
+        logger.error(`No previous balance history for ${tradingType} ${quote}, cannot track this change.`)
         return
     }
     if (!balance) {
@@ -1483,31 +1596,55 @@ function updateBalanceHistory(tradingType: TradingType, asset: string, balance?:
     // Initialise history here so that the timestamp is locked
     const tmpH = new BalanceHistory(balance)
 
-    // Check if existing PNL is still the same date
+    // Check if existing balance history is still the same date
     if (!h || !(h.timestamp.getFullYear() == tmpH.timestamp.getFullYear() && h.timestamp.getMonth() == tmpH.timestamp.getMonth() && h.timestamp.getDate() == tmpH.timestamp.getDate())) {
-        balanceHistory[tradingType][asset].push(tmpH)
+        balanceHistory[tradingType][quote].push(tmpH)
         h = tmpH
     }
 
-    // Update latest balance
+    // Calculate number of concurrent open trades
+    // This method should be called before the opened trade is added, or after the closed trade is removed, so that's why we add 1 to count the calling trade
+    const openTradeCount = tradingMetaData.tradesOpen.filter(trade => trade.tradingType == tradingType && tradingMetaData.markets[trade.symbol].quote == quote).length + 1
+
+    // Update latest balances and stats
     if (change) balance = balance.plus(change)
     h.closeBalance = balance
+    if (h.minOpenTrades == undefined || openTradeCount-1 < h.minOpenTrades) h.minOpenTrades = openTradeCount-1 // Unless this fires on exactly midnight, there must have been a time before or after this trade
+    if (h.maxOpenTrades == undefined || openTradeCount > h.maxOpenTrades) h.maxOpenTrades = openTradeCount
+    if (entryType == EntryType.ENTER) {
+        h.totalOpenedTrades++
+    } else {
+        h.totalClosedTrades++
+    }
 
-    // Remove previous PNL slices that are older than 1 year
+    // Remove previous history slices that are older than 1 year, but keep the very first entry for lifetime opening balance
     const lastYear = new Date(tmpH.timestamp.getFullYear()-1, tmpH.timestamp.getMonth(), tmpH.timestamp.getDate())
-    while (balanceHistory[tradingType][asset].length > 1 && balanceHistory[tradingType][asset][0].timestamp <= lastYear) {
-        balanceHistory[tradingType][asset].shift()
+    while (balanceHistory[tradingType][quote].length > 1 && balanceHistory[tradingType][quote][1].timestamp <= lastYear) {
+        balanceHistory[tradingType][quote].splice(1, 1)
     }
 }
 
+// Constructs a consistent name for trades, signals, and strategies for logging
+function getLogName(tradeOpen?: TradeOpen, signal?: Signal, strategy?: Strategy) {
+    if (tradeOpen) {
+        return `${tradeOpen.strategyId} "${tradeOpen.strategyName}" ${tradeOpen.tradingType} ${tradeOpen.symbol} ${tradeOpen.positionType}`
+    } else if (signal) {
+        return `${signal.strategyId} "${signal.strategyName}" ${signal.symbol} ${signal.positionType ? signal.positionType : ""}`
+    } else if (strategy) {
+        return `${strategy.id} ${strategy.tradingType}`
+    }
+
+    return "[ERROR]"
+}
+
 export function getOnSignalLogData(signal: Signal): string {
-    return `for strategy ${signal.strategyId} "${signal.strategyName}" and symbol ${signal.symbol}`
+    return `for strategy ${getLogName(undefined, signal)}`
 }
 
 export function getTradeOpen(signal: Signal): TradeOpen | undefined {
     const tradesOpenFiltered = getTradeOpenFiltered(signal)
 
-    const logData = `in strategy ${signal.strategyId} for symbol ${signal.symbol}`
+    const logData = `in strategy ${getLogName(undefined, signal)}`
 
     if (tradesOpenFiltered.length > 1) {
         logger.warn(
@@ -1529,12 +1666,11 @@ export function getTradeOpenFiltered(signal: Signal): TradeOpen[] {
             (signal.positionType
                 ? tradeOpen.positionType === signal.positionType
                 : true) // If the signal contains a position type, then the open trade must match that.
-        // TODO: Check for same order size.
     )
 }
 
 // Gets a count of the open active trades for a given position type, and also within the same real/virtual trading
-export function getOpenTradeCount(positionType: PositionType, tradingType: TradingType) {
+function getOpenTradeCount(positionType: PositionType, tradingType: TradingType) {
     return tradingMetaData.tradesOpen.filter(
         (tradeOpen) =>
             tradeOpen.positionType === positionType &&
@@ -1545,7 +1681,7 @@ export function getOpenTradeCount(positionType: PositionType, tradingType: Tradi
 
 // Ensures that the order quantity is within the allowed limits and precision
 // https://ccxt.readthedocs.io/en/latest/manual.html#precision-and-limits
-export function getLegalQty(qty: BigNumber, market: Market, price: BigNumber): BigNumber {
+function getLegalQty(qty: BigNumber, market: Market, price: BigNumber): BigNumber {
     // Check min and max order quantity
     if (qty.isLessThan(market.limits.amount.min)) {
         qty = new BigNumber(market.limits.amount.min)
@@ -1607,10 +1743,27 @@ async function refreshMarkets() {
     }
 }
 
+// Main function to start the trader
 async function run() {
-    logger.info("Trader starting...")
+    logger.info(`Trader v${env().VERSION} is starting...`)
 
-    // TODO: Validate configuration
+    // Validate environment variable configuration
+    let issues: string[] = []
+    if (env().MAX_LOG_LENGTH <= 1) issues.push("MAX_LOG_LENGTH must be greater than 0.")
+    if (!Number.isInteger(env().MAX_LOG_LENGTH)) issues.push("MAX_LOG_LENGTH must be a whole number.")
+    if (env().WALLET_BUFFER < 0 || env().WALLET_BUFFER >= 1) issues.push("WALLET_BUFFER must be from 0 to 0.99.")
+    if (env().MAX_SHORT_TRADES < 0) issues.push("MAX_SHORT_TRADES must be 0 or more.")
+    if (!Number.isInteger(env().MAX_SHORT_TRADES)) issues.push("MAX_SHORT_TRADES must be a whole number.")
+    if (env().MAX_LONG_TRADES < 0) issues.push("MAX_LONG_TRADES must be 0 or more.")
+    if (!Number.isInteger(env().MAX_LONG_TRADES)) issues.push("MAX_LONG_TRADES must be a whole number.")
+    if (env().STRATEGY_LOSS_LIMIT < 0) issues.push("STRATEGY_LOSS_LIMIT must be 0 or more.")
+    if (!Number.isInteger(env().STRATEGY_LOSS_LIMIT)) issues.push("STRATEGY_LOSS_LIMIT must be a whole number.")
+    if (env().VIRTUAL_WALLET_FUNDS <= 0) issues.push("VIRTUAL_WALLET_FUNDS must be greater than 0.")
+    if (issues.length) {
+        issues.forEach(issue => logger.error(issue))
+        return Promise.reject(issues.join(" "))
+    }
+    
     logger.debug(`Primary wallet is ${env().PRIMARY_WALLET.toLowerCase() as WalletType}.`)
 
     initializeNotifiers()
@@ -1621,10 +1774,8 @@ async function run() {
         return Promise.reject(reason)
     })
 
-    // Set up virtual wallets
-    Object.values(WalletType).forEach(wallet => virtualBalances[wallet] = {})
-
     // Note, we can't get previously open trades here because we need to know whether they are real or virtual, so we have to wait for the payload
+    // Strategies also come down in the payload, so no signals will be accepted until that is processed
 
     socket.connect()
     startWebserver()
@@ -1632,6 +1783,13 @@ async function run() {
     logger.info("Trader started.")
 }
 
+// Starts the trader
 if (process.env.NODE_ENV !== "test") {
     run().catch(() => process.exit())
 }
+
+const exportFunctions = {
+    trade,
+}
+
+export default exportFunctions
