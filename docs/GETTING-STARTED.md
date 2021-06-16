@@ -1,5 +1,3 @@
-[Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com)
-
 # Getting started
 
 This step by step guide will help you get your account up and running with the popular BVA strategy.
@@ -17,7 +15,7 @@ The total time to complete this guide should be less than 10 minutes if you alre
 
 ## How to get started
 
-First, you need an account with Binance. The registration can be done here: https://accounts.binance.com/en/register
+First, you need an account with Binance. The registration can be done here: [Binance](https://www.binance.com/en-AU/register?ref=141340247)
 
 By default the trader tries to trade with margin, so you need to have at least 0.001 BTC in your spot as well as your margin account.
 Also, to cover trading fees, you'll need a small amount of BNB in both your spot and margin wallets.
@@ -33,11 +31,11 @@ Once you have these accounts set up, you're ready to set up the actual trading!
 
 ## Setting up your own personal trading bot
 
-While the Bitcoin vs. Altcoins website itself is closed source, the  automated trading bot called [Node Binance Trader (NBT)](https://github.com/jsappme/node-binance-trader) is open source. It connects to your Binance account via the Binance API and executes the trades on your behalf.
+While the Bitcoin vs. Altcoins website itself is closed source, the  automated trading bot called [Node Binance Trader (NBT)](https://github.com/PostmanSpat/node-binance-trader) is open source. It connects to your Binance account via the Binance API and executes the trades on your behalf.
 
 NBT needs to be hosted by yourself, which makes the deployment independent and secure. Luckily this is easy to set up and can be done with one click!
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/jsappme/node-binance-trader)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://heroku.com/deploy?template=https://github.com/PostmanSpat/node-binance-trader)
 
 Clicking this button will take you to this screen:
 
@@ -67,7 +65,7 @@ Once you have selected your strategies you will see that they are now present in
 
 Here you can choose if you want to trade for real or paper trade (with virtual money), as well as the amount from your Binance account which you want to trade with*. Please note, this is the amount the bot will use per trade and there can be multiple open trades at once. A sensible approach may be start with this value set at 10% of the value you want to trade with. You'll also need to check the *trade* box to make the signal live.
 
-*The trader has several options for choosing the amount to trade, see the additional configuration options below.
+*The trader has several options for calculating the amount to trade, see the additional configuration options below.
 
 You're almost done.
 
@@ -86,6 +84,8 @@ Let's check if the bot is running from the logs. You also can check detailed inf
 ![heroku_logs](images/running.png)
 
 This is an example of how it looks if the bot is running. Make sure to switch from All process to Web.
+
+You can also access the log and other diagnostics via the webservice (e.g. https://example-trader-BVA.herokuapp.com:8003/log). Refer to the **[README File 📖](../README.md)** for all options.
 
 ## Keep it trading 24/7
 
@@ -109,7 +109,7 @@ Once you have created this monitor, you're done! Now you have a live trading bot
 
 ## Additional Configuration Options
 
-Using the Config Vars in Heroku (an environment variable configuration file) you can configure any of the following options. See the **[Read-Me File 📖](../README.md)** for more details on what the trader features do.
+Using the Config Vars in Heroku (an environment variable configuration file) you can configure any of the following options. See the **[README File 📖](../README.md)** for more details on what the trader features do.
 
 To add new Config Vars in Heroku:
 1. Go to **Settings**
