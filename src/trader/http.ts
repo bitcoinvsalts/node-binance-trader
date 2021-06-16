@@ -3,9 +3,10 @@ import express from "express"
 
 import logger, { loggerOutput } from "../logger"
 import env from "./env"
-import { balanceHistory, tradingMetaData, transactions, virtualBalances } from "./trader"
+import { balanceHistory, resetVirtualBalances, setVirtualWalletFunds, tradingMetaData, transactions, virtualBalances} from "./trader"
 import { Dictionary } from "ccxt"
 import { BalanceHistory } from "./types/trader"
+import BigNumber from "bignumber.js"
 
 export default function startWebserver(): http.Server {
     const webserver = express()
@@ -20,9 +21,23 @@ export default function startWebserver(): http.Server {
     webserver.get("/strategies", (req, res) => {
         if (Authenticate(req, res)) res.send(HTMLTableFormat(Object.values(tradingMetaData.strategies)))
     })
-    // Allow user to see virtual balances
+    // Allow user to see, reset, and change virtual balances
     webserver.get("/virtual", (req, res) => {
-        if (Authenticate(req, res)) res.send(HTMLFormat(virtualBalances))
+        if (Authenticate(req, res)) {
+            if (req.query.reset) {
+                const value = new BigNumber(req.query.reset.toString())
+                if (value.isGreaterThan(0)) {
+                    setVirtualWalletFunds(value)
+                } else if (req.query.reset.toString().toLowerCase() != "true") {
+                    res.send("Invalid reset parameter.")
+                    return
+                }
+                resetVirtualBalances()
+                res.send("Virtual balances have been reset.")
+            } else {
+                res.send(HTMLFormat(virtualBalances))
+            }
+        } 
     })
     // Allow user to see log
     webserver.get("/log", (req, res) => {
