@@ -26,12 +26,14 @@ describe("socket", () => {
         const strategy: Strategy = {
             id: "string",
             isActive: true,
+            isStopped: false,
             stopLoss: -10,
             takeProfit: 10,
             tradeAmount: new BigNumber(123),
             tradingType: TradingType.virtual,
+            lossTradeRun: 0
         }
-        const quantity = 25
+        const quantity = new BigNumber(25)
 
         const signalTradedJson: SignalTradedJson = {
             key: "BVA_API_KEY",
@@ -42,7 +44,7 @@ describe("socket", () => {
             trading_type: TradingType.virtual,
         }
 
-        expect(getSignalTradedJson(signal, strategy, quantity)).toEqual(
+        expect(getSignalTradedJson(signal.symbol, signal.strategyId, signal.strategyName, quantity, strategy.tradingType)).toEqual(
             signalTradedJson
         )
     })

@@ -37,7 +37,7 @@ beforeAll(() => {
     const date = new Date(0)
     date.setTime(date.getTime() + date.getTimezoneOffset() * 60 * 1000)
     jest.useFakeTimers("modern")
-    jest.setSystemTime(date)
+    //jest.setSystemTime(date)
 })
 
 afterAll(() => {
@@ -256,6 +256,7 @@ describe("trader", () => {
             timeBuy: 1,
             timeSell: 2,
             timeUpdated: 3,
+            executed: true
         }
 
         tradingMetaData.tradesOpen = [tradeOpen]
@@ -466,16 +467,31 @@ describe("trader", () => {
             active: false,
         }
 
+        const tradeOpen: TradeOpen = {
+            id: "matches",
+            isStopped: false,
+            positionType: PositionType.LONG,
+            priceBuy: new BigNumber(1),
+            priceSell: new BigNumber(2),
+            quantity: new BigNumber(10),
+            strategyId: "stratid",
+            strategyName: "stratname",
+            symbol: "pair",
+            timeBuy: 1,
+            timeSell: 2,
+            timeUpdated: 3,
+            executed: true
+        }
+
         signal.entryType = EntryType.ENTER
         signal.positionType = PositionType.LONG
         market.margin = true
         setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: false })
 
-        await getTradingSequence({
-            market,
-            signal,
-            strategy,
-        })
+        await getTradingSequence(
+            tradeOpen,
+            signal.entryType,
+        )
             .then((value) =>
                 expect(JSON.stringify(value)).toBe(
                     JSON.stringify({
@@ -496,11 +512,10 @@ describe("trader", () => {
         market.margin = true
         setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: true })
 
-        await getTradingSequence({
-            market,
-            signal,
-            strategy,
-        })
+        await getTradingSequence(
+            tradeOpen,
+            signal.entryType
+        )
             .then((value) =>
                 expect(JSON.stringify(value)).toBe(
                     JSON.stringify({
@@ -519,11 +534,12 @@ describe("trader", () => {
         signal.entryType = EntryType.ENTER
         signal.positionType = PositionType.SHORT
 
-        await getTradingSequence({
-            market,
-            signal,
-            strategy,
-        })
+        tradeOpen.positionType = signal.positionType
+
+        await getTradingSequence(
+            tradeOpen,
+            signal.entryType,
+        )
             .then((value) =>
                 expect(JSON.stringify(value)).toBe(
                     JSON.stringify({
@@ -543,33 +559,19 @@ describe("trader", () => {
         signal.positionType = PositionType.LONG
         market.margin = true
         setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: true })
+        
+        tradeOpen.positionType = signal.positionType
 
-        await getTradingSequence({
-            market,
-            signal,
-            strategy,
-        })
+        await getTradingSequence(
+            tradeOpen,
+            signal.entryType
+        )
             .then((value) => fail(value))
             .catch((reason) =>
                 expect(reason).toEqual(
                     "Skipping signal as there was no associated open trade found."
                 )
             )
-
-        const tradeOpen: TradeOpen = {
-            id: "matches",
-            isStopped: false,
-            positionType: PositionType.LONG,
-            priceBuy: new BigNumber(1),
-            priceSell: new BigNumber(2),
-            quantity: 10,
-            strategyId: "stratid",
-            strategyName: "stratname",
-            symbol: "ETH/BTC",
-            timeBuy: 1,
-            timeSell: 2,
-            timeUpdated: 3,
-        }
 
         tradingMetaData.tradesOpen = [
             tradeOpen,
@@ -581,11 +583,12 @@ describe("trader", () => {
         market.margin = true
         setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: true })
 
-        await getTradingSequence({
-            market,
-            signal,
-            strategy,
-        })
+        tradeOpen.positionType = signal.positionType
+
+        await getTradingSequence(
+            tradeOpen,
+            signal.entryType
+        )
             .then((value) =>
                 expect(JSON.stringify(value)).toBe(
                     JSON.stringify({
@@ -605,12 +608,13 @@ describe("trader", () => {
         signal.positionType = PositionType.LONG
         market.margin = false
         setDefault({ ...getDefault, IS_TRADE_MARGIN_ENABLED: true })
+        
+        tradeOpen.positionType = signal.positionType
 
-        await getTradingSequence({
-            market,
-            signal,
-            strategy,
-        })
+        await getTradingSequence(
+            tradeOpen,
+            signal.entryType
+        )
             .then((value) =>
                 expect(JSON.stringify(value)).toBe(
                     JSON.stringify({
@@ -629,11 +633,12 @@ describe("trader", () => {
         signal.entryType = EntryType.EXIT
         signal.positionType = PositionType.SHORT
 
-        await getTradingSequence({
-            market,
-            signal,
-            strategy,
-        })
+        tradeOpen.positionType = signal.positionType
+
+        await getTradingSequence(
+            tradeOpen,
+            signal.entryType
+        )
             .then((value) =>
                 expect(JSON.stringify(value)).toBe(
                     JSON.stringify({
@@ -651,11 +656,12 @@ describe("trader", () => {
 
         strategy.tradingType = TradingType.virtual
 
-        await getTradingSequence({
-            market,
-            signal,
-            strategy,
-        })
+        tradeOpen.tradingType = strategy.tradingType
+
+        await getTradingSequence(
+            tradeOpen,
+            signal.entryType
+        )
             .then((value) =>
                 expect(JSON.stringify(value)).toBe(
                     JSON.stringify({
@@ -744,15 +750,30 @@ describe("trader", () => {
                     jestFunctionAfter()
                     resolve(undefined)
                 }),
-            quantity: 3,
             socketChannel: "socketChannel",
         }
 
+        const tradeOpen: TradeOpen = ({
+            id: "execute",
+            isStopped: false,
+            positionType: PositionType.LONG,
+            priceBuy: new BigNumber(1),
+            priceSell: new BigNumber(2),
+            quantity: new BigNumber(3),
+            strategyId: "strategyId",
+            strategyName: "strategyName",
+            symbol: "ETH/BTC",
+            timeBuy: 1,
+            timeSell: 2,
+            timeUpdated: new Date().getTimezoneOffset() * 60 * 1000,
+            executed: false
+        })
+
         const spy = jest.spyOn(socket, "emitSignalTraded").mockImplementation()
 
-        await executeTradingTask(tradingData, tradingSequence)
+        await executeTradingTask(tradeOpen, tradingSequence, signal)
 
-        expect(stripAnsi(loggerOutput))
+        expect(stripAnsi(loggerOutput.join("\r\n")))
             .toBe(`1970-01-01 00:00:00 | info | Executing a real trade of 3 units of symbol ETH/BTC at price 1 (1 total).
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's before step.
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's main action step.
@@ -770,6 +791,7 @@ describe("trader", () => {
                 strategyName: "strategyName",
                 symbol: "ETH/BTC",
                 timeUpdated: new Date().getTimezoneOffset() * 60 * 1000,
+                executed: true
             },
         ])
 
@@ -798,9 +820,9 @@ describe("trader", () => {
                 }),
         }
 
-        await executeTradingTask(tradingData, tradingSequenceReject)
+        await executeTradingTask(tradeOpen, tradingSequenceReject, signal)
 
-        expect(stripAnsi(loggerOutput))
+        expect(stripAnsi(loggerOutput.join("\r\n")))
             .toBe(`1970-01-01 00:00:00 | info | Executing a real trade of 3 units of symbol ETH/BTC at price 1 (1 total).
 1970-01-01 00:00:00 | error | Failed to execute the trading sequence's before step: undefined
 1970-01-01 00:00:00 | error | Failed to execute the trading sequence's main action step: undefined
@@ -856,9 +878,9 @@ describe("trader", () => {
             },
         ])
 
-        await executeTradingTask(tradingDataExit, tradingSequenceNew)
+        await executeTradingTask(tradeOpen, tradingSequenceNew, signalExit)
 
-        expect(stripAnsi(loggerOutput))
+        expect(stripAnsi(loggerOutput.join("\r\n")))
             .toBe(`1970-01-01 00:00:00 | info | Executing a real trade of 3 units of symbol ETH/BTC at price 1 (1 total).
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's before step.
 1970-01-01 00:00:00 | info | Successfully executed the trading sequence's main action step.
@@ -915,13 +937,14 @@ describe("trader", () => {
             positionType: PositionType.LONG,
             priceBuy: new BigNumber(1),
             priceSell: new BigNumber(2),
-            quantity: 10,
+            quantity: new BigNumber(10),
             strategyId,
             strategyName,
             symbol: "ETHBTC",
             timeBuy: 1,
             timeSell: 2,
             timeUpdated: 3,
+            executed: true
         }
 
         tradingMetaData.tradesOpen = [
@@ -950,7 +973,7 @@ describe("trader", () => {
         expect(getTradeOpen(signalPositionTypeUnset)).toEqual(undefined)
     })
 
-    it("rounds step to 1 decimal place", () => expect(roundStep(new BigNumber("10.987"), 1)).toEqual(10.9))
-    it("rounds step to 2 decimal places", () => expect(roundStep(new BigNumber("100.987"), 2)).toEqual(100.98))
-    it("rounds step to 3 decimal places", () => expect(roundStep(new BigNumber("9.987"), 3)).toEqual(9.987))
+    it("rounds step to 1 decimal place", () => expect(roundStep(new BigNumber("10.987"), 1)).toEqual(new BigNumber(10.9)))
+    it("rounds step to 2 decimal places", () => expect(roundStep(new BigNumber("100.987"), 2)).toEqual(new BigNumber(100.98)))
+    it("rounds step to 3 decimal places", () => expect(roundStep(new BigNumber("9.987"), 3)).toEqual(new BigNumber(9.987)))
 })
