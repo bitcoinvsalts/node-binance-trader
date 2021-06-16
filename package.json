@@ -1,7 +1,7 @@
 {
     "name": "node-binance-trader",
     "private": true,
-    "version": "0.3.1",
+    "version": "1.0.0",
     "engine": {
         "node": ">=0.12"
     },
@@ -22,7 +22,11 @@
             "name": "Jonas Thelemann",
             "email": "e-mail@jonas-thelemann.de",
             "url": "https://jonas-thelemann.de/"
+        },
+        {
+            "name": "Spat"
         }
+
     ],
     "license": "ISC",
     "scripts": {

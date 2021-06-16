@@ -19,7 +19,7 @@
       },
 
       "IS_NOTIFIER_GMAIL_ENABLED": {
-        "description": "Selects if Gmail will be used",
+        "description": "Selects if Gmail will be used (Enable less secure apps https://myaccount.google.com/lesssecureapps)",
         "required": false
       },
       "NOTIFIER_GMAIL_ADDRESS": {
@@ -36,7 +36,7 @@
         "required": false
       },
       "NOTIFIER_TELEGRAM_API_KEY": {
-        "description": "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather )",
+        "description": "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather)",
         "required": false
       },
       "NOTIFIER_TELEGRAM_RECEIVER_ID": {
@@ -45,7 +45,7 @@
       },
 
       "IS_BUY_QTY_FRACTION": {
-        "description": "Uses the 'Quantity to Buy' from BVA as a fraction of your wallet balance (e.g. 0.1 is 10%)",
+        "description": "Uses the 'Quantity to Buy' from the NBT Hub as a fraction of your wallet balance (e.g. 0.1 is 10%)",
         "required": false
       },
       "TRADE_LONG_FUNDS": {
@@ -72,20 +72,24 @@
         "description": "Comma delimited list of coins to exclude from trading (e.g. DOGE)",
         "required": false
       },
+      "STRATEGY_LOSS_LIMIT": {
+        "description": "Number of sequential losses before a strategy is stopped",
+        "required": false
+      },
       "IS_TRADE_SHORT_ENABLED": {
-        "description": "Selects if short trades are enabled - short trades will always borrow funds in margin to execute",
+        "description": "SHORT trades will always borrow the full funds in margin to execute, disable if you don't want this",
         "required": false
       },
       "IS_TRADE_MARGIN_ENABLED": {
-        "description": "Selects if margin trades are enabled for both short and long trades",
+        "description": "Used to disable use of margin wallet trading for both LONG and SHORT trades",
         "required": false
       },
       "VIRTUAL_WALLET_FUNDS": {
-        "description": "The default starting balance for all virtual wallets (note this is really only intended for testing with one coin at a time due to different scales)",
+        "description": "The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets",
         "required": false
       },
       "WEB_PASSWORD": {
-        "description": "Optional password to restrict access to the internal diagnostics webserver",
+        "description": "password to restrict access to the internal diagnostics webserver",
         "required": false
       }
     }

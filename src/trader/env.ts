@@ -1,7 +1,7 @@
 import path from "path"
 
 import dotenv from "dotenv"
-import { bool, cleanEnv, port, str, num } from "envalid"
+import { bool, cleanEnv, port, str, num, email } from "envalid"
 
 import * as packageJson from "../../package.json"
 import { LongFundsType, WalletType } from "./types/trader"
@@ -19,39 +19,43 @@ export function getDefault(): Readonly<any> {
     })
 
     return cleanEnv(process.env, {
-        BINANCE_API_KEY: str({ devDefault: testOnly("BINANCE_API_KEY") }),
-        BINANCE_SECRET_KEY: str({ devDefault: testOnly("BINANCE_SECRET_KEY") }),
-        BVA_API_KEY: str({ devDefault: testOnly("BVA_API_KEY") }),
+        // Required configuration
+        BINANCE_API_KEY: str({ devDefault: testOnly("BINANCE_API_KEY"), desc: "Your Binance API Key" }),
+        BINANCE_SECRET_KEY: str({ devDefault: testOnly("BINANCE_SECRET_KEY"), desc: "Your Binance API Secret" }),
+        BVA_API_KEY: str({ devDefault: testOnly("BVA_API_KEY"), desc: "Your BitcoinVsAltcoins.com Account API Key" }),
 
-        IS_NOTIFIER_GMAIL_ENABLED: bool({ default: false }),
-        NOTIFIER_GMAIL_ADDRESS: str({ default: "" }),
-        NOTIFIER_GMAIL_APP_PASSWORD: str({ default: "" }),
+        // Gmail nofications
+        // Make sure you have allowed 'less secure apps' in your Google account: https://myaccount.google.com/lesssecureapps
+        IS_NOTIFIER_GMAIL_ENABLED: bool({ default: false, desc: "Selects if Gmail will be used (Enable less secure apps https://myaccount.google.com/lesssecureapps)" }),
+        NOTIFIER_GMAIL_ADDRESS: str({ default: "", desc: "Gmail email to get notifications" }),
+        NOTIFIER_GMAIL_APP_PASSWORD: str({ default: "", desc: "Gmail password to get notifications" }),
 
         // To use Telegram, first talk to The Botfather and create a bot on Telegram: https://core.telegram.org/bots#3-how-do-i-create-a-bot
         // The Botfather will give you your token for the HTTP API, and that is what you set to be the TELEGRAM_API_KEY
         // Then talk to the @userinfobot at Telegram, and it will give you your personal receiver ID, and thats what you use for the TELEGRAM_RECEIVER_ID
-        IS_NOTIFIER_TELEGRAM_ENABLED: bool({ default: false }),
-        NOTIFIER_TELEGRAM_API_KEY: str({ default: "" }),
-        NOTIFIER_TELEGRAM_RECEIVER_ID: str({ default: "" }),
+        IS_NOTIFIER_TELEGRAM_ENABLED: bool({ default: false, desc: "Selects if Telegram will be used" }),
+        NOTIFIER_TELEGRAM_API_KEY: str({ default: "", desc: "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather)" }),
+        NOTIFIER_TELEGRAM_RECEIVER_ID: str({ default: "", desc: "Unique identifier for the target chat or username of the target channel (in the format @channelusername)" }),
 
-        TRADER_PORT: port({
-            default: 8003,
-            desc: "The port to trader webserver runs",
-        }),
+        // Additional configuration options for trader features
+        IS_BUY_QTY_FRACTION: bool({ default: false, desc: "Uses the 'Quantity to Buy' from the NBT Hub as a fraction of your wallet balance (e.g. 0.1 is 10%)" }),
+        TRADE_LONG_FUNDS: str({ default: LongFundsType.NONE, choices: Object.values(LongFundsType), desc: "See README for explanation" }), // '', 'borrow min', 'borrow all', 'sell all', or 'sell largest'
+        PRIMARY_WALLET: str({ default: WalletType.MARGIN, choices: Object.values(WalletType), desc: "Primary wallet to execute LONG trades ('margin' or 'spot'), it may still swap to the other if there are insufficient funds" }),
+        WALLET_BUFFER: num({ default: 0.1, desc: "Decimal fraction of the total balance of each wallet that should be reserved for slippage, spread, and bad short trades (especially when rebalancing)" }),
+        MAX_SHORT_TRADES: num({ default: 0, desc: "Maximum number of SHORT trades that can be open concurrently (i.e. limit your borrowing), zero is no limit" }),
+        MAX_LONG_TRADES: num({ default: 0, desc: "Maximum number of LONG trades that can be open concurrently (i.e. limit borrowing or rebalancing), zero is no limit" }),
+        EXCLUDE_COINS: str({ default: "", desc: "Comma delimited list of coins to exclude from trading (e.g. DOGE)" }),
+        STRATEGY_LOSS_LIMIT: num({ default: 0, desc: "Number of sequential losses before a strategy is stopped" }),
+        IS_TRADE_SHORT_ENABLED: bool({ default: true, desc: "SHORT trades will always borrow the full funds in margin to execute, disable if you don't want this" }),
+        IS_TRADE_MARGIN_ENABLED: bool({ default: true, desc: "Used to disable use of margin wallet trading for both LONG and SHORT trades" }),
+        VIRTUAL_WALLET_FUNDS: num({ default: 0.1, desc: "The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets" }),
+        WEB_PASSWORD: str({ default: "", desc: "Password to restrict access to the internal diagnostics webserver" }),
+
+        // Internal configuration options that can be changed but shouldn't need to be
+        TRADER_PORT: port({ default: 8003, desc: "The port to trader webserver runs" }),
         VERSION: str({ default: packageJson.version }),
-        MAX_LOG_LENGTH: num({ default: 5000 }),
-
-        IS_BUY_QTY_FRACTION: bool({ default: false }), // Uses the "Quantity to Buy" from BVA as a fraction of your wallet balance (e.g. 0.1 is 10%)
-        TRADE_LONG_FUNDS: str({ default: LongFundsType.NONE }), // '', 'borrow min', 'borrow all', 'sell all', or 'sell largest' - see README for explanation
-        PRIMARY_WALLET: str({ default: WalletType.MARGIN }), // Primary wallet to execute LONG trades ('margin' or 'spot'), it may still swap to the other if there are insufficient funds
-        WALLET_BUFFER: num({ default: 0.1 }), // Decimal fraction of the total balance of each wallet that should be reserved for slippage, spread, and bad short trades (especially when rebalancing)
-        MAX_SHORT_TRADES: num({ default: 0 }), // Maximum number of SHORT trades that can be open concurrently (i.e. limit your borrowing), zero is no limit
-        MAX_LONG_TRADES: num({ default: 0 }), // Maximum number of LONG trades that can be open concurrently (i.e. limit borrowing or rebalancing), zero is no limit
-        EXCLUDE_COINS: str({ default: "" }), // Comma delimited list of coins to exclude from trading (e.g. DOGE)
-        IS_TRADE_SHORT_ENABLED: bool({ default: true }), // SHORT trades will always borrow funds in margin to execute
-        IS_TRADE_MARGIN_ENABLED: bool({ default: true}), // Used to disable margin trading for both LONG and SHORT trades
-        VIRTUAL_WALLET_FUNDS: num({ default: 1 }), // The default starting balance for all virtual wallets (note this is really only intended for testing with one coin at a time due to different scales)
-        WEB_PASSWORD: str({ default: "" }), // Optional password to restrict access to the internal diagnostics webserver
+        MAX_LOG_LENGTH: num({ default: 5000, desc: "Maximum number of entries for in-memory logging and transactions" }),
+        LOG_LEVEL: str({ default: "info", choices: ["debug", "info", "warn", "error" ]}),
     })
 }
 
