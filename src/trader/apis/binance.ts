@@ -64,7 +64,7 @@ export function fetchBalance(type: WalletType): Promise<ccxt.Balances> {
             })
             .then((value) => {
                 logger.debug(`Fetched balance: ${JSON.stringify(value)}`)
-                logger.info(`Loaded ${Object.keys(value).length} ${type} balances.`)
+                logger.debug(`Loaded ${Object.keys(value).length} ${type} balances.`)
                 resolve(value)
             })
             .catch((reason) => {
@@ -141,4 +141,8 @@ export async function marginRepay(
         amount,
         timestamp,
     })
+}
+
+export function amountToPrecision(symbol: string, quantity: BigNumber) {
+    return new BigNumber(binanceClient.amountToPrecision(symbol, quantity.toNumber()))
 }

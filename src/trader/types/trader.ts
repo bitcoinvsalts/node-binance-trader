@@ -1,6 +1,6 @@
 import BigNumber from "bignumber.js"
 
-import { Dictionary, Market } from "ccxt"
+import { Dictionary, Market, Order } from "ccxt"
 import { PositionType, Signal, Strategy, TradeOpen, TradingType } from "./bva"
 
 // Represents the different wallet types in Binance

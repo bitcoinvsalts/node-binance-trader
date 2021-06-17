@@ -1,9 +1,10 @@
 import BigNumber from "bignumber.js"
-import { Balances, Dictionary, Market } from "ccxt"
+import { Balances, Dictionary, Market, Order } from "ccxt"
 import PQueue from "p-queue"
 
 import logger from "../logger"
 import {
+    amountToPrecision,
     createMarketOrder,
     fetchBalance,
     getMarginLoans,
@@ -150,6 +151,12 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
                 }
                 break
         }
+
+        if (!tradingMetaData.markets[trade.symbol]) {
+            // Hopefully this won't happen
+            logger.error(`${getLogName(trade)} trade symbol is no longer supported on Binance, it will be discarded.`)
+            badTrades.push(trade)
+        }
     }
 
     // Remove bad trades so that they don't get considered for balance allocation
@@ -215,7 +222,6 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
         // But if there are multiple trades sharing the same coin, and they have been rebalanced, we have to assume that they were about even
         // So we may not always get back to exactly the same state as before the restart, but it should be close enough
         const wallets: Dictionary<Dictionary<WalletData>> = {}
-        const rebalance = new Set<WalletData>()
         for (let trade of realTrades.filter(t => t.positionType == PositionType.LONG)) {
             const market = tradingMetaData.markets[trade.symbol]
             // Get the list of wallets that could have been used for this trade
@@ -223,10 +229,13 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
             
             // Calculate the potential funds that could be used for this trade in each wallet
             preferred.forEach(w => {
-                if (!wallets[market.base]) {
+                if (!wallets[market.base]) wallets[market.base] = {}
+                if (!wallets[market.base][w]) {
                     wallets[market.base][w] = new WalletData(w)
                     wallets[market.base][w].free = new BigNumber(balances[w][market.base].free)
                     wallets[market.base][w].potential = wallets[market.base][w].free
+
+                    logger.debug(`${w} wallet has ${wallets[market.base][w].free} ${market.base} free.`)
                 }
 
                 // If there is enough free balance, then use that as the potential
@@ -253,8 +262,9 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
                 if (wallet.total.isGreaterThan(wallet.free)) {
                     // Each coin pair may have a different minimum quantity, so have to calculate the actual quantity per trade
                     // Also, we will update the free balance as each quantity is consumed, so remember the target now
-                    const target = wallet.free.dividedBy(wallet.total)
+                    const target = wallet.free.dividedBy(wallet.trades.length)
                     logger.info(`Insufficient ${coin} in ${walletType}, reducing ${wallet.trades.length} trades to about ${target} ${coin}.`)
+                    logger.debug(`Needed ${wallet.total} but only have ${wallet.free}.`)
 
                     // Find all LONG trades that share this coin and wallet
                     for (let trade of realTrades.filter(t =>
@@ -264,6 +274,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
                             const market = tradingMetaData.markets[trade.symbol]
                             // Try to use the target quantity
                             trade.quantity = getLegalQty(target, market, trade.priceBuy!) // LONG trades will always be buy price
+                            trade.timeUpdated = new Date()
 
                             // Check if we have used more than is available
                             if (trade.quantity.isGreaterThan(wallet.free)) {
@@ -273,12 +284,10 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
                                     // Still not enough to make this trade
                                     logger.error(`${getLogName(trade)} trade does not have sufficient funds, it will be discarded.`)
                                     badTrades.push(trade)
+                                    // Don't want to subtract the quantity, so skip to the next trade
+                                    continue
                                 }
                             }
-
-                            // Recalculate cost
-                            trade.cost = trade.quantity.multipliedBy(trade.priceBuy!)
-                            trade.timeUpdated = new Date()
 
                             // Track how much has been consumed
                             wallet.free = wallet.free.minus(trade.quantity)
@@ -287,10 +296,15 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
                     // Make sure that the rebalancing consumed everything
                     if (wallet.free.isGreaterThan(0)) {
                         // Hopefully this is just a rounding issue, but it may be a result of maximum trade sizes too
-                        logger.error(`Rebalancing ${coin} in ${walletType} did not allocate everything to trades, you may need to sell ${wallet.free} ${coin} manually in Binance.`)
+                        logger.error(`Rebalancing ${coin} in ${walletType} did not allocate everything to trades, you may need to sell ${wallet.free.toFixed()} ${coin} manually in Binance.`)
                     }
                 }
             }
+        }
+
+        // Calculate the cost for LONG trades, it may use the original quantity or new quantity
+        for (let trade of realTrades.filter(t => t.positionType == PositionType.LONG)) {
+            trade.cost = trade.quantity.multipliedBy(trade.priceBuy!)
         }
 
         // See if we can mop up any loans with the margin LONG trades
@@ -508,6 +522,7 @@ export async function onCloseTradedSignal(signalJson: SignalJson) {
         logger.debug("onCloseTradedSignal->trade: " + reason)
         const tradeOpen = getTradeOpen(signal)
         // This is a special case where the user has stopped a trade then tried to close it and it failed
+        // TODO: Need to create a special traded signal if there is no open trade (i.e. trade was discarded for some reason)
         if (tradeOpen && tradeOpen.isStopped) {
             logger.error(`Could not close stopped trade ${getLogName(tradeOpen)}  properly, so just going to fake a signal back to the NBT Hub and drop the trade.`)
             // Tell NBT Hub that the trade was closed even though it probably wasn't
@@ -789,7 +804,7 @@ export function getTradingSequence(
     }
 
     // Execute the main buy/sell action for the trade
-    const order = () => executeTradeAction(tradeOpen, source, action!, tradeOpen.symbol, tradeOpen.quantity)
+    const order = () => executeTradeAction(tradeOpen, source, action!, market.symbol, tradeOpen.quantity)
 
     // Check if we need to borrow funds to open this trade
     const borrow = 
@@ -825,7 +840,9 @@ async function executeTradeAction(
     symbolAsset: string,
     quantity: BigNumber
 ) {
-    let result = undefined
+    let result: Order | null = null
+
+    logger.debug(`${action} ${quantity} ${symbolAsset} on ${tradeOpen.wallet}`)
 
     // Execute the real or virtual actions
     switch (action) {
@@ -887,6 +904,42 @@ async function executeTradeAction(
             break
     }
 
+    if (result != null) {
+        if (result.status == "closed") {
+            // Check if the price and cost is different than we expected (it usually is)
+            // TODO: It would be nice to feed these current prices back to the original trades when rebalancing
+            if (result.cost && !tradeOpen.cost!.isEqualTo(result.cost)) {
+                logger.debug(`${getLogName(tradeOpen)} trade cost changed to ${result.cost}`)
+                // Update the cost for better accuracy
+                tradeOpen.cost = new BigNumber(result.cost)
+                tradeOpen.timeUpdated = new Date()
+            }
+            if (result.price) {
+                switch (action) {
+                    case ActionType.BUY:
+                        if (!tradeOpen.priceBuy!.isEqualTo(result.price)) {
+                            logger.debug(`${getLogName(tradeOpen)} trade buy price changed to ${result.price}`)
+                            // Update the price for better accuracy
+                            tradeOpen.priceBuy = new BigNumber(result.price)
+                            tradeOpen.timeUpdated = new Date()
+                        }
+                        break
+                    case ActionType.SELL:
+                        if (!tradeOpen.priceSell!.isEqualTo(result.price)) {
+                            logger.debug(`${getLogName(tradeOpen)} trade sell price changed to ${result.price}`)
+                            // Update the price for better accuracy
+                            tradeOpen.priceSell = new BigNumber(result.price)
+                            tradeOpen.timeUpdated = new Date()
+                        }
+                        break
+                }
+            }
+        } else {
+            // Trade information will be added to the log message by the calling method
+            return Promise.reject(`Result status was "${result.status}".`)
+        }
+    }
+
     // Record transaction
     transactions.push(new Transaction(tradeOpen, source, action, symbolAsset, quantity))
     // Truncate memory array
@@ -901,7 +954,7 @@ async function executeTradeAction(
 async function createVirtualOrder(
     tradeOpen: TradeOpen,
     action: ActionType
-) {
+): Promise<null> {
     const market = tradingMetaData.markets[tradeOpen.symbol]
     
     // Update virtual balances with buy and sell quantities
@@ -917,24 +970,27 @@ async function createVirtualOrder(
     }
 
     logger.debug(`After ${action}, current ${tradeOpen.wallet} virtual balances are now ${virtualBalances[tradeOpen.wallet!][market.base]} ${market.base} and ${virtualBalances[tradeOpen.wallet!][market.quote]} ${market.quote}.`)
+    return Promise.resolve(null)
 }
 
 // Simulates borrowing on the virtual balances
-async function virtualBorrow(asset: string, quantity: BigNumber) {
+async function virtualBorrow(asset: string, quantity: BigNumber): Promise<null> {
     if (quantity.isGreaterThan(0)) {
         virtualBalances[WalletType.MARGIN][asset] = virtualBalances[WalletType.MARGIN][asset].plus(quantity)
 
         logger.debug(`After borrow, current ${WalletType.MARGIN} virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
     }
+    return Promise.resolve(null)
 }
 
 // Simulates repaying borrowed funds on the virtual balances
-async function virtualRepay(asset: string, quantity: BigNumber) {
+async function virtualRepay(asset: string, quantity: BigNumber): Promise<null> {
     if (quantity.isGreaterThan(0)) {
         virtualBalances[WalletType.MARGIN][asset] = virtualBalances[WalletType.MARGIN][asset].minus(quantity)
 
         logger.debug(`After repay, current ${WalletType.MARGIN} virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
     }
+    return Promise.resolve(null)
 }
 
 // Excute the before, main action, and after commands in the trading sequence, this is triggered by processing the trading queue
@@ -943,7 +999,7 @@ export async function executeTradingTask(
     tradingSequence: TradingSequence,
     signal?: Signal
 ) {
-    logger.info(`${signal ? signal.entryType == EntryType.ENTER ? "Enter" : "Exit" : "Execut"}ing a ${tradeOpen.tradingType} ${tradeOpen.positionType} trade on ${tradeOpen.wallet} of ${tradeOpen.quantity} units of symbol ${tradeOpen.symbol}.`)
+    logger.info(`${signal ? signal.entryType == EntryType.ENTER ? "Enter" : "Exit" : "Execut"}ing a ${tradeOpen.tradingType} ${tradeOpen.positionType} trade on ${tradeOpen.wallet} for ${tradeOpen.quantity} units of symbol ${tradeOpen.symbol}.`)
 
     // TODO: Track whether parts of the trade failed, perhaps use a retry queue
 
@@ -952,10 +1008,10 @@ export async function executeTradingTask(
         await tradingSequence
             .before()
             .then(() => {
-                logger.debug("Successfully executed the trading sequence's before step.")
+                logger.debug(`Successfully executed the ${getLogName(tradeOpen)} trading sequence's before step.`)
             })
             .catch((reason) => {
-                const logMessage = `Failed to execute the trading sequence's before step: ${reason}`
+                const logMessage = `Failed to execute the ${getLogName(tradeOpen)} trading sequence's before step: ${reason}`
                 logger.error(logMessage)
                 notifyAll(getNotifierMessage(MessageType.ERROR, signal, tradeOpen, logMessage)).catch((reason) => {
                     logger.debug("executeTradingTask->notifyAll: " + reason)
@@ -968,13 +1024,13 @@ export async function executeTradingTask(
     await tradingSequence
         .mainAction()
         .then(() => {
-            logger.debug("Successfully executed the trading sequence's main action step.")
+            logger.debug(`Successfully executed the ${getLogName(tradeOpen)} trading sequence's main action step.`)
 
             // Notify NBT Hub that trade has been executed
             emitSignalTraded(tradingSequence.socketChannel, tradeOpen)
         })
         .catch((reason) => {
-            const logMessage = `Failed to execute the trading sequence's main action step: ${reason}`
+            const logMessage = `Failed to execute the ${getLogName(tradeOpen)} trading sequence's main action step: ${reason}`
             logger.error(logMessage)
             notifyAll(getNotifierMessage(MessageType.ERROR, signal, tradeOpen, logMessage)).catch((reason) => {
                 logger.debug("executeTradingTask->notifyAll: " + reason)
@@ -987,10 +1043,10 @@ export async function executeTradingTask(
         await tradingSequence
             .after()
             .then(() => {
-                logger.debug("Successfully executed the trading sequence's after step.")
+                logger.debug(`Successfully executed the ${getLogName(tradeOpen)} trading sequence's after step.`)
             })
             .catch((reason) => {
-                const logMessage = `Failed to execute the trading sequence's after step: ${reason}`
+                const logMessage = `Failed to execute the ${getLogName(tradeOpen)} trading sequence's after step: ${reason}`
                 logger.error(logMessage)
                 notifyAll(getNotifierMessage(MessageType.ERROR, signal, tradeOpen, logMessage)).catch((reason) => {
                     logger.debug("executeTradingTask->notifyAll: " + reason)
@@ -1030,12 +1086,18 @@ async function scheduleTrade(
         }
     )
 
-    await queue
-        .add(() => executeTradingTask(tradeOpen!, tradingSequence, signal))
+    queue.add(() => executeTradingTask(tradeOpen!, tradingSequence, signal))
         .catch((reason) => {
             logger.debug("scheduleTrade->executeTradingTask: " + reason)
-            return Promise.reject(reason)
-        }) // TODO: Check if async-await is needed.
+
+            if (source == SourceType.REBALANCE) {
+                // TODO: Need to restore the quantity/cost to the parent trade
+                logger.error("Failed rebalancing trades will mess up the trade sizes, please restart the trader.")
+            }
+
+            // Note, this won't return in this scheduleTrade method as the queue is processed asynchronously, so we have to drop the exception here
+            // Hopefully the real error was already logged (typically a Binance trading issue)
+        })
 }
 
 // Processes the trade signal and schedules the trade actions
@@ -1202,8 +1264,6 @@ async function rebalanceTrade(tradeOpen: TradeOpen, cost: BigNumber, wallet: Wal
     // Adjust wallet balances
     wallet.free = wallet.free.plus(diffCost)
     wallet.locked = wallet.locked.minus(diffCost)
-
-    return Promise.resolve()
 }
 
 // Calculates the trade quantity/cost for an open trade signal based on the user configuration, then generates a new TradeOpen structure
@@ -1251,7 +1311,8 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                 // We don't exactly know how much will be needed for the SHORT trade, hopefully it is less than the opening price but it could be higher
                 // Also, there may be LONG trades that have not yet executed (i.e. still in the queue) so these funds will still appear in the wallet's free balance
                 // Note: this is still not perfect, partial trade buy-backs could still be in the queue and not catered for, it might mean the trade is smaller than it could be
-                if (trade.positionType == PositionType.SHORT || !trade.executed) {
+                if ((trade.positionType == PositionType.SHORT && trade.executed) || (trade.positionType == PositionType.LONG && !trade.executed)) {
+                    logger.debug(`${trade.cost} ${tradingData.market.quote} are allocated to a ${trade.positionType} trade that has ${trade.executed ? "" : "not "}been executed.`)
                     wallets[trade.wallet].free = wallets[trade.wallet].free.minus(trade.cost)
                 }
 
@@ -1273,6 +1334,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
             // If there is a different strategy that is using a different quote currency, but with open LONG trades sharing this base currency
             else if (tradingMetaData.markets[trade.symbol].base == tradingData.market.quote && trade.positionType == PositionType.LONG && trade.executed) {
                 // We cannot use that purchased quantity as part of the balance because it may soon be sold
+                logger.debug(`${trade.quantity} ${tradingData.market.quote} are allocated to a ${trade.positionType} trade that has ${trade.executed ? "" : "not "}been executed.`)
                 wallets[trade.wallet].free = wallets[trade.wallet].free.minus(trade.quantity)
             }
         }
@@ -1306,6 +1368,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
         // Calculate the fraction of the total balance
         cost = wallets[primary].total.multipliedBy(cost)
         logger.info(`Total usable ${primary} wallet is ${wallets[primary].total} so target trade cost will be ${cost} ${tradingData.market.quote}`)
+        logger.debug(`Total is made up of ${wallets[primary].free} free and ${wallets[primary].locked} locked ${tradingData.market.quote}`)
     }
 
     // Check for the minimum trade cost supported by the exchange
@@ -1691,6 +1754,10 @@ function getLegalQty(qty: BigNumber, market: Market, price: BigNumber): BigNumbe
         qty = new BigNumber(market.limits.amount.max)
         logger.debug(`${market.symbol} trade quantity is above the maximum.`)
     }
+    if (market.limits.market && market.limits.market.max && qty.isGreaterThan(market.limits.market.max)) {
+        qty = new BigNumber(market.limits.market.max)
+        logger.debug(`${market.symbol} trade quantity is above the market maximum.`)
+    }
 
     // We're generally using market price, so no need to check that
     //Order price >= limits['min']['price']
@@ -1710,18 +1777,8 @@ function getLegalQty(qty: BigNumber, market: Market, price: BigNumber): BigNumbe
         }
     }
 
-    return roundStep(qty, market.precision.amount)
-}
-
-// Ensures that the quantity only has the allowed number of decimal places
-// https://github.com/jaggedsoft/node-binance-api/blob/28e1162ccb62bc3fdfc311cdf8e8953c6e14f42c/node-binance-api.js#L2578
-// https://github.com/jaggedsoft/node-binance-api/blob/28e1162ccb62bc3fdfc311cdf8e8953c6e14f42c/LICENSE
-export function roundStep(qty: BigNumber, precision: number): BigNumber {
-    // Integers do not require rounding
-    if (Number.isInteger(qty)) return qty
-    const qtyString = qty.toFixed(16)
-    const decimalIndex = qtyString.indexOf(".")
-    return new BigNumber(qtyString.slice(0, decimalIndex + precision + 1))
+    // Use the ccxt API to ensure the quantity only has the allowed number of decimal places
+    return amountToPrecision(market.symbol, qty)
 }
 
 // This will update the markets dictionary in the tradingMetaData every 24 hours
@@ -1745,7 +1802,7 @@ async function refreshMarkets() {
 
 // Main function to start the trader
 async function run() {
-    logger.info(`Trader v${env().VERSION} is starting...`)
+    logger.info(`NBT Trader v${env().VERSION} is starting...`)
 
     // Validate environment variable configuration
     let issues: string[] = []
@@ -1759,13 +1816,12 @@ async function run() {
     if (env().STRATEGY_LOSS_LIMIT < 0) issues.push("STRATEGY_LOSS_LIMIT must be 0 or more.")
     if (!Number.isInteger(env().STRATEGY_LOSS_LIMIT)) issues.push("STRATEGY_LOSS_LIMIT must be a whole number.")
     if (env().VIRTUAL_WALLET_FUNDS <= 0) issues.push("VIRTUAL_WALLET_FUNDS must be greater than 0.")
+    if (!env().IS_TRADE_MARGIN_ENABLED && env().PRIMARY_WALLET == WalletType.MARGIN) issues.push(`PRIMARY_WALLET cannot be ${WalletType.MARGIN} if IS_TRADE_MARGIN_ENABLED is false.`)
     if (issues.length) {
         issues.forEach(issue => logger.error(issue))
         return Promise.reject(issues.join(" "))
     }
     
-    logger.debug(`Primary wallet is ${env().PRIMARY_WALLET.toLowerCase() as WalletType}.`)
-
     initializeNotifiers()
 
     // Make sure the markets data is loaded at least once
@@ -1781,6 +1837,20 @@ async function run() {
     startWebserver()
 
     logger.info("Trader started.")
+}
+
+// WARNING: Only use this function on the testnet API if you need to reset balances
+async function sellEverything(base: string, fraction: number) {
+    const balances = await fetchBalance(WalletType.SPOT)
+    for (let quote of Object.keys(balances)) {
+        const market = tradingMetaData.markets[quote + base]
+        if (market && balances[quote].free) {
+            const qty = balances[quote].free * fraction
+            logger.debug(`Selling ${qty} ${quote}`)
+            logger.debug(await createMarketOrder(quote + "/" + base, "sell", new BigNumber(qty)).then(order => `${order.status} ${order.cost}`).catch(e => e.name))
+        }
+    }
+    await fetchBalance(WalletType.SPOT)
 }
 
 // Starts the trader
