@@ -41,7 +41,7 @@ npm run server
 docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" -p 4000:4000 jsappme/node-binance-trader npm run server
 ```
 
-**To start the auto trader** to monitor strategies and signals received from the server or the NBT Hub:
+**To start the auto trader** to monitor strategies and signals received from the server via the NBT Hub:
 
 <i>Important note: Always make sure to have some BNB available on your corresponding wallet to pay for the fees.</i>
 
