@@ -67,6 +67,8 @@ The new features that I have added to the trader include:
   * If you stop a trade on the NBT Hub then manually close it, first it will actually try to close the trade on Binance, but if that fails it will still respond to the NBT Hub with a close signal so that the open trade does not hang around forever. This is important for the calculations used in the auto balancing, as they rely on the current list of open trades. So if you want to purge a stopped trade like this, first make sure you have moved any funds from Binance so that it cannot execute the close.
   * Previously you could switch a strategy to virtual then close the trade, but as mentioned above each trade now remembers its original state, so a live trade will remain live even if you switch the strategy to virtual.
   * Also, if there are any issues loading previous open trades after a restart the trader will say these are discarded. But if you manually close one of these trades it will just notify the BVA Hub that the close was successful to clean it up. It will not attempt to buy or sell anything on Binance.
+* **Track Order Price/Cost**
+  * When a real trade is successfully executed on Binance the actual buy or sell price and cost will be saved from the response. These prices and cost will be reported in the notifications and transactions, as well as used for calculating the closing balances for the PnL. This can be useful if you want to get a better idea of slippage.
 * **Additional Notifications**
   * If a trade fails to execute it will now send a notification with the error message.
   * If there are any issues loading previous trades after the trader restarts it will now send a notification message.
