@@ -143,6 +143,7 @@ export async function marginRepay(
     })
 }
 
+// Applies precition / step size to the order quantity, also checks lot size
 export function amountToPrecision(symbol: string, quantity: BigNumber) {
     return new BigNumber(binanceClient.amountToPrecision(symbol, quantity.toNumber()))
 }
