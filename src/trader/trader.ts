@@ -1407,7 +1407,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                 // Technically we could probably still use it for LONG trades if they were closed before the SHORT trade, but it would be a big gamble
                 // We don't exactly know how much will be needed for the SHORT trade, hopefully it is less than the opening price but it could be higher
                 // Also, there may be LONG trades that have not yet been processed in the queue so the wallets won't reflect the actual end state when this trade will process
-                if ((trade.positionType == PositionType.SHORT && trade.isExecuted) || (trade.positionType == PositionType.LONG && trade.isExecuted)) {
+                if ((trade.positionType == PositionType.SHORT && trade.isExecuted) || (trade.positionType == PositionType.LONG && !trade.isExecuted)) {
                     logger.debug(`${trade.cost.toFixed()} ${tradingData.market.quote} are allocated to a ${trade.symbol} ${trade.positionType} trade that has ${!trade.isExecuted ? "not " : ""}been executed.`)
                     wallets[trade.wallet].free = wallets[trade.wallet].free.minus(trade.cost)
                 }
