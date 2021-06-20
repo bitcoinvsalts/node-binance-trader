@@ -206,7 +206,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
             marginLoans[market.base].borrowed -= trade.borrow.toNumber()
 
             if (balances[trade.wallet][market.quote].free < 0) {
-                logger.error(`Insufficient funds in ${market.quote} ${trade.wallet} wallet, you might not be able to repay the short trade.`)
+                logger.error(`Insufficient funds in ${market.quote} ${trade.wallet} wallet, you might not be able to repay ${getLogName(trade)} trade.`)
                 balances[trade.wallet][market.quote].free = 0
             }
 
@@ -215,7 +215,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
                 // Take off the difference
                 trade.borrow = trade.borrow.plus(marginLoans[market.base].borrowed)
                 marginLoans[market.base].borrowed = 0
-                logger.error(`Loaned amount for ${market.base} doesn't match open short trades, reducing the repayment amount for this trade.`)
+                logger.error(`Loaned amount for ${market.base} doesn't match open short trades, reducing the repayment amount for ${getLogName(trade)} trade.`)
             }
         }
 
