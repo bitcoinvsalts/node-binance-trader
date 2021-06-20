@@ -4,9 +4,10 @@
 
 * **trader:** identify when a trade request was not fulfilled in Binance.
 * **trader:** correct calculation of trade quantity to account for LOT_SIZE and precision.
-* **trader:** only allow one concurrent open trade per strategy + symbol + position, this matches the BVA Hub rules.
+* **trader:** only allow one concurrent open trade per strategy + symbol + position, this matches the NBT Hub rules.
 * **trader:** support (as a workaround) for running on Binance Testnet.
 * **trader:** use cached market data.
+* **trader:** truncate memory logs.
 
 ### Features
 These are all for **trader**. Refer to the README for more details.

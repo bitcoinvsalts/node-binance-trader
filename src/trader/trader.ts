@@ -532,7 +532,7 @@ export async function onCloseTradedSignal(signalJson: SignalJson) {
 }
 
 // There are two special case either where the user has stopped a trade then tried to close it and it failed, or it was previously a bad trade that couldn't be reloaded
-// In these cases we just want to get rid of the trade so that it does not hang around on the BVA Hub
+// In these cases we just want to get rid of the trade so that it does not hang around on the NBT Hub
 function checkFailedCloseTrade(signal: Signal) {
     // See if it was for a trade we already know about
     let tradeOpen = getTradeOpen(signal)
