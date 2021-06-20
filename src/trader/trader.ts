@@ -645,7 +645,7 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
         const excluded = env().EXCLUDE_COINS.split(",").map(function(item: string) { return item.trim().toUpperCase() })
         if (excluded.includes(market.base) || excluded.includes(market.quote)) {
             const logMessage = `Skipping signal as trading is excluded for ${market.symbol}.`
-            logger.error(logMessage)
+            logger.warn(logMessage)
             return Promise.reject(logMessage)
         }
     }
