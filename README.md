@@ -59,7 +59,7 @@ The new features that I have added to the trader include:
     * /trans - Log of actual buy, sell, borrow, repay transactions (newest entries at the top)
     * /virtual - Views the current virtual balances. You can also apply a 'reset' parameter to clear and reload the virtual balances and virtual PnL, if you pass a number on the reset it will change the default value for **Virtual Wallet Funds** (e.g. ?reset=true or ?reset=100)
   * You can also configure a **Web Password** in the environment variables to restrict access to these commands (e.g. http://localhost:8003/log?mysecret).
-* **Individual Tracking of Real/Virtual Trades**
+* **Individual Tracking of Real / Virtual Trades**
   * In the original trader if you started a strategy in virtual trading and switched to real trading, or vice versa, it would attempt to close trades based on the current status of the strategy, rather than how the trade was originally opened. This means it could try to close a trade on Binance that was originally opened virtually, or never close the open trade on Binance because you've now switched the strategy to virtual. Now, if the trade opened on Binance it will close on Binance even if the strategy has been switched to virtual. If you don't want this to happen, make sure you close or stop the open trades before switching modes.
   * This is a useful way to soft close a strategy. Rather than manually closing the live trades yourself, you can switch the strategy to virtual and wait for the automatic close signals for any remaining open trades.
   * NOTE: It can only remember the previous state while the trader is running. If the trader restarts with mixed states, all trades will be reloaded with the current state of the strategy.
@@ -67,12 +67,12 @@ The new features that I have added to the trader include:
   * If you stop a trade on the NBT Hub then manually close it, first it will actually try to close the trade on Binance, but if that fails it will still respond to the NBT Hub with a close signal so that the open trade does not hang around forever. This is important for the calculations used in the auto balancing, as they rely on the current list of open trades. So if you want to purge a stopped trade like this, first make sure you have moved any funds from Binance so that it cannot execute the close.
   * Previously you could switch a strategy to virtual then close the trade, but as mentioned above each trade now remembers its original state, so a live trade will remain live even if you switch the strategy to virtual.
   * Also, if there are any issues loading previous open trades after a restart the trader will say these are discarded. But if you manually close one of these trades it will just notify the BVA Hub that the close was successful to clean it up. It will not attempt to buy or sell anything on Binance.
-* **Track Order Price/Cost**
+* **Track Order Price / Cost**
   * When a real trade is successfully executed on Binance the actual buy or sell price and cost will be saved from the response. These prices and cost will be reported in the notifications and transactions, as well as used for calculating the closing balances for the PnL. This can be useful if you want to get a better idea of slippage.
 * **Additional Notifications**
   * If a trade fails to execute it will now send a notification with the error message.
   * If there are any issues loading previous trades after the trader restarts it will now send a notification message.
-  * Trade notifications now include the quantity, wallet, and trading type (live or virtual).
+  * Trade notifications now include the quantity, cost, borrowed amount, wallet, trading type (live or virtual), and actual buy and sell prices from the transaction.
 * **Comments**
   * I've added extensive comments to the trader.ts code to (hopefully) help you understand how it works. But please feel free to find me on Discord if you have any questions.
 

@@ -1,3 +1,33 @@
+## [1.0.0] (2021-06-20)
+
+### Bug Fixes
+
+* **trader:** identify when a trade request was not fulfilled in Binance.
+* **trader:** correct calculation of trade quantity to account for LOT_SIZE and precision.
+* **trader:** only allow one concurrent open trade per strategy + symbol + position, this matches the BVA Hub rules.
+* **trader:** support (as a workaround) for running on Binance Testnet.
+* **trader:** use cached market data.
+
+### Features
+These are all for **trader**. Refer to the README for more details.
+
+* ***CONFIG:* Quantity as Fraction**
+* ***CONFIG:* Funding / Auto-Balancing for LONG Trades**
+* ***CONFIG:* Primary Wallet**
+* ***CONFIG:* Wallet Buffer**
+* ***CONFIG:* Maximum Count of Trades**
+* ***CONFIG:* Disable SHORT Trades**
+* ***CONFIG:* Disable Margin Trades**
+* ***CONFIG:* Disable Coins**
+* ***CONFIG:* Strategy Loss Limit**
+* ***CONFIG:* Virtual Wallet Funds**
+* **Alternate Wallet Fall Back**
+* **Web Diagnostics**
+* **Individual Tracking of Real / Virtual Trades**
+* **Clean Up Stopped Trades**
+* **Track Order Price / Cost**
+* **Additional Notifications**
+
 ## [0.3.1](https://github.com/jsappme/node-binance-trader/compare/0.3.0...0.3.1) (2021-03-08)
 
 
