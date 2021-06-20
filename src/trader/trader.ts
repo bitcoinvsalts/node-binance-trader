@@ -42,6 +42,7 @@ const logTradeOpenNone =
 export const tradingMetaData: TradingMetaData = {
     strategies: {}, // This comes from the payload data that is sent from NBT Hub, it is a dictionary of type Strategy (see bva.ts) indexed by the strategy ID
     tradesOpen: [], // This is an array of type TradeOpen (see bva.ts) containing all the open trades
+    tradesClosing: new Set(), // List of open trades that are currently in the processing queue and have not been executed on the Binance exchange, this includes rebalancing
     markets: {} // This is a dictionary of the different trading symbols and limits that are supported on the Binance exchange
 }
 
@@ -205,7 +206,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
             marginLoans[market.base].borrowed -= trade.borrow.toNumber()
 
             if (balances[trade.wallet][market.quote].free < 0) {
-                logger.warn(`Insufficient funds in ${market.quote} ${trade.wallet} wallet, you might not be able to repay the short trade.`)
+                logger.error(`Insufficient funds in ${market.quote} ${trade.wallet} wallet, you might not be able to repay the short trade.`)
                 balances[trade.wallet][market.quote].free = 0
             }
 
@@ -214,7 +215,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
                 // Take off the difference
                 trade.borrow = trade.borrow.plus(marginLoans[market.base].borrowed)
                 marginLoans[market.base].borrowed = 0
-                logger.warn(`Loaned amount for ${market.base} doesn't match open short trades, reducing the repayment amount for this trade.`)
+                logger.error(`Loaned amount for ${market.base} doesn't match open short trades, reducing the repayment amount for this trade.`)
             }
         }
 
@@ -297,7 +298,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
                     // Make sure that the rebalancing consumed everything
                     if (wallet.free.isGreaterThan(0)) {
                         // Hopefully this is just a rounding issue, but it may be a result of maximum trade sizes too
-                        logger.error(`Rebalancing ${coin} in ${walletType} did not allocate everything to trades, you may need to sell ${wallet.free.toFixed()} ${coin} manually in Binance.`)
+                        logger.warn(`Rebalancing ${coin} in ${walletType} did not allocate everything to trades, you may need to sell ${wallet.free.toFixed()} ${coin} manually in Binance.`)
                     }
                 }
             }
@@ -551,7 +552,7 @@ function checkFailedCloseTrade(signal: Signal) {
             strategyName: signal.strategyName,
             symbol: signal.symbol,
             timeUpdated: new Date(),
-            executed: false
+            isExecuted: false
         }
         fake = true
     }
@@ -872,7 +873,7 @@ export function getTradingSequence(
         mainAction: order,
         after: repay,
         // Cannot send sell signals to the NBT Hub for auto balancing because it will be treated as a close
-        socketChannel: source != SourceType.REBALANCE ? `traded_${action}_signal` : '',
+        socketChannel: source != SourceType.REBALANCE ? `traded_${action}_signal` : ''
     }
 
     return Promise.resolve(tradingSequence)
@@ -1052,8 +1053,11 @@ export async function executeTradingTask(
 ) {
     logger.info(`${signal ? signal.entryType == EntryType.ENTER ? "Enter" : "Exit" : "Execut"}ing a ${tradeOpen.tradingType} ${tradeOpen.positionType} trade on ${tradeOpen.wallet} for ${tradeOpen.quantity.toFixed()} units of symbol ${tradeOpen.symbol}.`)
 
-    // Track whether parts of the trade failed
+    // Whether this succeeds or fails, it will no longer be queued
     // TODO: Perhaps force a retry if nothing worked
+    tradingMetaData.tradesClosing.delete(tradeOpen)
+
+    // Track whether parts of the trade failed
     let anythingDone = false
 
     // This might be a borrow request for margin trading
@@ -1110,7 +1114,7 @@ export async function executeTradingTask(
     }
 
     // Update trade status after successful processing
-    tradeOpen.executed = true
+    tradeOpen.isExecuted = true
 
     if (signal && signal.entryType == EntryType.EXIT) {
         // Remove the completed trade (no signal means it is from a rebalance and won't be in the trade list anyway)
@@ -1192,6 +1196,7 @@ async function scheduleTrade(
         }
     )
 
+    tradingMetaData.tradesClosing.add(tradeOpen)
     queue.add(() => executeTradingTask(tradeOpen!, tradingSequence, source, signal))
         .catch((reason) => {
             logger.debug("scheduleTrade->executeTradingTask: " + reason)
@@ -1323,26 +1328,34 @@ async function rebalanceTrade(tradeOpen: TradeOpen, cost: BigNumber, wallet: Wal
         return Promise.reject(`Could not rebalance ${tradeOpen.symbol} trade, it would exceed remaining funds.`)
     }
 
-    // Clone trade just to execute the partial close
-    const tmpTrade = {
-        ...tradeOpen,
-        quantity: diffQTY,
-        cost: diffCost
-    }
-
-    // Simulate closing the trade, but only for the difference in quantity
-    await scheduleTrade(tmpTrade, EntryType.EXIT, SourceType.REBALANCE).catch(
-        (reason) => {
-            logger.debug("rebalanceTrade->scheduleTrade: " + reason)
-            return Promise.reject(reason)
+    // It is possible that multiple signals for the same coin can come in at the same time
+    // So a second trade may try to rebalance the first before the first trade has executed
+    if (tradeOpen.isExecuted) {
+        // Clone trade just to execute the partial close
+        const tmpTrade = {
+            ...tradeOpen,
+            quantity: diffQTY,
+            cost: diffCost
         }
-    )
+
+        // Simulate closing the trade, but only for the difference in quantity
+        await scheduleTrade(tmpTrade, EntryType.EXIT, SourceType.REBALANCE).catch(
+            (reason) => {
+                logger.debug("rebalanceTrade->scheduleTrade: " + reason)
+                return Promise.reject(reason)
+            }
+        )
+
+        tradeOpen.timeSell = new Date()
+    } else {
+        // In this case we don't need to sell anything, just adjust the original trade and it should only buy what is allocated
+        logger.warn(`${getLogName(tradeOpen)} trade needs to be rebalanced before it was executed, original cost of ${tradeOpen.cost} will be reduced by ${diffCost}.`)
+    }
 
     // If we got this far then we just have to assume that the rebalance trade will go through ok, so update the original trade
     tradeOpen.quantity = tradeOpen.quantity.minus(diffQTY)
     tradeOpen.cost = tradeOpen.cost!.minus(diffCost)
     tradeOpen.timeUpdated = new Date()
-    tradeOpen.timeSell = new Date()
 
     // Adjust wallet balances
     wallet.free = wallet.free.plus(diffCost)
@@ -1386,22 +1399,22 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
     // While we're looping through trades, also keep a few other indicators in case we want auto balancing
     // Only calculate trades that match this trading type (real vs. virtual)
     for (let trade of tradingMetaData.tradesOpen.filter(t => t.tradingType == tradingData.strategy.tradingType)) {
-        // Ideally wallet and cost should have been initialised by now, but need to check to satisfy the compiler)
-        if (trade.wallet && trade.cost) {
+        // Ideally wallet and cost should have been initialised by now (but need to check to satisfy the compiler), also we may not be using one of the wallets for this trade
+        if (trade.wallet && trade.cost && wallets[trade.wallet]) {
             // If the existing trade and this new signal share the same quote currency (e.g. both accumulating BTC)
             if (tradingMetaData.markets[trade.symbol].quote == tradingData.market.quote) {
-                // SHORT trades will not have actually spent the funds in margin until they are closed, so these need to be subtracted from the free balance
+                // SHORT trades artificially increase the funds in margin until they are closed, so these need to be subtracted from the free balance
                 // Technically we could probably still use it for LONG trades if they were closed before the SHORT trade, but it would be a big gamble
                 // We don't exactly know how much will be needed for the SHORT trade, hopefully it is less than the opening price but it could be higher
-                // Also, there may be LONG trades that have not yet executed (i.e. still in the queue) so these funds will still appear in the wallet's free balance
-                // Note: this is still not perfect, partial trade buy-backs could still be in the queue and not catered for, it might mean the trade is smaller than it could be
-                if ((trade.positionType == PositionType.SHORT && trade.executed) || (trade.positionType == PositionType.LONG && !trade.executed)) {
-                    logger.debug(`${trade.cost.toFixed()} ${tradingData.market.quote} are allocated to a ${trade.positionType} trade that has ${trade.executed ? "" : "not "}been executed.`)
+                // Also, there may be LONG trades that have not yet been processed in the queue so the wallets won't reflect the actual end state when this trade will process
+                if ((trade.positionType == PositionType.SHORT && trade.isExecuted) || (trade.positionType == PositionType.LONG && trade.isExecuted)) {
+                    logger.debug(`${trade.cost.toFixed()} ${tradingData.market.quote} are allocated to a ${trade.symbol} ${trade.positionType} trade that has ${!trade.isExecuted ? "not " : ""}been executed.`)
                     wallets[trade.wallet].free = wallets[trade.wallet].free.minus(trade.cost)
                 }
 
-                // When a short trade is closed it will not increase the balance as the funds are borrowed, so rebalancing can only be done on LONG trades
-                if (trade.positionType == PositionType.LONG) {
+                // When a SHORT trade is closed it will not increase the balance because the funds are borrowed, so rebalancing can only be done on LONG trades
+                // Make sure the trade is not already closing
+                if (trade.positionType == PositionType.LONG && !tradingMetaData.tradesClosing.has(trade)) {
                     // Add up all the costs from active LONG trades
                     wallets[trade.wallet].locked = wallets[trade.wallet].locked.plus(trade.cost)
 
@@ -1410,19 +1423,37 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
 
                     // Find the largest active LONG trade
                     // TODO: It would be nice to use current market price instead of cost calculated from opening price
-                    if (wallets[trade.wallet].largest == undefined || trade.cost > wallets[trade.wallet].largest!.cost!) {
-                        wallets[trade.wallet].largest = trade
+                    if (wallets[trade.wallet].largestTrade == undefined || trade.cost > wallets[trade.wallet].largestTrade!.cost!) {
+                        wallets[trade.wallet].largestTrade = trade
                     }
                 }
             }
             // If there is a different strategy that is using a different quote currency, but with open LONG trades sharing this base currency
-            else if (tradingMetaData.markets[trade.symbol].base == tradingData.market.quote && trade.positionType == PositionType.LONG && trade.executed) {
+            else if (tradingMetaData.markets[trade.symbol].base == tradingData.market.quote && trade.positionType == PositionType.LONG && trade.isExecuted) {
                 // We cannot use that purchased quantity as part of the balance because it may soon be sold
-                logger.debug(`${trade.quantity.toFixed()} ${tradingData.market.quote} are allocated to a ${trade.positionType} trade that has ${trade.executed ? "" : "not "}been executed.`)
+                logger.debug(`${trade.quantity.toFixed()} ${tradingData.market.quote} are allocated to a ${trade.symbol} ${trade.positionType} trade that has been executed.`)
                 wallets[trade.wallet].free = wallets[trade.wallet].free.minus(trade.quantity)
             }
         }
     }
+
+    // Check for any trades that are about to close, and make sure the funds are allocated in advance
+    tradingMetaData.tradesClosing.forEach(trade => {
+        // We don't care about SHORT trades because we checked sold above and whatever we buy we don't keep anyway (only the profits which we can't guarantee)
+        // Also, there is a slight possibility that the trade will try to open and close before executing, these can be ignored because the balance won't change
+        if (trade.cost && trade.wallet && wallets[trade.wallet] && trade.positionType == PositionType.LONG && trade.isExecuted) {
+            // If sharing the same quote currency, this could be normal trades or rebalancing trades
+            if (tradingMetaData.markets[trade.symbol].quote == tradingData.market.quote) {
+                logger.debug(`${trade.cost.toFixed()} ${tradingData.market.quote} will be released by a ${trade.symbol} ${trade.positionType} trade that is waiting to sell.`)
+                // Assume the trade will be successful and free up the funds before this new one
+                wallets[trade.wallet].free = wallets[trade.wallet].free.plus(trade.cost)
+            } else if (tradingMetaData.markets[trade.symbol].base == tradingData.market.quote && !tradingMetaData.tradesOpen.includes(trade)) {
+                // Rebalancing trades aren't in the main set so we didn't see them above, but they could also be trying to sell the base currency too
+                logger.debug(`${trade.quantity.toFixed()} ${tradingData.market.quote} are allocated to a ${trade.symbol} ${trade.positionType} trade that is waiting to sell.`)
+                wallets[trade.wallet].free = wallets[trade.wallet].free.minus(trade.quantity)
+            }
+        }
+    })
 
     // Calculate wallet totals and subtract the buffer
     let totalBalance = new BigNumber(0)
@@ -1459,17 +1490,13 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
     // Need to do it here in case we have to borrow for the trade
     if (tradingData.market.limits.cost?.min && cost.isLessThan(tradingData.market.limits.cost.min)) {
         cost = new BigNumber(tradingData.market.limits.cost.min)
-        logger.warn(
-            `Default trade cost is not enough, pushing it up to the minimum of ${cost.toFixed()} ${tradingData.market.quote}.`
-        )
+        logger.warn(`Default trade cost is not enough, pushing it up to the minimum of ${cost.toFixed()} ${tradingData.market.quote}.`)
     }
 
     // Check for the maximum trade cost supported by the exchange
     if (tradingData.market.limits.cost?.max && cost.isGreaterThan(tradingData.market.limits.cost.max)) {
         cost = new BigNumber(tradingData.market.limits.cost.max)
-        logger.warn(
-            `Default trade cost is too high, dropping it down to the maximum of ${cost.toFixed()} ${tradingData.market.quote}.`
-        )
+        logger.warn(`Default trade cost is too high, dropping it down to the maximum of ${cost.toFixed()} ${tradingData.market.quote}.`)
     }
 
     // Calculate the cost for LONG trades based on the configured funding model
@@ -1512,7 +1539,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                         // Calculate the potential for each wallet
                         for (let wallet of Object.values(wallets)) {
                             // If there is nothing to rebalance, or the largest trade is already less than the free balance, then there is no point reducing anything
-                            if (!wallet.largest || wallet.free.isGreaterThanOrEqualTo(wallet.largest.cost!)) {
+                            if (!wallet.largestTrade || wallet.free.isGreaterThanOrEqualTo(wallet.largestTrade.cost!)) {
                                 wallet.potential = wallet.free
                                 // Clear the trades so that we don't try to rebalance anything later
                                 wallet.trades = []
@@ -1549,9 +1576,9 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                                 } else {
                                     // Using half of the largest trade plus the free balance, both trades should then be equal
                                     // This may not halve the largest trade, it might only take a piece
-                                    wallet.potential = wallet.free.plus(wallet.largest.cost!).dividedBy(2)
+                                    wallet.potential = wallet.free.plus(wallet.largestTrade.cost!).dividedBy(2)
                                     // Overwrite the list of trades to make it easier for rebalancing later, we shouldn't need the original anymore
-                                    wallet.trades = [wallet.largest]
+                                    wallet.trades = [wallet.largestTrade]
                                 }
                             }
                         }
@@ -1630,7 +1657,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
         timeUpdated: new Date(),
         timeBuy: tradingData.signal.positionType == PositionType.LONG ? new Date() : undefined,
         timeSell: tradingData.signal.positionType == PositionType.SHORT ? new Date() : undefined,
-        executed: false
+        isExecuted: false
     })
 }
 
@@ -1654,7 +1681,7 @@ function getPreferredWallets(market: Market, positionType = PositionType.LONG) {
         preferred = preferred.filter(w => w != WalletType.MARGIN)
     }
 
-    logger.debug(`Identified ${preferred.length} potential wallet(s) to use for this trade, ${preferred[0]} is preferred.`)
+    logger.debug(`Identified ${preferred.length} potential wallet(s) to use for a ${market.symbol} trade, ${preferred[0]} is preferred.`)
 
     return { preferred, primary }
 }
@@ -1794,9 +1821,7 @@ export function getTradeOpen(signal: Signal): TradeOpen | undefined {
     const logData = `in strategy ${getLogName(undefined, signal)}`
 
     if (tradesOpenFiltered.length > 1) {
-        logger.warn(
-            `There is more than one trade open ${logData}. Using the first found.`
-        )
+        logger.warn(`There is more than one trade open ${logData}. Using the first found.`)
     } else if (tradesOpenFiltered.length === 0) {
         logger.debug(`No open trade found ${logData}.`)
     } else {

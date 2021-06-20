@@ -57,6 +57,8 @@ export function getNotifierMessage(
 
     if (tradeOpen) {
         content.push("quantity: " + tradeOpen.quantity.toFixed())
+        content.push("cost: " + tradeOpen.cost?.toFixed())
+        content.push("borrow: " + tradeOpen.borrow?.toFixed())
         content.push("wallet: " + tradeOpen.wallet)
         content.push("type: " + tradeOpen.tradingType)
 

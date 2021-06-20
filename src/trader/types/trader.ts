@@ -42,6 +42,7 @@ export interface TradingData {
 export interface TradingMetaData {
     strategies: Dictionary<Strategy>
     tradesOpen: TradeOpen[]
+    tradesClosing: Set<TradeOpen>
     markets: Dictionary<Market>
 }
 
@@ -58,9 +59,9 @@ export class WalletData {
     free: BigNumber // Total funds available for trade
     locked: BigNumber // Total funds locked in open trades
     total: BigNumber // Free + Locked
-    trades: TradeOpen[] // List of associated open trades
-    largest?: TradeOpen // Largest open trade
     potential?: BigNumber // Potental funds after rebalancing
+    trades: TradeOpen[] // List of associated open trades
+    largestTrade?: TradeOpen // Largest open trade
 
     constructor(type: WalletType) {
         this.type = type

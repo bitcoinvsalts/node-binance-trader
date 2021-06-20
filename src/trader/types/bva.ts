@@ -102,7 +102,7 @@ export class TradeOpen {
     timeBuy?: Date
     timeSell?: Date
     timeUpdated: Date
-    executed: boolean
+    isExecuted: boolean // Indicates whether the trade has been opened on Binance
 
     constructor(tradeOpenJson: TradeOpenJson) {
         this.id = tradeOpenJson.id
@@ -125,7 +125,7 @@ export class TradeOpen {
             ? new Date(Number(tradeOpenJson.sell_time))
             : undefined
         this.timeUpdated = new Date(Number(tradeOpenJson.updated_time))
-        this.executed = true
+        this.isExecuted = true
     }
 }
 
