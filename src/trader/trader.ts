@@ -31,12 +31,9 @@ import { MessageType } from "./types/notifier"
 import { WalletType, TradingData, TradingMetaData, TradingSequence, LongFundsType, WalletData, ActionType, SourceType, Transaction, BalanceHistory } from "./types/trader"
 
 // Standard error messages
-const logDefaultEntryType =
-    "It shouldn't be possible to have an entry type apart from enter or exit."
-const logDefaultPositionType =
-    "It shouldn't be possible to have an position type apart from long or short."
-const logTradeOpenNone =
-    "Skipping signal as there was no associated open trade found."
+const logDefaultEntryType = "It shouldn't be possible to have an entry type other than enter or exit."
+const logDefaultPositionType = "It shouldn't be possible to have an position type other than long or short."
+const logTradeOpenNone = "Skipping signal as there was no associated open trade found."
 
 // Holds the information about the current strategies and open trades
 export const tradingMetaData: TradingMetaData = {
@@ -434,33 +431,32 @@ async function checkStrategyChanges(strategies: Dictionary<Strategy>) {
 // For a SHORT trade this will buy and repay the loan to close the trade
 export async function onBuySignal(signalJson: SignalJson) {
     const signal = new Signal(signalJson)
+    let message = ""
 
     // Determine whether this is a long or short trade
     switch (signal.entryType) {
         case EntryType.ENTER: {
             // Buy to enter signals a long trade.
             signal.positionType = PositionType.LONG
-            logger.info(
-                `Received an opening buy signal (enter long) ${getOnSignalLogData(
-                    signal
-                )}.`
-            )
+            message = `Received an opening buy signal (enter long) ${getOnSignalLogData(signal)}.`
             break
         }
         case EntryType.EXIT: {
             // Buy to exit signals a short trade.
             signal.positionType = PositionType.SHORT
-            logger.info(
-                `Received a closing buy signal (exit short) ${getOnSignalLogData(
-                    signal
-                )}.`
-            )
+            message = `Received a closing buy signal (exit short) ${getOnSignalLogData(signal)}.`
             break
         }
         default:
             // Undexpected entry type, this shouldn't happen
             logger.error(logDefaultEntryType)
-            break
+            return
+    }
+
+    if (tradingMetaData.strategies[signal.strategyId]) {
+        logger.info(message)
+    } else {
+        logger.debug(message)
     }
 
     // Process the trade signal
@@ -475,33 +471,32 @@ export async function onBuySignal(signalJson: SignalJson) {
 // For a LONG trade this will sell to close the trade
 export async function onSellSignal(signalJson: SignalJson) {
     const signal = new Signal(signalJson)
+    let message = ""
 
     // Determine whether this is a long or short trade
     switch (signal.entryType) {
         case EntryType.ENTER: {
             // Sell to enter signals a short trade.
             signal.positionType = PositionType.SHORT
-            logger.info(
-                `Received an opening sell signal (enter short) ${getOnSignalLogData(
-                    signal
-                )}.`
-            )
+            message = `Received an opening sell signal (enter short) ${getOnSignalLogData(signal)}.`
             break
         }
         case EntryType.EXIT: {
             // Sell to enter signals a long trade.
             signal.positionType = PositionType.LONG
-            logger.info(
-                `Received a closing sell signal (exit long) ${getOnSignalLogData(
-                    signal
-                )}.`
-            )
+            message = `Received a closing sell signal (exit long) ${getOnSignalLogData(signal)}.`
             break
         }
         default:
             // Undexpected entry type, this shouldn't happen
             logger.error(logDefaultEntryType)
-            break
+            return
+    }
+
+    if (tradingMetaData.strategies[signal.strategyId]) {
+        logger.info(message)
+    } else {
+        logger.debug(message)
     }
 
     // Process the trade signal
@@ -570,14 +565,10 @@ function checkFailedCloseTrade(signal: Signal) {
             logger.error(`Could not close stopped trade ${getLogName(tradeOpen)} properly, so just going to fake a response back to the NBT Hub to drop the trade.`)
 
             // Tell NBT Hub that the trade was closed even though it probably wasn't
-            emitSignalTraded(`traded_${tradeOpen!.positionType == PositionType.SHORT ? ActionType.BUY : ActionType.SELL}_signal`, tradeOpen)
+            emitSignalTraded(`traded_${tradeOpen.positionType == PositionType.SHORT ? ActionType.BUY : ActionType.SELL}_signal`, tradeOpen)
 
             // Remove the closed trade
-            tradingMetaData.tradesOpen =
-            tradingMetaData.tradesOpen.filter(
-                (tradesOpenElement) =>
-                    tradesOpenElement !== tradeOpen
-            )
+            removeTradeOpen(tradeOpen)
 
             // Note, this doesn't update balances or PnL, so these might be incorrect now too
 
@@ -1118,11 +1109,7 @@ export async function executeTradingTask(
 
     if (signal && signal.entryType == EntryType.EXIT) {
         // Remove the completed trade (no signal means it is from a rebalance and won't be in the trade list anyway)
-        tradingMetaData.tradesOpen =
-        tradingMetaData.tradesOpen.filter(
-            (tradesOpenElement) =>
-                tradesOpenElement !== tradeOpen
-        )
+        removeTradeOpen(tradeOpen)
     }
 
     logger.debug(`Now ${tradingMetaData.tradesOpen.length} open trades.`)
@@ -1201,21 +1188,36 @@ async function scheduleTrade(
         .catch((reason) => {
             logger.debug("scheduleTrade->executeTradingTask: " + reason)
 
-            // We got to this point because the trade was potentially valid, but it failed to execute on Binance
-            // If the user is just trying to close the trade manually, see if we can just drop the trade anyway
-            // But we will still send a notification of the error later
-            if (source == SourceType.MANUAL && signal) checkFailedCloseTrade(signal)
-
             // Add a full stop in case we need another sentance, sometimes the error details may not have it
             if (reason.slice(-1) != ".") reason += "."
 
-            if (source == SourceType.REBALANCE) {
-                // TODO: Need to restore the quantity/cost to the parent trade
+            switch (source) {
+                case SourceType.MANUAL:
+                    // We got to this point because the trade was potentially valid, but it failed to execute on Binance
+                    // If the user is just trying to close the trade manually, see if we can just drop the trade anyway
+                    // But we will still send a notification of the error later
+                    if (signal) checkFailedCloseTrade(signal)
+                    break
+                case SourceType.REBALANCE:
+                    // TODO: Need to restore the quantity/cost to the parent trade
 
-                const rebalanceError = "Failed rebalancing trades will mess up the trade sizes, please restart the trader."
-                logger.error(rebalanceError)
-                // Append the additional message for the notifications
-                reason += " " + rebalanceError
+                    const rebalanceError = "Failed rebalancing trades will mess up the trade sizes, please restart the trader."
+                    logger.error(rebalanceError)
+                    // Append the additional message for the notifications
+                    reason += " " + rebalanceError
+                    break
+                case SourceType.SIGNAL:
+                    if (signal && signal.entryType == EntryType.ENTER && !tradeOpen.isExecuted) {
+                        const openError = "Trade was never opened, so it will be discarded."
+                        logger.error(openError)
+                        // Append the additional message for the notifications
+                        reason += " " + openError
+
+                        // The trade was never acknowledged back to the NBT Hub, so we shouldn't keep it either
+                        // It is possible that a following close or rebalance was started before this errored, that might cause problems, but it should be rare
+                        removeTradeOpen(tradeOpen)
+                    }
+                    break
             }
 
             // Send notifications that trading failed
@@ -1839,6 +1841,15 @@ export function getTradeOpenFiltered(signal: Signal): TradeOpen[] {
                 ? tradeOpen.positionType === signal.positionType
                 : true) // If the signal contains a position type, then the open trade must match that.
     )
+}
+
+// Removes the trade from the open trades meta data
+function removeTradeOpen(tradeOpen: TradeOpen) {
+    tradingMetaData.tradesOpen =
+        tradingMetaData.tradesOpen.filter(
+            (tradesOpenElement) =>
+                tradesOpenElement !== tradeOpen
+        )
 }
 
 // Gets a count of the open active trades for a given position type, and also within the same real/virtual trading
