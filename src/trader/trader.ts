@@ -1874,8 +1874,9 @@ function getLegalQty(qty: BigNumber, market: Market, price: BigNumber): BigNumbe
         qty = new BigNumber(market.limits.amount.max)
         logger.debug(`${market.symbol} trade quantity is above the maximum.`)
     }
-    if (market.limits.market && market.limits.market.max && qty.isGreaterThan(market.limits.market.max)) {
-        qty = new BigNumber(market.limits.market.max)
+    const limits: any = market.limits // Need this to get to the hidden property
+    if (limits.market && limits.market.max && qty.isGreaterThan(limits.market.max)) {
+        qty = new BigNumber(limits.market.max)
         logger.debug(`${market.symbol} trade quantity is above the market maximum.`)
     }
 
