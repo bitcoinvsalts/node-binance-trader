@@ -46,6 +46,8 @@ Choose any unique name you like and enter a region. You will then need to retrie
 
 You will find your Bitcoin vs. Altcoins support key in your account here: https://bitcoinvsaltcoins.com/profile
 
+There are other configuration options available, but they can be left blank if you just want to get started. You can always add or change them later, see **[Additional configuration options](#additional-configuration-options)** below.
+
 Once you have filled in these details you can hit *Deploy app* and the app will be created for you.
 
 ## Getting it running
