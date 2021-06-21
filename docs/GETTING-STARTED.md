@@ -11,6 +11,7 @@ The total time to complete this guide should be less than 10 minutes if you alre
 1. **[Getting it running](#getting-it-running)**
 1. **[Start trading](#start-trading)**
 1. **[Keep it trading 24/7](#keep-it-trading-24/7)**
+1. **[Additional configuration options](#additional-configuration-options)**
 1. **[Common questions](#common-questions)**
 
 ## How to get started
@@ -107,7 +108,7 @@ You can find the URL within your Heroku settings:
 
 Once you have created this monitor, you're done! Now you have a live trading bot running your chosen strategy.
 
-## Additional Configuration Options
+## Additional configuration options
 
 Using the Config Vars in Heroku (an environment variable configuration file) you can configure any of the following options. See the **[README File 📖](../README.md)** for more details on what the trader features do.
 
@@ -145,7 +146,7 @@ To add new Config Vars in Heroku:
 
 *There are a few other internal configuration options available, check the env.ts file for details.*
 
-## Common Questions
+## Common questions
 
 ### How do I know it's running?
 
