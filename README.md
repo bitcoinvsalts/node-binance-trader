@@ -128,7 +128,7 @@ NBT includes 3 main scripts:
 
 If you like my fork you can always leave me a tip:
 * BNB (ERC20) 0xbb2f5e8b145a3c96512b4943d88ed62487f49bff
-* USDT (ERC20) 0xbb2f5e8b145a3c96512b4943d88ed62487f49bff
+* USDT (TRC20) TUG5A6oaQZCu2pS33sTyfrgf17ejkYH644
 * BTC 1L2NZPK8s7otCHJnn3KHQLfWrL6NUe1uwc
 
 **Donations for herve76 (original creator)**
