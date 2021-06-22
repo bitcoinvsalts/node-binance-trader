@@ -12,11 +12,13 @@ export default function (): Notifier {
 const gmailAddress = env().NOTIFIER_GMAIL_ADDRESS
 const gmailAppPassword = env().NOTIFIER_GMAIL_APP_PASSWORD
 
-const mailTransport = nodeMailer.createTransport(
-    `smtps://${encodeURIComponent(gmailAddress)}:${encodeURIComponent(
-        gmailAppPassword
-    )}@smtp.gmail.com`
-)
+const mailTransport = nodeMailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: gmailAddress,
+      pass: gmailAppPassword,
+    },
+});
 
 async function notify(message: NotifierMessage): Promise<void> {
     if (!env().IS_NOTIFIER_GMAIL_ENABLED) return
