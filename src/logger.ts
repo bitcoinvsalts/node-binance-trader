@@ -35,6 +35,7 @@ export function resetLoggerOutput(): void {
 }
 
 const colours = {
+    silly: "#2472C8",
     debug: "#808080",
     info: "#008000",
     warn: "#ffa500",

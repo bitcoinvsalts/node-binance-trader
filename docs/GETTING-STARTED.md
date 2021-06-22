@@ -88,7 +88,7 @@ Let's check if the bot is running from the logs. You also can check detailed inf
 
 This is an example of how it looks if the bot is running. Make sure to switch from All process to Web.
 
-You can also access the log and other diagnostics via the webservice (e.g. https://example-trader-BVA.herokuapp.com:8003/log). Refer to the **[README File 📖](../README.md)** for all options.
+You can also access the log and other diagnostics via the webservice (e.g. https://example-trader-BVA.herokuapp.com/log). Refer to the **[README File 📖](../README.md)** for all options.
 
 ## Keep it trading 24/7
 

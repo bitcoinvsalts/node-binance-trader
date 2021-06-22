@@ -19,13 +19,11 @@ import BigNumber from "bignumber.js"
 
 let socket: SocketIOClient.Socket
 
-if (process.env.NODE_ENV !== "test") {
+export function connect(): void {
     socket = io("https://nbt-hub.herokuapp.com", {
         query: `v=${env().VERSION}&type=client&key=${env().BVA_API_KEY}`,
     })
-}
 
-export function connect(): void {
     socket.on("connect", () => logger.info("Trader connected."))
     socket.on("disconnect", () => logger.info("Trader disconnected."))
 
@@ -38,38 +36,36 @@ export function connect(): void {
     })
 
     socket.on("user_payload", async (strategies: StrategyJson[]) => {
-        logger.debug(`Received user_payload: ${JSON.stringify(strategies)}`)
+        logger.silly(`Received user_payload: ${JSON.stringify(strategies)}`)
         await onUserPayload(strategies).catch(() => {
             return
         })
     })
 
     socket.on("buy_signal", async (signalJson: SignalJson) => {
-        logger.debug(`Received buy_signal: ${JSON.stringify(signalJson)}`)
+        logger.silly(`Received buy_signal: ${JSON.stringify(signalJson)}`)
         await onBuySignal(signalJson).catch(() => {
             return
         })
     })
     socket.on("sell_signal", async (signalJson: SignalJson) => {
-        logger.debug(`Received sell_signal: ${JSON.stringify(signalJson)}`)
+        logger.silly(`Received sell_signal: ${JSON.stringify(signalJson)}`)
         await onSellSignal(signalJson).catch(() => {
             return
         })
     })
 
     socket.on("close_traded_signal", async (signalJson: SignalJson) => {
-        logger.debug(
-            `Received close_traded_signal: ${JSON.stringify(signalJson)}`
-        )
+        logger.silly(`Received close_traded_signal: ${JSON.stringify(signalJson)}`)
         await onCloseTradedSignal(signalJson).catch(() => {
             return
         })
     })
     socket.on("stop_traded_signal", async (signalJson: SignalJson) => {
-        logger.debug(
-            `Received stop_traded_signal: ${JSON.stringify(signalJson)}`
-        )
-        onStopTradedSignal(signalJson)
+        logger.silly(`Received stop_traded_signal: ${JSON.stringify(signalJson)}`)
+        await onStopTradedSignal(signalJson).catch(() => {
+            return
+        })
     })
 }
 

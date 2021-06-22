@@ -35,6 +35,9 @@ const logDefaultEntryType = "It shouldn't be possible to have an entry type othe
 const logDefaultPositionType = "It shouldn't be possible to have an position type other than long or short."
 const logTradeOpenNone = "Skipping signal as there was no associated open trade found."
 
+// Changes to true after strategies and trades have been processed
+let isOperational = false
+
 // Holds the information about the current strategies and open trades
 export const tradingMetaData: TradingMetaData = {
     strategies: {}, // This comes from the payload data that is sent from NBT Hub, it is a dictionary of type Strategy (see bva.ts) indexed by the strategy ID
@@ -93,17 +96,20 @@ export async function onUserPayload(strategies: StrategyJson[]) {
 
     // If there were no strategies previously then this is probably the first time we've got them
     // Technically you may have had no strategies configured before, but then you should have no trades either
-    if (Object.keys(tradingMetaData.strategies).length == 0) {
+    if (!isOperational) {
         tradingMetaData.tradesOpen = await loadPreviousOpenTrades(newStrategies).catch((reason) => {
             // This will prevent the strategies from being saved too, so this will prevent the trader from functioning until the problem is resolved
-            logger.debug("onUserPayload->loadPreviousOpenTrades: " + reason)
-            logger.error("Trader is not operational, please restart.")
+            logger.silly("onUserPayload->loadPreviousOpenTrades: " + reason)
+            shutDown(reason)
             return Promise.reject(reason)
-        })        
+        })
+
+        isOperational = true
+        logger.info("NBT Trader is operational.")
     } else {
         await checkStrategyChanges(newStrategies).catch((reason) => {
-            logger.debug("onUserPayload->checkStrategyChanges: " + reason)
-            logger.error("Trader is not operational, please restart.")
+            logger.silly("onUserPayload->checkStrategyChanges: " + reason)
+            shutDown(reason)
             return Promise.reject(reason)
         })  
     }
@@ -116,7 +122,7 @@ export async function onUserPayload(strategies: StrategyJson[]) {
 async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise<TradeOpen[]> {
     // Retrieve the existing open trades from the NBT Hub
     let prevTrades = await getTradeOpenList().catch((reason) => {
-        logger.debug("loadPreviousOpenTrades->getTradeOpenList: " + reason)
+        logger.silly("loadPreviousOpenTrades->getTradeOpenList: " + reason)
         return Promise.reject(reason)
     })
 
@@ -165,7 +171,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
     const balances: Dictionary<Balances> = {}
     for (let wallet of Object.values(WalletType)) {
         balances[wallet] = await fetchBalance(wallet).catch((reason) => {
-            logger.error("Trader is not operational, please restart.")
+            logger.silly("loadPreviousOpenTrades->fetchBalance: " + reason)
             return Promise.reject(reason)
         })
     }
@@ -328,7 +334,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
     // Send notifications of discarded trades
     badTrades.forEach(trade => 
         notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, "This previous trade was received from the NBT Hub but could not be reloaded. Check the log for details.")).catch((reason) => {
-            logger.debug("loadPreviousOpenTrades->notifyAll: " + reason)
+            logger.silly("loadPreviousOpenTrades->notifyAll: " + reason)
         })
     )
 
@@ -394,7 +400,7 @@ async function checkStrategyChanges(strategies: Dictionary<Strategy>) {
             // Send notifications of paused trades
             stratTrades.forEach(trade => 
                 notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, "The strategy has been removed so this trade will be paused.")).catch((reason) => {
-                    logger.debug("checkStrategyChanges->notifyAll: " + reason)
+                    logger.silly("checkStrategyChanges->notifyAll: " + reason)
                 })
             )
             // Note, we don't actually need to pause the trades as the signals will be ignored for these strategies anyway
@@ -410,7 +416,7 @@ async function checkStrategyChanges(strategies: Dictionary<Strategy>) {
             // Send notifications of resumed trades
             stratTrades.forEach(trade => 
                 notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, "The strategy has been restored so this trade will be resumed.")).catch((reason) => {
-                    logger.debug("checkStrategyChanges->notifyAll: " + reason)
+                    logger.silly("checkStrategyChanges->notifyAll: " + reason)
                 })
             )
         }
@@ -430,6 +436,12 @@ async function checkStrategyChanges(strategies: Dictionary<Strategy>) {
 // For a LONG trade it will buy first (then sell later on closing)
 // For a SHORT trade this will buy and repay the loan to close the trade
 export async function onBuySignal(signalJson: SignalJson) {
+    if (!isOperational) {
+        const logMessage = `Skipping signal as trader is not yet operational.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
+    }
+
     const signal = new Signal(signalJson)
     let message = ""
 
@@ -461,7 +473,7 @@ export async function onBuySignal(signalJson: SignalJson) {
 
     // Process the trade signal
     await trade(signal, SourceType.SIGNAL).catch((reason) => {
-        logger.debug("onBuySignal->trade: " + reason)
+        logger.silly("onBuySignal->trade: " + reason)
         return Promise.reject(reason)
     })
 }
@@ -470,6 +482,12 @@ export async function onBuySignal(signalJson: SignalJson) {
 // For a SHORT trade this will borrow and then sell first (then buy and replay later on closing)
 // For a LONG trade this will sell to close the trade
 export async function onSellSignal(signalJson: SignalJson) {
+    if (!isOperational) {
+        const logMessage = `Skipping signal as trader is not yet operational.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
+    }
+
     const signal = new Signal(signalJson)
     let message = ""
 
@@ -501,7 +519,7 @@ export async function onSellSignal(signalJson: SignalJson) {
 
     // Process the trade signal
     await trade(signal, SourceType.SIGNAL).catch((reason) => {
-        logger.debug("onSellSignal->trade: " + reason)
+        logger.silly("onSellSignal->trade: " + reason)
         return Promise.reject(reason)
     })
 }
@@ -509,6 +527,12 @@ export async function onSellSignal(signalJson: SignalJson) {
 // Process close trade signal from NBT Hub - this sells for LONG trades or buys for SHORT trades
 // This is triggered when the user manually tells the trade to close
 export async function onCloseTradedSignal(signalJson: SignalJson) {
+    if (!isOperational) {
+        const logMessage = `Skipping signal as trader is not yet operational.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
+    }
+
     const signal = new Signal(signalJson)
 
     logger.info(`Received a close traded signal ${getOnSignalLogData(signal)}.`)
@@ -516,7 +540,7 @@ export async function onCloseTradedSignal(signalJson: SignalJson) {
     signal.entryType = EntryType.EXIT
 
     await trade(signal, SourceType.MANUAL).catch((reason) => {
-        logger.debug("onCloseTradedSignal->trade: " + reason)
+        logger.silly("onCloseTradedSignal->trade: " + reason)
 
         // This was rejected before the trade even started
         if (!checkFailedCloseTrade(signal)) {
@@ -587,7 +611,13 @@ function checkFailedCloseTrade(signal: Signal) {
 
 // Process stop trade signal from NBT Hub - this just terminates the trade without buying or selling
 // This is triggered when the user manually tells the trade to stop
-export function onStopTradedSignal(signalJson: SignalJson): boolean {
+export async function onStopTradedSignal(signalJson: SignalJson) {
+    if (!isOperational) {
+        const logMessage = `Skipping signal as trader is not yet operational.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
+    }
+
     const signal = new Signal(signalJson)
 
     logger.info(`Received a stop trade signal ${getOnSignalLogData(signal)}.`)
@@ -596,11 +626,10 @@ export function onStopTradedSignal(signalJson: SignalJson): boolean {
 
     if (!tradeOpen) {
         logger.error(logTradeOpenNone)
-        return false
+        return Promise.reject(logTradeOpenNone)
     }
 
     tradeOpen.isStopped = true
-    return true
 }
 
 // Validates that the trading signal is consistent with the selected strategies and configuration
@@ -902,7 +931,7 @@ async function executeTradeAction(
                     action,
                 )
             ).catch((reason) => {
-                logger.debug("execute => BUY/SELL: " + reason)
+                logger.silly("execute => BUY/SELL: " + reason)
                 return Promise.reject(reason)
             })
             break
@@ -919,7 +948,7 @@ async function executeTradeAction(
                     quantity
                 )
             ).catch((reason) => {
-                logger.debug("execute => BORROW: " + reason)
+                logger.silly("execute => BORROW: " + reason)
                 return Promise.reject(reason)
             })
             break
@@ -936,7 +965,7 @@ async function executeTradeAction(
                     quantity
                 )
             ).catch((reason) => {
-                logger.debug("execute => REPAY: " + reason)
+                logger.silly("execute => REPAY: " + reason)
                 return Promise.reject(reason)
             })
             break
@@ -1140,7 +1169,7 @@ export async function executeTradingTask(
 
                     // Send notifications that strategy is stopped
                     notifyAll(getNotifierMessage(MessageType.WARN, signal, undefined, logMessage)).catch((reason) => {
-                        logger.debug("trade->notifyAll: " + reason)
+                        logger.silly("trade->notifyAll: " + reason)
                     })
                 }
             } else {
@@ -1158,7 +1187,7 @@ export async function executeTradingTask(
 
     // Send notifications that trading completed successfully
     notifyAll(getNotifierMessage(MessageType.SUCCESS, signal, tradeOpen)).catch((reason) => {
-        logger.debug("executeTradingTask->notifyAll: " + reason)
+        logger.silly("executeTradingTask->notifyAll: " + reason)
     })
 }
 
@@ -1178,7 +1207,7 @@ async function scheduleTrade(
     // Create the borrow / buy / sell sequence for the trade queue
     const tradingSequence = await getTradingSequence(tradeOpen!, entryType, source).catch(
         (reason) => {
-            logger.debug("scheduleTrade->getTradingSequence: " + reason)
+            logger.silly("scheduleTrade->getTradingSequence: " + reason)
             return Promise.reject(reason)
         }
     )
@@ -1186,7 +1215,7 @@ async function scheduleTrade(
     tradingMetaData.tradesClosing.add(tradeOpen)
     queue.add(() => executeTradingTask(tradeOpen!, tradingSequence, source, signal))
         .catch((reason) => {
-            logger.debug("scheduleTrade->executeTradingTask: " + reason)
+            logger.silly("scheduleTrade->executeTradingTask: " + reason)
 
             // Add a full stop in case we need another sentance, sometimes the error details may not have it
             if (reason.slice(-1) != ".") reason += "."
@@ -1222,7 +1251,7 @@ async function scheduleTrade(
 
             // Send notifications that trading failed
             notifyAll(getNotifierMessage(MessageType.ERROR, signal, tradeOpen, reason)).catch((reason) => {
-                logger.debug("scheduleTrade->notifyAll: " + reason)
+                logger.silly("scheduleTrade->notifyAll: " + reason)
             })
 
             // Note, this won't return in this scheduleTrade method as the queue is processed asynchronously, so we have to drop the exception here
@@ -1237,14 +1266,14 @@ export async function trade(signal: Signal, source: SourceType) {
 
     // Check that this is a signal we want to process
     const tradingData = await checkTradingData(signal, source).catch((reason) => {
-        logger.debug("trade->checkTradingData: " + reason)
+        logger.silly("trade->checkTradingData: " + reason)
         return Promise.reject(reason)
     })
 
     // Notify of incoming signal that we want to process, we will also send a notification once the trade is executed
     // There is no need to wait for this to finish
     notifyAll(getNotifierMessage(MessageType.INFO, signal)).catch((reason) => {
-        logger.debug("trade->notifyAll: " + reason)
+        logger.silly("trade->notifyAll: " + reason)
     })
 
     let tradeOpen: TradeOpen | undefined
@@ -1253,7 +1282,7 @@ export async function trade(signal: Signal, source: SourceType) {
         // Calculate the cost and quantity for the new trade
         tradeOpen = await createTradeOpen(tradingData).catch(
             (reason) => {
-                logger.debug("trade->createTradeOpen: " + reason)
+                logger.silly("trade->createTradeOpen: " + reason)
                 return Promise.reject(reason)
             }
         )
@@ -1275,7 +1304,7 @@ export async function trade(signal: Signal, source: SourceType) {
     // Create the before / main action / after tasks and add to the trading queue
     await scheduleTrade(tradeOpen!, tradingData.signal.entryType, source, tradingData.signal).catch(
         (reason) => {
-            logger.debug("trade->scheduleTrade: " + reason)
+            logger.silly("trade->scheduleTrade: " + reason)
             return Promise.reject(reason)
         }
     )
@@ -1343,7 +1372,7 @@ async function rebalanceTrade(tradeOpen: TradeOpen, cost: BigNumber, wallet: Wal
         // Simulate closing the trade, but only for the difference in quantity
         await scheduleTrade(tmpTrade, EntryType.EXIT, SourceType.REBALANCE).catch(
             (reason) => {
-                logger.debug("rebalanceTrade->scheduleTrade: " + reason)
+                logger.silly("rebalanceTrade->scheduleTrade: " + reason)
                 return Promise.reject(reason)
             }
         )
@@ -1388,7 +1417,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
         if (tradingData.strategy.tradingType == TradingType.real) {
             // Get the current balance from Binance for the base coin (e.g. BTC)
             wallet.free = new BigNumber((await fetchBalance(wallet.type).catch((reason) => {
-                logger.debug("createTradeOpen->fetchBalance: " + reason)
+                logger.silly("createTradeOpen->fetchBalance: " + reason)
                 return Promise.reject(reason)
             }))[tradingData.market.quote].free) // We're just going to use 'free', but I'm not sure whether 'total' is better
         } else {
@@ -1912,7 +1941,7 @@ async function refreshMarkets() {
     
     if (reload) {
         tradingMetaData.markets = await loadMarkets(reload).catch((reason) => {
-            logger.debug("refreshMarkets->loadMarkets: " + reason)
+            logger.silly("refreshMarkets->loadMarkets: " + reason)
             return Promise.reject(reason)
         })
 
@@ -1945,19 +1974,32 @@ async function run() {
     
     initializeNotifiers()
 
+    // Load data and start connections asynchronously
+    startUp().catch((reason) => shutDown(reason))
+}
+
+async function startUp() {
     // Make sure the markets data is loaded at least once
     await refreshMarkets().catch((reason) => {
-        logger.debug("run->refreshMarkets: " + reason)
+        logger.silly("run->refreshMarkets: " + reason)
         return Promise.reject(reason)
     })
 
     // Note, we can't get previously open trades here because we need to know whether they are real or virtual, so we have to wait for the payload
     // Strategies also come down in the payload, so no signals will be accepted until that is processed
 
-    socket.connect()
     startWebserver()
 
-    logger.info("NBT Trader has started.")
+    socket.connect()
+
+    logger.debug("NBT Trader start up sequence is complete.")
+}
+
+function shutDown(reason: any) {
+    logger.silly("Shutdown: " + reason)
+    logger.error("NBT Trader is not operational, shutting down.")
+    isOperational = false
+    process.exit()
 }
 
 // WARNING: Only use this function on the testnet API if you need to reset balances, it is super dangerous
@@ -1976,7 +2018,7 @@ async function sellEverything(base: string, fraction: number) {
 
 // Starts the trader
 if (process.env.NODE_ENV !== "test") {
-    run().catch(() => process.exit())
+    run().catch((reason) => shutDown(reason))
 }
 
 const exportFunctions = {
