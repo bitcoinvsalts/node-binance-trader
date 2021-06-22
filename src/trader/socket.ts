@@ -22,6 +22,7 @@ let socket: SocketIOClient.Socket
 export function connect(): void {
     socket = io("https://nbt-hub.herokuapp.com", {
         query: `v=${env().VERSION}&type=client&key=${env().BVA_API_KEY}`,
+        autoConnect: false
     })
 
     socket.on("connect", () => logger.info("Trader connected."))
@@ -67,6 +68,8 @@ export function connect(): void {
             return
         })
     })
+
+    socket.open()
 }
 
 export function emitSignalTraded(
