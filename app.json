@@ -1,7 +1,7 @@
 {
     "name": "node-binance-trader",
     "description": "Auto trader to trade signals from your BitcoinVsAltcoins.com strategy selection.",
-    "logo": "https://github.com/PostmanSpat/node-binance-trader/tree/testing/docs/images/logo_small.png",
+    "logo": "https://github.com/PostmanSpat/node-binance-trader/blob/testing/docs/images/logo_small.png?raw=true",
     "repository": "https://github.com/PostmanSpat/node-binance-trader",
     "keywords": ["node", "binance","trading","trader","bot","market","maker","algo","crypto"],
     "env": {
