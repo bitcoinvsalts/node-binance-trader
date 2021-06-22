@@ -1912,18 +1912,28 @@ function getLegalQty(qty: BigNumber, market: Market, price: BigNumber): BigNumbe
     // We're generally using market price, so no need to check that
     //Order price >= limits['min']['price']
     //Order price <= limits['max']['price']
-    // Precision of price must be <= precision['price']
+    //Precision of price must be <= precision['price']
 
     if (market.limits.cost) {
-        const cost = qty.multipliedBy(price)
+        let cost = qty.multipliedBy(price)
         if (cost.isLessThan(market.limits.cost.min)) {
             qty = new BigNumber(market.limits.cost.min).dividedBy(price)
             logger.debug(`${market.symbol} trade cost is below the minimum.`)
         }
+
         // Technically the cost might have changed, but it is unlikely to have gone above the max, so no need to recalculate
         if (market.limits.cost.max && cost.isGreaterThan(market.limits.cost.max)) {
             qty = new BigNumber(market.limits.cost.max).dividedBy(price)
             logger.debug(`${market.symbol} trade cost is above the maximum.`)
+        }
+
+        // Precision can cause the quantity to truncate and drop below the minimum again, so calculate and test
+        qty = amountToPrecision(market.symbol, qty)
+        cost = qty.multipliedBy(price)
+        if (cost.isLessThan(market.limits.cost.min)) {
+            logger.debug(`${market.symbol} adjusted trade cost is below the minimum.`)
+            // Add on the minimum amount (this should be a valid precision/step size)
+            qty = qty.plus(market.limits.amount.min)
         }
     }
 
