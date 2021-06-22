@@ -1967,6 +1967,8 @@ async function run() {
     if (!Number.isInteger(env().STRATEGY_LOSS_LIMIT)) issues.push("STRATEGY_LOSS_LIMIT must be a whole number.")
     if (env().VIRTUAL_WALLET_FUNDS <= 0) issues.push("VIRTUAL_WALLET_FUNDS must be greater than 0.")
     if (!env().IS_TRADE_MARGIN_ENABLED && env().PRIMARY_WALLET == WalletType.MARGIN) issues.push(`PRIMARY_WALLET cannot be ${WalletType.MARGIN} if IS_TRADE_MARGIN_ENABLED is false.`)
+    if (env().IS_NOTIFIER_GMAIL_ENABLED && (!env().NOTIFIER_GMAIL_ADDRESS || !env().NOTIFIER_GMAIL_APP_PASSWORD)) issues.push("NOTIFIER_GMAIL_ADDRESS and NOTIFIER_GMAIL_APP_PASSWORD are required for IS_NOTIFIER_GMAIL_ENABLED.")
+    if (env().IS_NOTIFIER_TELEGRAM_ENABLED && (!env().NOTIFIER_TELEGRAM_API_KEY || !env().NOTIFIER_TELEGRAM_RECEIVER_ID)) issues.push("NOTIFIER_TELEGRAM_API_KEY and NOTIFIER_TELEGRAM_RECEIVER_ID are required for IS_NOTIFIER_TELEGRAM_ENABLED.")
     if (issues.length) {
         issues.forEach(issue => logger.error(issue))
         return Promise.reject(issues.join(" "))
