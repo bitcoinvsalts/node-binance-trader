@@ -34,6 +34,7 @@ export function resetLoggerOutput(): void {
     loggerOutput = [""]
 }
 
+// HTML colours for each log level
 const colours = {
     silly: "#2472C8",
     debug: "#808080",
@@ -50,14 +51,14 @@ const logger = winston.createLogger({
                 winston.format.timestamp({
                     format: "YYYY-MM-DD HH:mm:ss",
                 }),
-                winston.format.colorize({ all: true }),
+                winston.format.colorize({ all: process.env.NODE_ENV != "production" }), // When running in Heroku we can't use colours in the console
                 winston.format.printf(
                     (info) => `${info.timestamp} | ${info.level} | ${info.message}`
                 )
             )
         }),
         new winston.transports.Stream({
-            stream,
+            stream, // Memory stream used for displaying the logs in HTML
             format: winston.format.combine(
                 winston.format.timestamp({
                     format: "YYYY-MM-DD HH:mm:ss",
