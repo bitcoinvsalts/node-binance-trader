@@ -1400,10 +1400,17 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
     let quantity = new BigNumber(0) // The amount of the base coin to trade (e.g. ETH for ETHBTC)
     let borrow = new BigNumber(0) // The amount of either the base (for SHORT) or quote (for LONG) that needs to be borrowed
 
+    // User may set the trade amount to zero if they don't want new trades to open, but still want existing trades to close normally
+    if (!cost.isGreaterThan(0)) {
+        const logMessage = `Failed to trade as the trade amount is invalid for this ${getLogName(undefined, undefined, tradingData.strategy)} strategy.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
+    }
+
     // Initialise all wallets
     let {preferred, primary} = getPreferredWallets(tradingData.market, tradingData.signal.positionType)
     if (!preferred.length) {
-        const logMessage = `Failed to trade as no potential wallets for this ${tradingData.signal.positionType} trade.`
+        const logMessage = `Failed to trade as there are no potential wallets to use for this ${getLogName(undefined, tradingData.signal)} signal.`
         logger.error(logMessage)
         return Promise.reject(logMessage)
     }
