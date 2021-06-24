@@ -9,15 +9,18 @@ stream._write = (chunk, encoding, next) => {
     // Split the chunk into lines and add to the memory array
     let lines = chunk.toString() as string
     while (lines != "") {
-        if (lines.indexOf("\n")) {
-            let pos = lines.indexOf("\n")
-            const cut = pos+1
-            if (lines.substr(pos-1, 1) == "\r") pos--
+        // Look for the null character we added at the end of the log entry
+        if (lines.indexOf("\0")) {
+            const pos = lines.indexOf("\0")
             loggerOutput[loggerOutput.length-1] += lines.substr(0, pos)
+            // Even though we put the null character at the end, winston will add a new line after
+            let cut = pos + 2
+            // Not sure if new line is always \r\n, or just \n, so allow for both cases
+            if (lines.substr(cut, 1) == '\n') cut++
             lines = lines.substr(cut)
             loggerOutput.push("") // Start a new line
         } else {
-            // If no line feed on the last line, then it will get appended next time
+            // If no null character on the last line it must be mid stream, so it will get appended with the next chunk
             loggerOutput[loggerOutput.length-1] += lines
             lines = ""
         }
@@ -64,7 +67,8 @@ const logger = winston.createLogger({
                     format: "YYYY-MM-DD HH:mm:ss",
                 }),
                 winston.format.printf(
-                    (info) => `<font color=${colours[info.level]}>${info.timestamp} | ${info.level} | ${info.message}</font>`
+                    // Includes a null character at the end so we can detect where each log entry ends in the stream
+                    (info) => `<font color=${colours[info.level]}>${info.timestamp} | ${info.level} | ${info.message}</font>\0`
                 ),
             )
         }),
