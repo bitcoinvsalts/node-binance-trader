@@ -78,9 +78,15 @@ export async function onUserPayload(strategies: StrategyJson[]) {
 
     // Log if any are not yet configured
     // These have to be ignored because we don't know whether the trades were real or virtual
-    const invalid = strategies.filter(s => new Strategy(s).tradingType == undefined || s.buy_amount <= 0)
+    const invalid = strategies.filter(s => new Strategy(s).tradingType == undefined)
     if (invalid.length) {
         logger.warn(`There are ${invalid.length} strategies that have not yet been configured, so will be ignored: ${invalid.map(s => s.stratid).join(", ")}.`)
+    }
+
+    // Users may set the trade amount to zero to prevent the strategy from opening new trades, but they still want it to close existing trades normally
+    const zero = strategies.filter(s => s.buy_amount <= 0 && !invalid.includes(s))
+    if (zero.length) {
+        logger.warn(`There are ${zero.length} strategies that do not have a trade amount configured, these will still accept closing signals but will not open new trades: ${zero.map(s => s.stratid).join(", ")}.`)
     }
     
     // Processes the JSON data into the strategies dictionary (ignoring invalid strategies)
