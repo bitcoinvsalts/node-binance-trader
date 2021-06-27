@@ -44,6 +44,9 @@ export interface TradingMetaData {
     tradesOpen: TradeOpen[]
     tradesClosing: Set<TradeOpen>
     markets: Dictionary<Market>
+    virtualBalances: Dictionary<Dictionary<BigNumber>>
+    transactions: Transaction[],
+    balanceHistory: Dictionary<Dictionary<BalanceHistory[]>>
 }
 
 export interface TradingSequence {

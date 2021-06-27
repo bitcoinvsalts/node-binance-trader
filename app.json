@@ -4,6 +4,9 @@
     "logo": "https://github.com/PostmanSpat/node-binance-trader/blob/master/docs/images/logo_small.png?raw=true",
     "repository": "https://github.com/PostmanSpat/node-binance-trader",
     "keywords": ["node", "binance","trading","trader","bot","market","maker","algo","crypto"],
+    "addons": [{
+      "plan": "heroku-postgresql:hobby-dev"
+    }],
     "env": {
       "BINANCE_API_KEY": {
         "description": "Your Binance API Key",
@@ -89,7 +92,7 @@
         "required": false
       },
       "WEB_PASSWORD": {
-        "description": "password to restrict access to the internal diagnostics webserver",
+        "description": "Password to restrict access to the internal diagnostics webserver",
         "required": false
       }
     }

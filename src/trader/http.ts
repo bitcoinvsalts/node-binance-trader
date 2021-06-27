@@ -3,7 +3,7 @@ import express from "express"
 
 import logger, { loggerOutput } from "../logger"
 import env from "./env"
-import { balanceHistory, resetVirtualBalances, setVirtualWalletFunds, tradingMetaData, transactions, virtualBalances} from "./trader"
+import { resetVirtualBalances, setVirtualWalletFunds, tradingMetaData} from "./trader"
 import { Dictionary } from "ccxt"
 import { BalanceHistory } from "./types/trader"
 import BigNumber from "bignumber.js"
@@ -35,7 +35,7 @@ export default function startWebserver(): http.Server {
                 resetVirtualBalances()
                 res.send("Virtual balances have been reset.")
             } else {
-                res.send(HTMLFormat(virtualBalances))
+                res.send(HTMLFormat(tradingMetaData.virtualBalances))
             }
         } 
     })
@@ -45,26 +45,26 @@ export default function startWebserver(): http.Server {
     })
     // Allow user to see recent transactions
     webserver.get("/trans", (req, res) => {
-        if (Authenticate(req, res)) res.send(HTMLTableFormat(transactions.slice().reverse()))
+        if (Authenticate(req, res)) res.send(HTMLTableFormat(tradingMetaData.transactions.slice().reverse()))
     })
     // Allow user to see actual PnL and daily balances for the past year
     webserver.get("/pnl", (req, res) => {
         if (Authenticate(req, res)) {
             const pnl: Dictionary<Dictionary<{}>> = {}
             const now = new Date()
-            for (let tradingType of Object.keys(balanceHistory)) {
+            for (let tradingType of Object.keys(tradingMetaData.balanceHistory)) {
                 pnl[tradingType] = {}
-                for (let coin of Object.keys(balanceHistory[tradingType])) {
+                for (let coin of Object.keys(tradingMetaData.balanceHistory[tradingType])) {
                     pnl[tradingType][coin] = {
-                        Today: PercentageChange(balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))),
-                        SevenDays: PercentageChange(balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-6))),
-                        ThirtyDays: PercentageChange(balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-29))),
-                        OneEightyDays: PercentageChange(balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-179))),
-                        Total: PercentageChange(balanceHistory[tradingType][coin]),
+                        Today: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))),
+                        SevenDays: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-6))),
+                        ThirtyDays: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-29))),
+                        OneEightyDays: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-179))),
+                        Total: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin]),
                     }
                 }
             }
-            res.send(HTMLFormat({"Profit and Loss": pnl, "Balance History": balanceHistory}))
+            res.send(HTMLFormat({"Profit and Loss": pnl, "Balance History": tradingMetaData.balanceHistory}))
         }
     })
     return webserver.listen(env().TRADER_PORT, () =>

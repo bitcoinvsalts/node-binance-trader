@@ -13,6 +13,7 @@ import {
     marginRepay,
 } from "./apis/binance"
 import { getTradeOpenList } from "./apis/bva"
+import { initialiseDatabase, loadObject, saveObjects, saveRecord } from "./apis/postgres"
 import env from "./env"
 import startWebserver from "./http"
 import initializeNotifiers, { getNotifierMessage, notifyAll } from "./notifiers"
@@ -43,20 +44,19 @@ export const tradingMetaData: TradingMetaData = {
     strategies: {}, // This comes from the payload data that is sent from NBT Hub, it is a dictionary of type Strategy (see bva.ts) indexed by the strategy ID
     tradesOpen: [], // This is an array of type TradeOpen (see bva.ts) containing all the open trades
     tradesClosing: new Set(), // List of open trades that are currently in the processing queue and have not been executed on the Binance exchange, this includes rebalancing
-    markets: {} // This is a dictionary of the different trading symbols and limits that are supported on the Binance exchange
+    markets: {}, // This is a dictionary of the different trading symbols and limits that are supported on the Binance exchange
+    virtualBalances: {}, // The virtual wallets used to keep track of the balance for simulations
+    transactions: [], // Array to keep a transaction history
+    balanceHistory: {} // Keeps the open and close balances over time for each quote coin, indexed by trading type then coin
 }
 
-// Initialise the virtual wallets and attempt to keep track of the balance for simulations
-export const virtualBalances: Dictionary<Dictionary<BigNumber>> = {}
+// Used for initialising and resetting the virtual balances
 let virtualWalletFunds = new BigNumber(env().VIRTUAL_WALLET_FUNDS) // Default to environment variable, but can be changed later
 const REFERENCE_SYMBOL = "BNBBTC" // Uses this market data to calculate wallet funds for other coins
 export function setVirtualWalletFunds(value: BigNumber) { virtualWalletFunds = value }
 
-// Initialise an array to keep a transaction history
-export const transactions: Transaction[] = []
-
-// Keeps the open and close balances over time for each quote coin, indexed by trading type then coin
-export const balanceHistory: Dictionary<Dictionary<BalanceHistory[]>> = {}
+// Set of object names from the tradingMetaData that have recently been modified
+const dirty = new Set<keyof typeof tradingMetaData>()
 
 // Configuration for the asynchronous queue that executes the trades on Binance
 const queue = new PQueue({
@@ -109,6 +109,7 @@ export async function onUserPayload(strategies: StrategyJson[]) {
             shutDown(reason)
             return Promise.reject(reason)
         })
+        saveState("tradesOpen")
 
         isOperational = true
         logger.info("NBT Trader is operational.")
@@ -122,6 +123,7 @@ export async function onUserPayload(strategies: StrategyJson[]) {
 
     // Everything is good to go, so update to the new strategies
     tradingMetaData.strategies = newStrategies
+    saveState("strategies")
 }
 
 // Retrieves the open trade list from the NBT Hub then tries to match them to existing balances and loans in Binance.
@@ -172,169 +174,250 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
     // Remove bad trades so that they don't get considered for balance allocation
     prevTrades = prevTrades.filter(trade => !badTrades.includes(trade))
 
-    // NBT Hub is not aware of the funding and balancing models, so we need to try to match these trades to Binance balances to estimate the remaining trade quantities and costs
-    // Start by loading the current balances for each wallet
-    const balances: Dictionary<Balances> = {}
-    for (let wallet of Object.values(WalletType)) {
-        balances[wallet] = await fetchBalance(wallet).catch((reason) => {
-            logger.silly("loadPreviousOpenTrades->fetchBalance: " + reason)
-            return Promise.reject(reason)
-        })
-    }
-    
-    // Get current loans so we can match SHORT trades or borrowed LONG trades
-    const marginLoans = getMarginLoans(balances[WalletType.MARGIN])    // Can only match real trades to balances, virtual balances will have reset
-    
-    const realTrades = prevTrades.filter(trade => trade.tradingType == TradingType.real)
-    const virtualTrades = prevTrades.filter(trade => trade.tradingType == TradingType.virtual)
-
-    if (realTrades.length) {
-        // Potentially there can be multiple trades for the same coins from different strategies, so need to work out what the maximum allocation is
-        // First lets start with SHORT trades, because the loans are less obscured
-        const borrowed: Dictionary<BigNumber> = {}
-        for (let trade of realTrades.filter(t => t.positionType == PositionType.SHORT)) {
-            const market = tradingMetaData.markets[trade.symbol]
-            if (!borrowed[market.base]) borrowed[market.base] = new BigNumber(0)
-            borrowed[market.base] = borrowed[market.base].plus(trade.quantity)
-        }
-
-        // It may be possible for both a SHORT trade and a LONG trade to borrow the same asset, so the SHORT trade will get it first
-        for (let trade of realTrades.filter(t => t.positionType == PositionType.SHORT)) {
-            const market = tradingMetaData.markets[trade.symbol]
-
-            // All SHORT trades are from margin
-            trade.wallet = WalletType.MARGIN
-
-            // As SHORT trades can't be rebalanced, the original quantity should be correct, so calculate cost and borrow
-            trade.cost = trade.quantity.multipliedBy(trade.priceSell!)
-            trade.borrow = trade.quantity
-
-            // Now we need to take these funds away from the balances, because they can't be used for LONG trades
-            // For example if you had a SHORT trade on ETHBTC and a LONG trade on BTCUSD, these would share the same balance
-            balances[trade.wallet][market.quote].free -= trade.cost.toNumber()
-            marginLoans[market.base].borrowed -= trade.borrow.toNumber()
-
-            if (balances[trade.wallet][market.quote].free < 0) {
-                logger.error(`Insufficient funds in ${market.quote} ${trade.wallet} wallet, you might not be able to repay ${getLogName(trade)} trade.`)
-                balances[trade.wallet][market.quote].free = 0
+    // If there are already open trades then they must have been restored from the database
+    if (tradingMetaData.tradesOpen.length) {
+        // Compare the restored trades to what we have just received
+        let same = tradingMetaData.tradesOpen.length == prevTrades.length
+        for (const prevTrade of prevTrades) {
+            // So that we can reuse the existing trade lookup function, we're going to simulate a signal for this previous trade
+            const signal: Signal = {
+                entryType: EntryType.ENTER, // We wouldn't have a previous closed trade
+                positionType: prevTrade.positionType,
+                score: "", // Doesn't matter
+                strategyId: prevTrade.strategyId,
+                strategyName: prevTrade.strategyName,
+                symbol: prevTrade.symbol,
+                userId: "", // Doesn't matter
+                nickname: "", // Doesn't matter
             }
-
-            // Check if we will pay back too much
-            if (marginLoans[market.base].borrowed < 0) {
-                // Take off the difference
-                trade.borrow = trade.borrow.plus(marginLoans[market.base].borrowed)
-                marginLoans[market.base].borrowed = 0
-                logger.error(`Loaned amount for ${market.base} doesn't match open short trades, reducing the repayment amount for ${getLogName(trade)} trade.`)
-            }
-        }
-
-        // We're going to hope that the trades haven't been rebalanced, so we'll try to assign the original quantity to wallets first
-        // If there is only one trade in each coin, then it should match up well
-        // But if there are multiple trades sharing the same coin, and they have been rebalanced, we have to assume that they were about even
-        // So we may not always get back to exactly the same state as before the restart, but it should be close enough
-        const wallets: Dictionary<Dictionary<WalletData>> = {}
-        for (let trade of realTrades.filter(t => t.positionType == PositionType.LONG)) {
-            const market = tradingMetaData.markets[trade.symbol]
-            // Get the list of wallets that could have been used for this trade
-            const {preferred, primary} = getPreferredWallets(market, trade.positionType)
+            const tradeOpen = getTradeOpen(signal)
             
-            // Calculate the potential funds that could be used for this trade in each wallet
-            preferred.forEach(w => {
-                if (!wallets[market.base]) wallets[market.base] = {}
-                if (!wallets[market.base][w]) {
-                    wallets[market.base][w] = new WalletData(w)
-                    wallets[market.base][w].free = new BigNumber(balances[w][market.base].free)
-                    wallets[market.base][w].potential = wallets[market.base][w].free
-
-                    logger.debug(`${w} wallet has ${wallets[market.base][w].free.toFixed()} ${market.base} free.`)
+            // Check if there was a matching trade
+            if (tradeOpen) {
+                if (tradeOpen.id != prevTrade.id) {
+                    // We don't get the trade ID when the trade was opened normally, so it is likely to change after a restart
+                    logger.debug(`Trade ID ${tradeOpen.id} changed to ${prevTrade.id}.`)
+                    tradeOpen.id = prevTrade.id 
                 }
 
-                // If there is enough free balance, then use that as the potential
-                wallets[market.base][w].potential = wallets[market.base][w].free.minus(wallets[market.base][w].total)
-                if (wallets[market.base][w].potential! < trade.quantity) {
-                    // Otherwise use equal portions of the balance for each trade
-                    wallets[market.base][w].potential = wallets[market.base][w].free.dividedBy(wallets[market.base][w].trades.length + 1)
+                // The trade may have stopped previously due to the trader logic that the BVA Hub doesn't know about
+                // But there is a chance that the user stopped the trade while the trader was offline, so we'll take the new state
+                if (!tradeOpen.isStopped && prevTrade.isStopped) {
+                    logger.warn(`${getLogName(tradeOpen)} trade has now been stopped.`)
+                    tradeOpen.isStopped = prevTrade.isStopped
                 }
+            } else {
+                logger.error(`${getLogName(prevTrade)} trade was not found in the database, it will be discarded.`)
+                badTrades.push(prevTrade)
+                same = false
+            }
+        }
+
+        if (!same) {
+            logger.error(`The list of open trades loaded from the BVA Hub does not match what was reloaded from the database. The list from the database will be used, you can either close the discarded trades on the BVA Hub, or clear the database and restart the trader.`)
+        }
+
+        // Use what was loaded from the database because this will have accurate funding and balancing, not what was received from the NBT Hub
+        prevTrades = tradingMetaData.tradesOpen
+    } else {
+        // NBT Hub is not aware of the funding and balancing models, so we need to try to match these trades to Binance balances to estimate the remaining trade quantities and costs
+        // Start by loading the current balances for each wallet
+        const balances: Dictionary<Balances> = {}
+        for (const wallet of Object.values(WalletType)) {
+            balances[wallet] = await fetchBalance(wallet).catch((reason) => {
+                logger.silly("loadPreviousOpenTrades->fetchBalance: " + reason)
+                return Promise.reject(reason)
             })
-            
-            // Use the preferred wallet or the one with with the best potential
-            const wallet = getBestWallet(trade.quantity, preferred, wallets[market.base])
-            
-            // Assign this trade to the wallet and update the total and count
-            trade.wallet = wallet.type
-            wallet.total = wallet.total.plus(trade.quantity) // Will be rebalanced later
-            wallet.trades.push(trade)
         }
+        
+        // Get current loans so we can match SHORT trades or borrowed LONG trades
+        const marginLoans = getMarginLoans(balances[WalletType.MARGIN])    // Can only match real trades to balances, virtual balances will have reset
+        
+        const realTrades = prevTrades.filter(trade => trade.tradingType == TradingType.real)
+        const virtualTrades = prevTrades.filter(trade => trade.tradingType == TradingType.virtual)
 
-        // Recalculate to an average quantity if the total is more than the free balance
-        for (let coin of Object.keys(wallets)) {
-            for (let walletType of Object.keys(wallets[coin])) {
-                const wallet = wallets[coin][walletType]
-                if (wallet.total.isGreaterThan(wallet.free)) {
-                    // Each coin pair may have a different minimum quantity, so have to calculate the actual quantity per trade
-                    // Also, we will update the free balance as each quantity is consumed, so remember the target now
-                    const target = wallet.free.dividedBy(wallet.trades.length)
-                    logger.info(`Insufficient ${coin} in ${walletType}, reducing ${wallet.trades.length} trades to about ${target} ${coin}.`)
-                    logger.debug(`Needed ${wallet.total.toFixed()} but only have ${wallet.free.toFixed()}.`)
+        if (realTrades.length) {
+            // Potentially there can be multiple trades for the same coins from different strategies, so need to work out what the maximum allocation is
+            // First lets start with SHORT trades, because the loans are less obscured
+            const borrowed: Dictionary<BigNumber> = {}
+            for (let trade of realTrades.filter(t => t.positionType == PositionType.SHORT)) {
+                const market = tradingMetaData.markets[trade.symbol]
+                if (!borrowed[market.base]) borrowed[market.base] = new BigNumber(0)
+                borrowed[market.base] = borrowed[market.base].plus(trade.quantity)
+            }
 
-                    // Find all LONG trades that share this coin and wallet
-                    for (let trade of realTrades.filter(t =>
-                        t.positionType == PositionType.LONG &&
-                        t.wallet == walletType &&
-                        tradingMetaData.markets[t.symbol].base == coin)) {
-                            const market = tradingMetaData.markets[trade.symbol]
-                            // Try to use the target quantity
-                            trade.quantity = getLegalQty(target, market, trade.priceBuy!) // LONG trades will always be buy price
-                            trade.timeUpdated = new Date()
+            // It may be possible for both a SHORT trade and a LONG trade to borrow the same asset, so the SHORT trade will get it first
+            for (let trade of realTrades.filter(t => t.positionType == PositionType.SHORT)) {
+                const market = tradingMetaData.markets[trade.symbol]
 
-                            // Check if we have used more than is available
-                            if (trade.quantity.isGreaterThan(wallet.free)) {
-                                trade.quantity = getLegalQty(wallet.free, market, trade.priceBuy!)
+                // All SHORT trades are from margin
+                trade.wallet = WalletType.MARGIN
 
-                                if (trade.quantity.isGreaterThan(wallet.free)) {
-                                    // Still not enough to make this trade
-                                    logger.error(`${getLogName(trade)} trade does not have sufficient funds, it will be discarded.`)
-                                    badTrades.push(trade)
-                                    // Don't want to subtract the quantity, so skip to the next trade
-                                    continue
-                                }
-                            }
+                // As SHORT trades can't be rebalanced, the original quantity should be correct, so calculate cost and borrow
+                trade.cost = trade.quantity.multipliedBy(trade.priceSell!)
+                trade.borrow = trade.quantity
 
-                            // Track how much has been consumed
-                            wallet.free = wallet.free.minus(trade.quantity)
+                // Now we need to take these funds away from the balances, because they can't be used for LONG trades
+                // For example if you had a SHORT trade on ETHBTC and a LONG trade on BTCUSD, these would share the same balance
+                balances[trade.wallet][market.quote].free -= trade.cost.toNumber()
+                marginLoans[market.base].borrowed -= trade.borrow.toNumber()
+
+                if (balances[trade.wallet][market.quote].free < 0) {
+                    logger.error(`Insufficient funds in ${market.quote} ${trade.wallet} wallet, you might not be able to repay ${getLogName(trade)} trade.`)
+                    balances[trade.wallet][market.quote].free = 0
+                }
+
+                // Check if we will pay back too much
+                if (marginLoans[market.base].borrowed < 0) {
+                    // Take off the difference
+                    trade.borrow = trade.borrow.plus(marginLoans[market.base].borrowed)
+                    marginLoans[market.base].borrowed = 0
+                    logger.error(`Loaned amount for ${market.base} doesn't match open short trades, reducing the repayment amount for ${getLogName(trade)} trade.`)
+                }
+            }
+
+            // We're going to hope that the trades haven't been rebalanced, so we'll try to assign the original quantity to wallets first
+            // If there is only one trade in each coin, then it should match up well
+            // But if there are multiple trades sharing the same coin, and they have been rebalanced, we have to assume that they were about even
+            // So we may not always get back to exactly the same state as before the restart, but it should be close enough
+            const wallets: Dictionary<Dictionary<WalletData>> = {}
+            for (let trade of realTrades.filter(t => t.positionType == PositionType.LONG)) {
+                const market = tradingMetaData.markets[trade.symbol]
+                // Get the list of wallets that could have been used for this trade
+                const {preferred, primary} = getPreferredWallets(market, trade.positionType)
+                
+                // Calculate the potential funds that could be used for this trade in each wallet
+                preferred.forEach(w => {
+                    if (!wallets[market.base]) wallets[market.base] = {}
+                    if (!wallets[market.base][w]) {
+                        wallets[market.base][w] = new WalletData(w)
+                        wallets[market.base][w].free = new BigNumber(balances[w][market.base].free)
+                        wallets[market.base][w].potential = wallets[market.base][w].free
+
+                        logger.debug(`${w} wallet has ${wallets[market.base][w].free.toFixed()} ${market.base} free.`)
                     }
 
-                    // Make sure that the rebalancing consumed everything
-                    if (wallet.free.isGreaterThan(0)) {
-                        // Hopefully this is just a rounding issue, but it may be a result of maximum trade sizes too
-                        logger.warn(`Rebalancing ${coin} in ${walletType} did not allocate everything to trades, you may need to sell ${wallet.free.toFixed()} ${coin} manually in Binance.`)
+                    // If there is enough free balance, then use that as the potential
+                    wallets[market.base][w].potential = wallets[market.base][w].free.minus(wallets[market.base][w].total)
+                    if (wallets[market.base][w].potential! < trade.quantity) {
+                        // Otherwise use equal portions of the balance for each trade
+                        wallets[market.base][w].potential = wallets[market.base][w].free.dividedBy(wallets[market.base][w].trades.length + 1)
+                    }
+                })
+                
+                // Use the preferred wallet or the one with with the best potential
+                const wallet = getBestWallet(trade.quantity, preferred, wallets[market.base])
+                
+                // Assign this trade to the wallet and update the total and count
+                trade.wallet = wallet.type
+                wallet.total = wallet.total.plus(trade.quantity) // Will be rebalanced later
+                wallet.trades.push(trade)
+            }
+
+            // Recalculate to an average quantity if the total is more than the free balance
+            for (let coin of Object.keys(wallets)) {
+                for (let walletType of Object.keys(wallets[coin])) {
+                    const wallet = wallets[coin][walletType]
+                    if (wallet.total.isGreaterThan(wallet.free)) {
+                        // Each coin pair may have a different minimum quantity, so have to calculate the actual quantity per trade
+                        // Also, we will update the free balance as each quantity is consumed, so remember the target now
+                        const target = wallet.free.dividedBy(wallet.trades.length)
+                        logger.info(`Insufficient ${coin} in ${walletType}, reducing ${wallet.trades.length} trades to about ${target} ${coin}.`)
+                        logger.debug(`Needed ${wallet.total.toFixed()} but only have ${wallet.free.toFixed()}.`)
+
+                        // Find all LONG trades that share this coin and wallet
+                        for (let trade of realTrades.filter(t =>
+                            t.positionType == PositionType.LONG &&
+                            t.wallet == walletType &&
+                            tradingMetaData.markets[t.symbol].base == coin)) {
+                                const market = tradingMetaData.markets[trade.symbol]
+                                // Try to use the target quantity
+                                trade.quantity = getLegalQty(target, market, trade.priceBuy!) // LONG trades will always be buy price
+                                trade.timeUpdated = new Date()
+
+                                // Check if we have used more than is available
+                                if (trade.quantity.isGreaterThan(wallet.free)) {
+                                    trade.quantity = getLegalQty(wallet.free, market, trade.priceBuy!)
+
+                                    if (trade.quantity.isGreaterThan(wallet.free)) {
+                                        // Still not enough to make this trade
+                                        logger.error(`${getLogName(trade)} trade does not have sufficient funds, it will be discarded.`)
+                                        badTrades.push(trade)
+                                        // Don't want to subtract the quantity, so skip to the next trade
+                                        continue
+                                    }
+                                }
+
+                                // Track how much has been consumed
+                                wallet.free = wallet.free.minus(trade.quantity)
+                        }
+
+                        // Make sure that the rebalancing consumed everything
+                        if (wallet.free.isGreaterThan(0)) {
+                            // Hopefully this is just a rounding issue, but it may be a result of maximum trade sizes too
+                            logger.warn(`Rebalancing ${coin} in ${walletType} did not allocate everything to trades, you may need to sell ${wallet.free.toFixed()} ${coin} manually in Binance.`)
+                        }
                     }
                 }
             }
+
+            // Calculate the cost for LONG trades, it may use the original quantity or new quantity
+            for (let trade of realTrades.filter(t => t.positionType == PositionType.LONG)) {
+                trade.cost = trade.quantity.multipliedBy(trade.priceBuy!)
+            }
+
+            // See if we can mop up any loans with the margin LONG trades
+            for (let trade of realTrades.filter(t =>
+                t.positionType == PositionType.LONG &&
+                t.wallet == WalletType.MARGIN &&
+                !badTrades.includes(t))) {
+                    const market = tradingMetaData.markets[trade.symbol]
+                    if (marginLoans[market.quote] && marginLoans[market.quote].borrowed) {
+                        trade.borrow = new BigNumber(marginLoans[market.quote].borrowed)
+                        if (trade.borrow.isGreaterThan(trade.quantity)) trade.borrow = trade.quantity
+                        marginLoans[market.quote].borrowed -= trade.borrow.toNumber()
+
+                        logger.info(`${getLogName(trade)} trade will repay loan of ${trade.borrow} ${market.quote}.`)
+                    }
+            }
+
+            // Remove bad trades so that they don't get started
+            prevTrades = prevTrades.filter(trade => !badTrades.includes(trade))
         }
 
-        // Calculate the cost for LONG trades, it may use the original quantity or new quantity
-        for (let trade of realTrades.filter(t => t.positionType == PositionType.LONG)) {
-            trade.cost = trade.quantity.multipliedBy(trade.priceBuy!)
+        // Better check that all the loans have been allocated to open real trades
+        for (let coin of Object.keys(marginLoans).filter(c => marginLoans[c].borrowed)) {
+            logger.error(`A margin loan of ${marginLoans[coin].borrowed} ${coin} has not been allocated to any open trades, you will have to repay this manually in Binance.`)
         }
 
-        // See if we can mop up any loans with the margin LONG trades
-        for (let trade of realTrades.filter(t =>
-            t.positionType == PositionType.LONG &&
-            t.wallet == WalletType.MARGIN &&
-            !badTrades.includes(t))) {
-                const market = tradingMetaData.markets[trade.symbol]
-                if (marginLoans[market.quote] && marginLoans[market.quote].borrowed) {
-                    trade.borrow = new BigNumber(marginLoans[market.quote].borrowed)
-                    if (trade.borrow.isGreaterThan(trade.quantity)) trade.borrow = trade.quantity
-                    marginLoans[market.quote].borrowed -= trade.borrow.toNumber()
+        // Update optional properties for virtual trades, no way of matching the quantity so just use what was sent
+        virtualTrades.forEach(trade => {
+            const market = tradingMetaData.markets[trade.symbol]
+            switch (trade.positionType) {
+                case PositionType.SHORT:
+                    trade.wallet = WalletType.MARGIN
+                    trade.cost = trade.quantity.multipliedBy(trade.priceSell!)
+                    trade.borrow = trade.quantity
+                    break
+                case PositionType.LONG:
+                    if (!market.margin) {
+                        trade.wallet = WalletType.SPOT
+                    } else {
+                        trade.wallet = env().PRIMARY_WALLET
+                    }
+                    trade.cost = trade.quantity.multipliedBy(trade.priceBuy!)
+                    trade.borrow = new BigNumber(0)
+                    break
+            }
+        })
 
-                    logger.info(`${getLogName(trade)} trade will repay loan of ${trade.borrow} ${market.quote}.`)
-                }
-        }
+        // Update virtual balances to match existing trades
+        resetVirtualBalances(virtualTrades)
 
-        // Remove bad trades so that they don't get started
-        prevTrades = prevTrades.filter(trade => !badTrades.includes(trade))
+        // Log results
+        prevTrades.forEach(trade =>
+            logger.info(`Previous trade ${getLogName(trade)} assigned to ${trade.wallet}, quantity = ${trade.quantity.toFixed()}, cost = ${trade.cost?.toFixed()}, borrowed = ${trade.borrow?.toFixed()}`)
+        )
     }
 
     // Send notifications of discarded trades
@@ -342,40 +425,6 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
         notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, "This previous trade was received from the NBT Hub but could not be reloaded. Check the log for details.")).catch((reason) => {
             logger.silly("loadPreviousOpenTrades->notifyAll: " + reason)
         })
-    )
-
-    // Better check that all the loans have been allocated to open real trades
-    for (let coin of Object.keys(marginLoans).filter(c => marginLoans[c].borrowed)) {
-        logger.error(`A margin loan of ${marginLoans[coin].borrowed} ${coin} has not been allocated to any open trades, you will have to repay this manually in Binance.`)
-    }
-
-    // Update optional properties for virtual trades, no way of matching the quantity so just use what was sent
-    virtualTrades.forEach(trade => {
-        const market = tradingMetaData.markets[trade.symbol]
-        switch (trade.positionType) {
-            case PositionType.SHORT:
-                trade.wallet = WalletType.MARGIN
-                trade.cost = trade.quantity.multipliedBy(trade.priceSell!)
-                trade.borrow = trade.quantity
-                break
-            case PositionType.LONG:
-                if (!market.margin) {
-                    trade.wallet = WalletType.SPOT
-                } else {
-                    trade.wallet = env().PRIMARY_WALLET
-                }
-                trade.cost = trade.quantity.multipliedBy(trade.priceBuy!)
-                trade.borrow = new BigNumber(0)
-                break
-        }
-    })
-
-    // Update virtual balances to match existing trades
-    resetVirtualBalances(virtualTrades)
-
-    // Log results
-    prevTrades.forEach(trade =>
-        logger.info(`Previous trade ${getLogName(trade)} assigned to ${trade.wallet}, quantity = ${trade.quantity.toFixed()}, cost = ${trade.cost?.toFixed()}, borrowed = ${trade.borrow?.toFixed()}`)
     )
 
     // Keep the list of trades
@@ -429,6 +478,7 @@ async function checkStrategyChanges(strategies: Dictionary<Strategy>) {
     }
 
     // Copy the stopped flag and count of lost trades because these aren't sent from NBT Hub, but only if the trade (active) flag has not been switched
+    // Toggling the trade flag is how the user can choose to reset the stopped status and loss run
     // Note, I think if you turn trade off in the NBT Hub you don't get the strategy in the payload anyway
     for (let strategy of Object.keys(strategies).filter(strategy =>
         strategy in tradingMetaData.strategies &&
@@ -986,6 +1036,7 @@ async function executeTradeAction(
                 // Update the cost for better accuracy
                 tradeOpen.cost = new BigNumber(result.cost)
                 tradeOpen.timeUpdated = new Date()
+                saveState("tradesOpen")
             }
             if (result.price) {
                 switch (action) {
@@ -995,6 +1046,7 @@ async function executeTradeAction(
                             // Update the price for better accuracy
                             tradeOpen.priceBuy = new BigNumber(result.price)
                             tradeOpen.timeUpdated = new Date()
+                            saveState("tradesOpen")
                         }
                         break
                     case ActionType.SELL:
@@ -1003,6 +1055,7 @@ async function executeTradeAction(
                             // Update the price for better accuracy
                             tradeOpen.priceSell = new BigNumber(result.price)
                             tradeOpen.timeUpdated = new Date()
+                            saveState("tradesOpen")
                         }
                         break
                 }
@@ -1014,10 +1067,12 @@ async function executeTradeAction(
     }
 
     // Record transaction
-    transactions.push(new Transaction(tradeOpen, source, action, symbolAsset, quantity))
+    const transaction = new Transaction(tradeOpen, source, action, symbolAsset, quantity)
+    tradingMetaData.transactions.push(transaction)
+    saveRecord("transaction", JSON.stringify(transaction)).catch(() => {})
     // Truncate memory array
-    while (transactions.length > 1 && transactions.length > env().MAX_LOG_LENGTH) {
-        transactions.shift()
+    while (tradingMetaData.transactions.length > 1 && tradingMetaData.transactions.length > env().MAX_LOG_LENGTH) {
+        tradingMetaData.transactions.shift()
     }
 
     return Promise.resolve(result)
@@ -1033,25 +1088,27 @@ async function createVirtualOrder(
     // Update virtual balances with buy and sell quantities
     switch (action) {
         case ActionType.BUY:
-            virtualBalances[tradeOpen.wallet!][market.base] = virtualBalances[tradeOpen.wallet!][market.base].plus(tradeOpen.quantity)
-            virtualBalances[tradeOpen.wallet!][market.quote] = virtualBalances[tradeOpen.wallet!][market.quote].minus(tradeOpen.quantity.multipliedBy(tradeOpen.priceBuy!))
+            tradingMetaData.virtualBalances[tradeOpen.wallet!][market.base] = tradingMetaData.virtualBalances[tradeOpen.wallet!][market.base].plus(tradeOpen.quantity)
+            tradingMetaData.virtualBalances[tradeOpen.wallet!][market.quote] = tradingMetaData.virtualBalances[tradeOpen.wallet!][market.quote].minus(tradeOpen.quantity.multipliedBy(tradeOpen.priceBuy!))
             break
         case ActionType.SELL:
-            virtualBalances[tradeOpen.wallet!][market.base] = virtualBalances[tradeOpen.wallet!][market.base].minus(tradeOpen.quantity)
-            virtualBalances[tradeOpen.wallet!][market.quote] = virtualBalances[tradeOpen.wallet!][market.quote].plus(tradeOpen.quantity.multipliedBy(tradeOpen.priceSell!))
+            tradingMetaData.virtualBalances[tradeOpen.wallet!][market.base] = tradingMetaData.virtualBalances[tradeOpen.wallet!][market.base].minus(tradeOpen.quantity)
+            tradingMetaData.virtualBalances[tradeOpen.wallet!][market.quote] = tradingMetaData.virtualBalances[tradeOpen.wallet!][market.quote].plus(tradeOpen.quantity.multipliedBy(tradeOpen.priceSell!))
             break
     }
+    saveState("virtualBalances")
 
-    logger.debug(`After ${action}, current ${tradeOpen.wallet} virtual balances are now ${virtualBalances[tradeOpen.wallet!][market.base]} ${market.base} and ${virtualBalances[tradeOpen.wallet!][market.quote]} ${market.quote}.`)
+    logger.debug(`After ${action}, current ${tradeOpen.wallet} virtual balances are now ${tradingMetaData.virtualBalances[tradeOpen.wallet!][market.base]} ${market.base} and ${tradingMetaData.virtualBalances[tradeOpen.wallet!][market.quote]} ${market.quote}.`)
     return Promise.resolve(null)
 }
 
 // Simulates borrowing on the virtual balances
 async function virtualBorrow(asset: string, quantity: BigNumber): Promise<null> {
     if (quantity.isGreaterThan(0)) {
-        virtualBalances[WalletType.MARGIN][asset] = virtualBalances[WalletType.MARGIN][asset].plus(quantity)
+        tradingMetaData.virtualBalances[WalletType.MARGIN][asset] = tradingMetaData.virtualBalances[WalletType.MARGIN][asset].plus(quantity)
+        saveState("virtualBalances")
 
-        logger.debug(`After borrow, current ${WalletType.MARGIN} virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
+        logger.debug(`After borrow, current ${WalletType.MARGIN} virtual balance is now ${tradingMetaData.virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
     }
     return Promise.resolve(null)
 }
@@ -1059,9 +1116,10 @@ async function virtualBorrow(asset: string, quantity: BigNumber): Promise<null> 
 // Simulates repaying borrowed funds on the virtual balances
 async function virtualRepay(asset: string, quantity: BigNumber): Promise<null> {
     if (quantity.isGreaterThan(0)) {
-        virtualBalances[WalletType.MARGIN][asset] = virtualBalances[WalletType.MARGIN][asset].minus(quantity)
+        tradingMetaData.virtualBalances[WalletType.MARGIN][asset] = tradingMetaData.virtualBalances[WalletType.MARGIN][asset].minus(quantity)
+        saveState("virtualBalances")
 
-        logger.debug(`After repay, current ${WalletType.MARGIN} virtual balance is now ${virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
+        logger.debug(`After repay, current ${WalletType.MARGIN} virtual balance is now ${tradingMetaData.virtualBalances[WalletType.MARGIN!][asset]} ${asset}.`)
     }
     return Promise.resolve(null)
 }
@@ -1114,7 +1172,10 @@ export async function executeTradingTask(
         })
         .catch((reason) => {
             // Setting this to stopped because something partially worked, user will have to manually clean it up and close
-            if (anythingDone) tradeOpen.isStopped = true
+            if (anythingDone) {
+                tradeOpen.isStopped = true
+                saveState("tradesOpen")
+            }
 
             const logMessage = `Failed to execute the ${getLogName(tradeOpen)} trading sequence's main action step${anythingDone ? ", trade has been stopped": ""}: ${reason}`
             logger.error(logMessage)
@@ -1131,7 +1192,10 @@ export async function executeTradingTask(
             })
             .catch((reason) => {
                 // Setting this to stopped because something partially worked, user will have to manually clean it up and close
-                if (anythingDone) tradeOpen.isStopped = true
+                if (anythingDone) {
+                    tradeOpen.isStopped = true
+                    saveState("tradesOpen")
+                }
 
                 const logMessage = `Failed to execute the ${getLogName(tradeOpen)} trading sequence's after step${anythingDone ? ", trade has been stopped": ""}: ${reason}`
                 logger.error(logMessage)
@@ -1141,6 +1205,7 @@ export async function executeTradingTask(
 
     // Update trade status after successful processing
     tradeOpen.isExecuted = true
+    saveState("tradesOpen")
 
     if (signal && signal.entryType == EntryType.EXIT) {
         // Remove the completed trade (no signal means it is from a rebalance and won't be in the trade list anyway)
@@ -1178,6 +1243,7 @@ export async function executeTradingTask(
                         logger.silly("trade->notifyAll: " + reason)
                     })
                 }
+                saveState("strategies")
             } else {
                 if (strategy.lossTradeRun > 0) logger.debug(`${getLogName(undefined, signal)} had ${strategy.lossTradeRun} losses in a row.`)
 
@@ -1282,7 +1348,7 @@ export async function trade(signal: Signal, source: SourceType) {
         logger.silly("trade->notifyAll: " + reason)
     })
 
-    let tradeOpen: TradeOpen | undefined
+    let tradeOpen: TradeOpen
 
     if (tradingData.signal.entryType === EntryType.ENTER) {
         // Calculate the cost and quantity for the new trade
@@ -1294,21 +1360,22 @@ export async function trade(signal: Signal, source: SourceType) {
         )
     } else {
         // Get previous trade (not even going to test if this was found because we wouldn't have reached here if it wasn't)
-        tradeOpen = getTradeOpen(signal)   
+        tradeOpen = getTradeOpen(signal)!
         
         // Update buy / sell price
-        tradeOpen!.timeUpdated = new Date()
+        tradeOpen.timeUpdated = new Date()
         if (tradingData.signal.positionType == PositionType.SHORT) {
-            tradeOpen!.priceBuy = tradingData.signal.price
-            tradeOpen!.timeBuy = new Date()
+            tradeOpen.priceBuy = tradingData.signal.price
+            tradeOpen.timeBuy = new Date()
         } else {
-            tradeOpen!.priceSell = tradingData.signal.price
-            tradeOpen!.timeSell = new Date()
+            tradeOpen.priceSell = tradingData.signal.price
+            tradeOpen.timeSell = new Date()
         }
+        saveState("tradesOpen")
     }
 
     // Create the before / main action / after tasks and add to the trading queue
-    await scheduleTrade(tradeOpen!, tradingData.signal.entryType, source, tradingData.signal).catch(
+    await scheduleTrade(tradeOpen, tradingData.signal.entryType, source, tradingData.signal).catch(
         (reason) => {
             logger.silly("trade->scheduleTrade: " + reason)
             return Promise.reject(reason)
@@ -1320,7 +1387,8 @@ export async function trade(signal: Signal, source: SourceType) {
     logger.debug(`Were ${tradingMetaData.tradesOpen.length} open trades.`)
     if (tradingData.signal.entryType == EntryType.ENTER) {
         // Add the new opened trade
-        tradingMetaData.tradesOpen.push(tradeOpen!)
+        tradingMetaData.tradesOpen.push(tradeOpen)
+        saveState("tradesOpen")
     }
 
     // Exit trades will be removed once they have successfully executed in the queue
@@ -1393,6 +1461,7 @@ async function rebalanceTrade(tradeOpen: TradeOpen, cost: BigNumber, wallet: Wal
     tradeOpen.quantity = tradeOpen.quantity.minus(diffQTY)
     tradeOpen.cost = tradeOpen.cost!.minus(diffCost)
     tradeOpen.timeUpdated = new Date()
+    saveState("tradesOpen")
 
     // Adjust wallet balances
     wallet.free = wallet.free.plus(diffCost)
@@ -1435,7 +1504,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
             }))[tradingData.market.quote].free) // We're just going to use 'free', but I'm not sure whether 'total' is better
         } else {
             initialiseVirtualBalances(wallet.type, tradingData.market)
-            wallet.free = virtualBalances[wallet.type][tradingData.market.quote]
+            wallet.free = tradingMetaData.virtualBalances[wallet.type][tradingData.market.quote]
         }
     }
 
@@ -1751,8 +1820,11 @@ function getBestWallet(cost: BigNumber, preferred: WalletType[], wallets: Dictio
 // Clears all virtual balances and corresponding balance history, then initialises balances from open trades
 export function resetVirtualBalances(virtualTrades?: TradeOpen[]) {
     // Set up virtual wallets
-    Object.values(WalletType).forEach(wallet => virtualBalances[wallet] = {})
-    if (Object.keys(balanceHistory).includes(TradingType.virtual)) delete balanceHistory[TradingType.virtual]
+    Object.values(WalletType).forEach(wallet => tradingMetaData.virtualBalances[wallet] = {})
+    if (Object.keys(tradingMetaData.balanceHistory).includes(TradingType.virtual)) {
+        delete tradingMetaData.balanceHistory[TradingType.virtual]
+        saveState("balanceHistory")
+    }
 
     if (!virtualTrades) {
         virtualTrades = tradingMetaData.tradesOpen.filter(trade => trade.tradingType == TradingType.virtual)
@@ -1764,24 +1836,29 @@ export function resetVirtualBalances(virtualTrades?: TradeOpen[]) {
         switch (trade.positionType) {
             case PositionType.SHORT:
                 // We've already borrowed and sold the asset, so we should have surplus funds
-                virtualBalances[trade.wallet!][market.quote] = virtualBalances[trade.wallet!][market.quote].plus(trade.cost!)
+                tradingMetaData.virtualBalances[trade.wallet!][market.quote] = tradingMetaData.virtualBalances[trade.wallet!][market.quote].plus(trade.cost!)
                 break
             case PositionType.LONG:
                 // We've already bought the asset, so we should have less funds
-                virtualBalances[trade.wallet!][market.base] = virtualBalances[trade.wallet!][market.base].plus(trade.quantity!)
-                virtualBalances[trade.wallet!][market.quote] = virtualBalances[trade.wallet!][market.quote].minus(trade.cost!)
+                tradingMetaData.virtualBalances[trade.wallet!][market.base] = tradingMetaData.virtualBalances[trade.wallet!][market.base].plus(trade.quantity!)
+                tradingMetaData.virtualBalances[trade.wallet!][market.quote] = tradingMetaData.virtualBalances[trade.wallet!][market.quote].minus(trade.cost!)
                 // TODO: It would be better to rebalance the virtual trades to keep the defined open balance, but that will take some work
-                if (virtualBalances[trade.wallet!][market.quote].isLessThan(0)) virtualBalances[trade.wallet!][market.quote] = new BigNumber(0)
+                if (tradingMetaData.virtualBalances[trade.wallet!][market.quote].isLessThan(0)) tradingMetaData.virtualBalances[trade.wallet!][market.quote] = new BigNumber(0)
                 break
         }
     })
+
+    saveState("virtualBalances")
 }
 
 // Initialise the virtual balances if not already used for these coins
 // Note, If you have different strategies using different quote assets but actively trading in each other's asset, one of them may miss out on the initial balance
 function initialiseVirtualBalances(walletType: WalletType, market: Market) {
-    if (virtualBalances[walletType][market.base] == undefined) virtualBalances[walletType][market.base] = new BigNumber(0) // Start with zero base (e.g. ETH for ETHBTC)
-    if (virtualBalances[walletType][market.quote] == undefined) {
+    if (tradingMetaData.virtualBalances[walletType][market.base] == undefined) {
+        tradingMetaData.virtualBalances[walletType][market.base] = new BigNumber(0) // Start with zero base (e.g. ETH for ETHBTC)
+        saveState("virtualBalances")
+    }
+    if (tradingMetaData.virtualBalances[walletType][market.quote] == undefined) {
         let value = virtualWalletFunds
         const btc = tradingMetaData.markets[REFERENCE_SYMBOL]
         // If the quote asset is not BTC, then use the minimum costs to scale the opening balance
@@ -1791,17 +1868,18 @@ function initialiseVirtualBalances(walletType: WalletType, market: Market) {
             if (!value.isGreaterThan(0)) value = virtualWalletFunds // Just in case
         }
     
-        virtualBalances[walletType][market.quote] = value // Start with the default balance for quote (e.g. BTC for ETHBTC)
+        tradingMetaData.virtualBalances[walletType][market.quote] = value // Start with the default balance for quote (e.g. BTC for ETHBTC)
+        saveState("virtualBalances")
     }
 }
 
 // Updates the running balance for the current day
 function updateBalanceHistory(tradingType: TradingType, quote: string, entryType?: EntryType, balance?: BigNumber, change?: BigNumber) {
-    if (!Object.keys(balanceHistory).includes(tradingType)) balanceHistory[tradingType] = {}
-    if (!Object.keys(balanceHistory[tradingType]).includes(quote)) balanceHistory[tradingType][quote] = []
+    if (!Object.keys(tradingMetaData.balanceHistory).includes(tradingType)) tradingMetaData.balanceHistory[tradingType] = {}
+    if (!Object.keys(tradingMetaData.balanceHistory[tradingType]).includes(quote)) tradingMetaData.balanceHistory[tradingType][quote] = []
 
     // Get last history slice
-    let h = balanceHistory[tradingType][quote].slice(-1).pop()
+    let h = tradingMetaData.balanceHistory[tradingType][quote].slice(-1).pop()
     if (!h && !balance) {
         // This usually happens when the trader is restarted with existing open trades, and a close signal comes through first
         logger.error(`No previous balance history for ${tradingType} ${quote}, cannot track this change.`)
@@ -1816,7 +1894,7 @@ function updateBalanceHistory(tradingType: TradingType, quote: string, entryType
 
     // Check if existing balance history is still the same date
     if (!h || !(h.timestamp.getFullYear() == tmpH.timestamp.getFullYear() && h.timestamp.getMonth() == tmpH.timestamp.getMonth() && h.timestamp.getDate() == tmpH.timestamp.getDate())) {
-        balanceHistory[tradingType][quote].push(tmpH)
+        tradingMetaData.balanceHistory[tradingType][quote].push(tmpH)
         h = tmpH
     }
 
@@ -1837,9 +1915,11 @@ function updateBalanceHistory(tradingType: TradingType, quote: string, entryType
 
     // Remove previous history slices that are older than 1 year, but keep the very first entry for lifetime opening balance
     const lastYear = new Date(tmpH.timestamp.getFullYear()-1, tmpH.timestamp.getMonth(), tmpH.timestamp.getDate())
-    while (balanceHistory[tradingType][quote].length > 1 && balanceHistory[tradingType][quote][1].timestamp <= lastYear) {
-        balanceHistory[tradingType][quote].splice(1, 1)
+    while (tradingMetaData.balanceHistory[tradingType][quote].length > 1 && tradingMetaData.balanceHistory[tradingType][quote][1].timestamp <= lastYear) {
+        tradingMetaData.balanceHistory[tradingType][quote].splice(1, 1)
     }
+
+    saveState("balanceHistory")
 }
 
 // Constructs a consistent name for trades, signals, and strategies for logging
@@ -1892,6 +1972,7 @@ function removeTradeOpen(tradeOpen: TradeOpen) {
             (tradesOpenElement) =>
                 tradesOpenElement !== tradeOpen
         )
+    saveState("tradesOpen")
 }
 
 // Gets a count of the open active trades for a given position type, and also within the same real/virtual trading
@@ -1981,6 +2062,8 @@ async function run() {
     let issues: string[] = []
     if (env().MAX_LOG_LENGTH <= 1) issues.push("MAX_LOG_LENGTH must be greater than 0.")
     if (!Number.isInteger(env().MAX_LOG_LENGTH)) issues.push("MAX_LOG_LENGTH must be a whole number.")
+    if (env().MAX_DATABASE_ROWS < 100 && env().MAX_DATABASE_ROWS != 0) issues.push("MAX_DATABASE_ROWS must be 0 or 100 or more.")
+    if (!Number.isInteger(env().MAX_DATABASE_ROWS)) issues.push("MAX_DATABASE_ROWS must be a whole number.")
     if (env().WALLET_BUFFER < 0 || env().WALLET_BUFFER >= 1) issues.push("WALLET_BUFFER must be from 0 to 0.99.")
     if (env().MAX_SHORT_TRADES < 0) issues.push("MAX_SHORT_TRADES must be 0 or more.")
     if (!Number.isInteger(env().MAX_SHORT_TRADES)) issues.push("MAX_SHORT_TRADES must be a whole number.")
@@ -1996,14 +2079,37 @@ async function run() {
         issues.forEach(issue => logger.error(issue))
         return Promise.reject(issues.join(" "))
     }
-    
+
     initializeNotifiers()
 
     // Load data and start connections asynchronously
     startUp().catch((reason) => shutDown(reason))
 }
 
+// Loads all the required data and starts connections and web services
 async function startUp() {
+    if (await initialiseDatabase()) {
+        logger.info("Loading previous meta data state from the database...")
+        
+        // Markets will come from Binance
+        // If the process restarts we'll lose the queue, so no need to reload tradesClosing
+        // Transactions can be huge, so we save them differently
+        const excluded = [ "markets", "tradesClosing", "transactions" ]
+
+        for (const type of Object.keys(tradingMetaData)) {
+            if (!excluded.includes(type)) {
+                // Try to reload the object from the database, if it fails we don't really care
+                const object = await loadObject(type)
+                if (object) {
+                    Object.assign(tradingMetaData[type as keyof typeof tradingMetaData], object)
+                    logger.debug(`Loaded "${type}" successfully.`)
+                } else {
+                    logger.warn(`Object "${type}" was not previously saved.`)
+                }
+            }
+        }
+    }
+    
     // Make sure the markets data is loaded at least once
     await refreshMarkets().catch((reason) => {
         logger.silly("run->refreshMarkets: " + reason)
@@ -2020,11 +2126,38 @@ async function startUp() {
     logger.debug("NBT Trader start up sequence is complete.")
 }
 
-function shutDown(reason: any) {
+// If something is really broken this will stop the trader
+export function shutDown(reason: any) {
     logger.silly("Shutdown: " + reason)
-    logger.error("NBT Trader is not operational, shutting down.")
+    logger.error("NBT Trader is not operational, shutting down...")
     isOperational = false
-    process.exit()
+
+    // Just in case something still needs to be written to the database
+    if (dirty.size) {
+        flushDirty().catch(() => {}).finally(process.exit())
+    } else {
+        process.exit()
+    }
+}
+
+// Adds the tradingMetaData object type to the dirty set for saving to the database
+function saveState(type: keyof typeof tradingMetaData) {
+    // Save state may be called many times in the same thread
+    dirty.add(type)
+    // Calling this asynchronously will ensure that it only gets updated once the thread is free
+    flushDirty().catch((reason) => shutDown(reason))
+}
+
+// Processes the dirty meta data requests and writes them to the database
+async function flushDirty() {
+    await null // Let calling threads finish first, because it is better to bundle multiple objects in one write
+    if (dirty.size) {
+        logger.debug(`Flushing ${dirty.size} dirty objects: ${Array.from(dirty).join(", ")}.`)
+        const objects: Dictionary<any> = {}
+        dirty.forEach(type => objects[type] = tradingMetaData[type as keyof typeof tradingMetaData])
+        dirty.clear()
+        await saveObjects(objects)
+    }
 }
 
 // WARNING: Only use this function on the testnet API if you need to reset balances, it is super dangerous
