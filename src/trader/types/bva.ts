@@ -140,7 +140,6 @@ export interface BvaCommand {
 
 export class Signal {
     entryType: EntryType
-    nickname: string
     positionType?: PositionType
     price?: BigNumber
     score: string
@@ -148,13 +147,13 @@ export class Signal {
     strategyName: string
     symbol: string
     userId: string
+    nickname: string
 
     constructor(
         signalJson: SignalJson,
         positionType?: PositionType // Currently a hack as BVA's signals contain this information only implicitly through the differentiation between buy and sell signals.
     ) {
         this.entryType = signalJson.new ? EntryType.ENTER : EntryType.EXIT
-        this.nickname = signalJson.nickname
         this.positionType = positionType // Will typically be null initially, then set once the signal is decoded
         this.price = signalJson.price ? new BigNumber(signalJson.price) : signalJson.close_price ? new BigNumber(signalJson.close_price) : undefined
         this.score = signalJson.score
@@ -162,6 +161,7 @@ export class Signal {
         this.strategyName = signalJson.stratname
         this.symbol = signalJson.pair
         this.userId = signalJson.userid
+        this.nickname = signalJson.nickname
     }
 }
 
