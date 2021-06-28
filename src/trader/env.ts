@@ -54,7 +54,7 @@ export function getDefault(): Readonly<any> {
         // Internal configuration options that can be changed but shouldn't need to be
         TRADER_PORT: port({ default: 8003, desc: "The port to trader webserver runs" }),
         VERSION: str({ default: packageJson.version }),
-        MAX_LOG_LENGTH: num({ default: 5000, desc: "Maximum number of entries for in-memory logging and transactions" }),
+        MAX_LOG_LENGTH: num({ default: 1000, desc: "Maximum number of entries for in-memory logging and transactions" }),
         MAX_DATABASE_ROWS: num({ default: 10000, desc: "Maximum number of records that can be written to the database" }),
         LOG_LEVEL: str({ default: "info", choices: ["silly", "debug", "info", "warn", "error" ]}),
     })

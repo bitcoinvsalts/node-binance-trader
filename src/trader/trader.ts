@@ -1069,7 +1069,7 @@ async function executeTradeAction(
     // Record transaction
     const transaction = new Transaction(tradeOpen, source, action, symbolAsset, quantity)
     tradingMetaData.transactions.push(transaction)
-    saveRecord("transaction", JSON.stringify(transaction)).catch(() => {})
+    saveRecord("transaction", transaction)
     // Truncate memory array
     while (tradingMetaData.transactions.length > 1 && tradingMetaData.transactions.length > env().MAX_LOG_LENGTH) {
         tradingMetaData.transactions.shift()

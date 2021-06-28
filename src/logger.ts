@@ -1,6 +1,7 @@
 import { Writable } from "stream"
 
 import winston from "winston"
+import { toJSON } from "./trader/apis/json"
 import { saveRecord } from "./trader/apis/postgres"
 import env from "./trader/env"
 
@@ -47,7 +48,7 @@ dbStream._write = (chunk, encoding, next) => {
         if (lines.indexOf("\0")) {
             // Split the line and log to the database with the previous chunk
             const [head, tail] = splitLog(lines)
-            saveRecord("log", dbBuffer + head).catch(() => {})
+            saveRecord("log", dbBuffer + head)
             lines = tail
 
             // Start a new line
@@ -115,7 +116,7 @@ const logger = winston.createLogger({
                     format: "YYYY-MM-DDTHH:mm:ss.sssZ", // ISO format
                 }),
                 winston.format.printf(
-                    (info) => JSON.stringify({ timestamp: info.timestamp, level: info.level, message: info.message }) + "\0"
+                    (info) => toJSON({ timestamp: new Date(info.timestamp), level: info.level, message: info.message }) + "\0"
                 ),
             ),
             level: "info" // To limit the size of the logs, and avoid an infinite loop, only log 'info' or higher

@@ -7,6 +7,29 @@ import { resetVirtualBalances, setVirtualWalletFunds, tradingMetaData} from "./t
 import { Dictionary } from "ccxt"
 import { BalanceHistory } from "./types/trader"
 import BigNumber from "bignumber.js"
+import { loadRecords } from "./apis/postgres"
+
+enum Pages {
+    TRADES = "Open Trades",
+    STRATEGIES = "Strategies",
+    VIRTUAL = "Virtual Balances",
+    LOG_MEMORY = "Log (Since Restart)",
+    LOG_DB = "Log (History)",
+    TRANS_MEMORY = "Transactions (Since Restart)",
+    TRANS_DB = "Transactions (History)",
+    PNL = "Profit n Loss / Balance History"
+}
+
+const urls = {
+    [Pages.TRADES]: "trades?",
+    [Pages.STRATEGIES]: "strategies?",
+    [Pages.VIRTUAL]: "virtual?",
+    [Pages.LOG_MEMORY]: "log?",
+    [Pages.LOG_DB]: "log?db=%d&", // Page number will be inserted as needed
+    [Pages.TRANS_MEMORY]: "trans?",
+    [Pages.TRANS_DB]: "trans?db=%d&", // Page number will be inserted as needed
+    [Pages.PNL]: "pnl?",
+}
 
 export default function startWebserver(): http.Server {
     const webserver = express()
@@ -15,11 +38,11 @@ export default function startWebserver(): http.Server {
     )
     // Allow user to see open trades
     webserver.get("/trades", (req, res) => {
-        if (Authenticate(req, res)) res.send(HTMLTableFormat(tradingMetaData.tradesOpen))
+        if (Authenticate(req, res)) res.send(HTMLTableFormat(Pages.TRADES, tradingMetaData.tradesOpen))
     })
     // Allow user to see configured strategies
     webserver.get("/strategies", (req, res) => {
-        if (Authenticate(req, res)) res.send(HTMLTableFormat(Object.values(tradingMetaData.strategies)))
+        if (Authenticate(req, res)) res.send(HTMLTableFormat(Pages.STRATEGIES, Object.values(tradingMetaData.strategies)))
     })
     // Allow user to see, reset, and change virtual balances
     webserver.get("/virtual", (req, res) => {
@@ -35,17 +58,35 @@ export default function startWebserver(): http.Server {
                 resetVirtualBalances()
                 res.send("Virtual balances have been reset.")
             } else {
-                res.send(HTMLFormat(tradingMetaData.virtualBalances))
+                res.send(HTMLFormat(Pages.VIRTUAL, tradingMetaData.virtualBalances))
             }
         } 
     })
-    // Allow user to see log
-    webserver.get("/log", (req, res) => {
-        if (Authenticate(req, res)) res.send(HTMLFormat(loggerOutput.slice().reverse().join("\r\n")))
+    // Allow user to see in memory or database log
+    webserver.get("/log", async (req, res) => {
+        if (Authenticate(req, res)) {
+            if (Object.keys(req.query).includes("db")) {
+                let page = req.query.db ? Number.parseInt(req.query.db.toString()) : 1
+                // Load the log from the database
+                res.send(HTMLTableFormat(Pages.LOG_DB, (await loadRecords("log", page)), page+1))
+            } else {
+                // Use the memory log
+                res.send(HTMLFormat(Pages.LOG_MEMORY, loggerOutput.slice().reverse().join("\r\n")))
+            }
+        }
     })
-    // Allow user to see recent transactions
-    webserver.get("/trans", (req, res) => {
-        if (Authenticate(req, res)) res.send(HTMLTableFormat(tradingMetaData.transactions.slice().reverse()))
+    // Allow user to see in memory or database transactions
+    webserver.get("/trans", async (req, res) => {
+        if (Authenticate(req, res)) {
+            if (Object.keys(req.query).includes("db")) {
+                let page = req.query.db ? Number.parseInt(req.query.db.toString()) : 1
+                // Load the transactions from the database
+                res.send(HTMLTableFormat(Pages.TRANS_DB, (await loadRecords("transaction", page)), page+1))
+            } else {
+                // Use the memory transactions
+                res.send(HTMLTableFormat(Pages.TRANS_MEMORY, tradingMetaData.transactions.slice().reverse()))
+            }
+        }
     })
     // Allow user to see actual PnL and daily balances for the past year
     webserver.get("/pnl", (req, res) => {
@@ -64,7 +105,7 @@ export default function startWebserver(): http.Server {
                     }
                 }
             }
-            res.send(HTMLFormat({"Profit and Loss": pnl, "Balance History": tradingMetaData.balanceHistory}))
+            res.send(HTMLFormat(Pages.PNL, {"Profit and Loss": pnl, "Balance History": tradingMetaData.balanceHistory}))
         }
     })
     return webserver.listen(env().TRADER_PORT, () =>
@@ -87,11 +128,21 @@ function Authenticate(req: any, res: any): boolean {
     return true
 }
 
-function HTMLFormat(data: any): string {
-    return "<html><body><pre><code>" + (typeof data == "string" ? data : JSON.stringify(data, null, 4)) + "</code></pre></body></html>"
+function HTMLFormat(page: Pages, data: any): string {
+    let html = `<html><head><title>NBT: ${page}</title></head><body>`
+    html += `<p>`
+    html += Object.values(Pages).map(name => {
+        let link = ""
+        if (page != name) link += `<a href="${urls[name].replace("%d", "1")}${env().WEB_PASSWORD}">`
+        link += name
+        if (page != name) link += `</a>`
+        return link
+    }).join(" | ")
+    html += `</p>`
+    return `${html}<pre><code>${typeof data == "string" ? data : JSON.stringify(data, null, 4)}</code></pre></body></html>`
 }
 
-function HTMLTableFormat(data: any[]): string {
+function HTMLTableFormat(page: Pages, data: any[], nextPage?: number): string {
     let result = ""
     let cols: string[] = []
     for (let row of data) {
@@ -112,6 +163,9 @@ function HTMLTableFormat(data: any[]): string {
 
                 result += " title='" + row[col].getTime() + "'>"
                 result += row[col].toLocaleString()
+            } else if (row[col] instanceof BigNumber) {
+                result += ">"
+                if (row[col] != undefined) result += row[col].toFixed()
             } else {
                 result += ">"
                 if (row[col] != undefined) result += row[col]
@@ -122,10 +176,13 @@ function HTMLTableFormat(data: any[]): string {
     }
     if (result != "") {
         result += "</table>"
+        if (nextPage) {
+            result += `<a href="${urls[page].replace("%d", nextPage.toString())}${env().WEB_PASSWORD}">Next Page...</a>`
+        }
     } else {
         result = "No data yet."
     }
-    return HTMLFormat(result)
+    return HTMLFormat(page, result)
 }
 
 function PercentageChange(history: BalanceHistory[]): string {
