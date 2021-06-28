@@ -14,7 +14,7 @@ let isReady = false
 let rows = 0
 
 // Connection pool
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
 
 // Table names
 const RECORDS = "nbt_records"
