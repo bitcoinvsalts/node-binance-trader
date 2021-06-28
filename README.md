@@ -6,7 +6,7 @@
 
 This is a fork of the source NBT repo, however the focus of my changes are on the trader.ts and associated components. This is the script that receives the buy/sell signals from the NBT Hub (BitcoinVsAltcoins.com) and executes them on Binance. I have not modified the server.
 
-**Important Note:** Many of the new features (e.g. transaction and balance history) are only held in memory while the trader is running. If the trader restarts then everything will reset. So it is best to ensure that you have reliable uptime on your webserver.
+**Important Note:** Many of the new features (e.g. transaction and balance history) are held in memory while the trader is running. The trader will attempt to write these to a configured Postgres database so that important information can be reloaded if the trader restarts. Using the database is optional, but without it you will lose the history every time the trader restarts. If you choose to deploy to Heroku then the database will automatically be set up.
 
 The new features that I have added to the trader include:
 * ***CONFIG:* Quantity as Fraction**
@@ -42,27 +42,31 @@ The new features that I have added to the trader include:
   * You can provide a comma delimited list of coins that you want to ignore trade signals for (e.g. DOGE).
 * ***CONFIG:* Strategy Loss Limit**
   * You can set a limit on the number of sequential losses for a strategy. If this many losing trades occur for a strategy then that strategy will be stopped. The trader will ignore all open signals for that strategy, and will only process close signals if the price is better (i.e. higher than the open price for LONG trades and lower for SHORT trades). You can still manually close the trades regardless of the price.
-  * Once a strategy has been stopped, you will have to untick the trade option on the NBT Hub and the re-tick it. Toggling the trade option, or restarting the trader will clear the stopped flag and reset the count of losing trades.
+  * Once a strategy has been stopped, you will have to untick the trade option on the NBT Hub and the re-tick it. Toggling the trade option will clear the stopped flag and reset the count of losing trades.
   * The default is zero, which is unlimited.
 * ***CONFIG:* Virtual Wallet Funds**
   * You can set a default balance for virtual trades, this allows you to simulate some of the auto-balancing or funding models above. The value represents roughly the equivalent BTC amount. For example, if you set the funds to 1 but you are trading in USDT, it will use the minimum purchase volumes to estimate a 'similar' USDT value of 1 BTC as the starting balance. This is not current market price, it is just a pre-determined scale set by Binance.
   * The default is 0.1 BTC which (at the time of writing) converts to 10,000 USDT.
-  * NOTE: All virtual balances will be reset if the trader restarts, but it will attempt to recreate them using the open trades. However, as the NBT Hub has no record of auto balancing, all virtual trades and balances will reset based on the original opening quantity/cost.
 * **Alternate Wallet Fall Back**
   * If you do not have sufficient funds in your primary wallet (e.g. margin) to make LONG trades, it will automatically try to make the trade from your other wallet (e.g. spot).
+* **Database Backup**
+  * If configured, it will save the current state of strategies, open trades, virtual balances, and balance history to a Postgres database. It will also save internal logs and transaction history, but with a limit on the total number of records. If the trader restarts it will first attempt to load the previous state of the strategies, open trades, virtual balances, and balance history from the database. It will still read the strategies and trades from the NBT Hub and compare them to the reloaded data, if there are any discrepancies then it will report this in the logs.
+  * When deployed on Heroku it will automatically provision a free dev database, which has a limit of 10,000 records. Oldest logs and transactions will be truncated if the total number of records reaches this.
+  * If you are concerned that the data in the database is out of sync with the NBT Hub then you can just reset the database (there is a button in Heroku to do this). This will then load the strategies and open trades from the NBT Hub and clear other history. If rebalancing has occurred on open trades it will make its best guess as to what these should be based on the current balances in Binance.
 * **Web Diagnostics**
   * You can connect to the trader webserver to view the internal information that is being tracked (e.g. http://localhost:8003/log). The following commands are available:
-    * /log - Internal log (newest entries at the top)
+    * /log - Internal log currently held in memory, and nicely coloured (newest entries at the top)
+    * /log?db=1 - Internal log loaded from the database (newest entries at the top)
     * /pnl - Calculated rate of return and history of open and close balances (best estimation based on available data)
     * /strategies - Configured strategies
     * /trades - Current open trades list
-    * /trans - Log of actual buy, sell, borrow, repay transactions (newest entries at the top)
+    * /trans - Log of actual buy, sell, borrow, repay transactions held in memory (newest entries at the top)
+    * /trans?db=1 - Log of actual buy, sell, borrow, repay transactions loaded from the database (newest entries at the top)
     * /virtual - Views the current virtual balances. You can also apply a 'reset' parameter to clear and reload the virtual balances and virtual PnL, if you pass a number on the reset it will change the default value for **Virtual Wallet Funds** (e.g. ?reset=true or ?reset=100)
   * You can also configure a **Web Password** in the environment variables to restrict access to these commands (e.g. http://localhost:8003/log?mysecret).
 * **Individual Tracking of Real / Virtual Trades**
   * In the original trader if you started a strategy in virtual trading and switched to real trading, or vice versa, it would attempt to close trades based on the current status of the strategy, rather than how the trade was originally opened. This means it could try to close a trade on Binance that was originally opened virtually, or never close the open trade on Binance because you've now switched the strategy to virtual. Now, if the trade opened on Binance it will close on Binance even if the strategy has been switched to virtual. If you don't want this to happen, make sure you close or stop the open trades before switching modes.
   * This is a useful way to soft close a strategy. Rather than manually closing the live trades yourself, you can switch the strategy to virtual and wait for the automatic close signals for any remaining open trades.
-  * NOTE: It can only remember the previous state while the trader is running. If the trader restarts with mixed states, all trades will be reloaded with the current state of the strategy.
 * **Clean Up Stopped Trades**
   * If you stop a trade on the NBT Hub then manually close it, first it will actually try to close the trade on Binance, but if that fails it will still respond to the NBT Hub with a close signal so that the open trade does not hang around forever. This is important for the calculations used in the auto balancing, as they rely on the current list of open trades. So if you want to purge a stopped trade like this, first make sure you have moved any funds from Binance so that it cannot execute the close.
   * Previously you could switch a strategy to virtual then close the trade, but as mentioned above each trade now remembers its original state, so a live trade will remain live even if you switch the strategy to virtual.

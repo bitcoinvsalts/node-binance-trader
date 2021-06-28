@@ -23,6 +23,7 @@ These are all for **trader**. Refer to the README for more details.
 * ***CONFIG:* Strategy Loss Limit**
 * ***CONFIG:* Virtual Wallet Funds**
 * **Alternate Wallet Fall Back**
+* **Database Backup**
 * **Web Diagnostics**
 * **Individual Tracking of Real / Virtual Trades**
 * **Clean Up Stopped Trades**
