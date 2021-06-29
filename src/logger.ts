@@ -83,26 +83,32 @@ const colours = {
     error: "#ff0000",
 } as any
 
+const timestamp = winston.format.timestamp({
+    format: "YYYY-MM-DD HH:mm:ss",
+})
+
 const logger = winston.createLogger({
     transports: [
         new winston.transports.Console({
             silent: process.env.NODE_ENV === "test",
-            format: winston.format.combine(
-                winston.format.timestamp({
-                    format: "YYYY-MM-DD HH:mm:ss",
-                }),
-                winston.format.colorize(process.env.NODE_ENV == "production" ? { all: true } : undefined), // When running in Heroku we can't use colours in the console
-                winston.format.printf(
-                    (info) => `${info.timestamp} | ${info.level} | ${info.message}`
+            format: process.env.NODE_ENV == "production" ? winston.format.combine(
+                    timestamp,
+                    winston.format.printf(
+                        (info) => `${info.timestamp} | ${info.level} | ${info.message}`
+                    )
                 )
-            )
+                : winston.format.combine(
+                    timestamp,
+                    winston.format.colorize({ all: true }), // When running in Heroku we can't use colours in the console
+                    winston.format.printf(
+                        (info) => `${info.timestamp} | ${info.level} | ${info.message}`
+                    )
+                )
         }),
         new winston.transports.Stream({
             stream, // Memory stream used for displaying the logs in HTML
             format: winston.format.combine(
-                winston.format.timestamp({
-                    format: "YYYY-MM-DD HH:mm:ss",
-                }),
+                timestamp,
                 winston.format.printf(
                     // Includes a null character at the end so we can detect where each log entry ends in the stream
                     (info) => `<font color=${colours[info.level]}>${info.timestamp} | ${info.level} | ${info.message}</font>\0`
