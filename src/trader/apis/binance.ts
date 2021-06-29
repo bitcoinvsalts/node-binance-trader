@@ -125,7 +125,7 @@ export async function marginBorrow(
         asset,
         isIsolated: false, // "false" for cross margin borrow without specification of a symbol.
         amount,
-        timestamp,
+        //timestamp,
     })
 }
 
@@ -139,7 +139,7 @@ export async function marginRepay(
         asset,
         isIsolated: false, // "false" for cross margin repay without specification of a symbol.
         amount,
-        timestamp,
+        //timestamp,
     })
 }
 
