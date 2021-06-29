@@ -60,7 +60,7 @@
         "required": false
       },
       "WALLET_BUFFER": {
-        "description": "Decimal fraction of the total balance of each wallet that should be reserved for slippage, spread, and bad short trades (especially when rebalancing)",
+        "description": "Decimal fraction of the total balance of each wallet that should be reserved for slippage, spread, and bad short trades (e.g. 0.1 is 10%)",
         "required": false
       },
       "MAX_SHORT_TRADES": {

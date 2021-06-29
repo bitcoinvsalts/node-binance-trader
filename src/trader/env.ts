@@ -41,7 +41,7 @@ export function getDefault(): Readonly<any> {
         IS_BUY_QTY_FRACTION: bool({ default: false, desc: "Uses the 'Quantity to Buy' from the NBT Hub as a fraction of your wallet balance (e.g. 0.1 is 10%)" }),
         TRADE_LONG_FUNDS: str({ default: LongFundsType.NONE, choices: Object.values(LongFundsType), desc: "See README for explanation" }), // '', 'borrow min', 'borrow all', 'sell all', or 'sell largest'
         PRIMARY_WALLET: str({ default: WalletType.MARGIN, choices: Object.values(WalletType), desc: "Primary wallet to execute LONG trades ('margin' or 'spot'), it may still swap to the other if there are insufficient funds" }),
-        WALLET_BUFFER: num({ default: 0.1, desc: "Decimal fraction of the total balance of each wallet that should be reserved for slippage, spread, and bad short trades (especially when rebalancing)" }),
+        WALLET_BUFFER: num({ default: 0.1, desc: "Decimal fraction of the total balance of each wallet that should be reserved for slippage, spread, and bad short trades (e.g. 0.1 is 10%)" }),
         MAX_SHORT_TRADES: num({ default: 0, desc: "Maximum number of SHORT trades that can be open concurrently (i.e. limit your borrowing), zero is no limit" }),
         MAX_LONG_TRADES: num({ default: 0, desc: "Maximum number of LONG trades that can be open concurrently (i.e. limit borrowing or rebalancing), zero is no limit" }),
         EXCLUDE_COINS: str({ default: "", desc: "Comma delimited list of coins to exclude from trading (e.g. DOGE)" }),
