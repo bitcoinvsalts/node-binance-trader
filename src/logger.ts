@@ -94,14 +94,14 @@ const logger = winston.createLogger({
             format: process.env.NODE_ENV == "production" ? winston.format.combine(
                     timestamp,
                     winston.format.printf(
-                        (info) => `${info.timestamp} | ${info.level} | ${info.message}`
+                        (info) => `P ${info.timestamp} | ${info.level} | ${info.message}`
                     )
                 )
                 : winston.format.combine(
                     timestamp,
                     winston.format.colorize({ all: true }), // When running in Heroku we can't use colours in the console
                     winston.format.printf(
-                        (info) => `${info.timestamp} | ${info.level} | ${info.message}`
+                        (info) => `S ${info.timestamp} | ${info.level} | ${info.message}`
                     )
                 )
         }),
