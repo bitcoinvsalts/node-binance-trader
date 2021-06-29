@@ -87,43 +87,43 @@ const timestamp = winston.format.timestamp({
     format: "YYYY-MM-DD HH:mm:ss",
 })
 
+const consoleFormat = winston.format.printf(
+    (info) => `${info.timestamp} | ${info.level} | ${info.message}`
+)
+
+const htmlFormat = winston.format.printf(
+    // Add html formatting for coloured logs
+    // Includes a null character at the end so we can detect where each log entry ends in the stream
+    (info) => `<font color=${colours[info.level]}>${info.timestamp} | ${info.level} | ${info.message}</font>\0`
+)
+
 const logger = winston.createLogger({
     transports: [
         new winston.transports.Console({
-            silent: process.env.NODE_ENV === "test",
-            format: process.env.NODE_ENV == "production" ? winston.format.combine(
+            silent: process.env.NODE_ENV == "test",
+            format: process.env.NODE_ENV == "production"
+                ? winston.format.combine(
                     timestamp,
-                    winston.format.printf(
-                        (info) => `P ${info.timestamp} | ${info.level} | ${info.message}`
-                    )
+                    consoleFormat
                 )
                 : winston.format.combine(
                     timestamp,
-                    winston.format.colorize({ all: true }), // When running in Heroku we can't use colours in the console
-                    winston.format.printf(
-                        (info) => `S ${info.timestamp} | ${info.level} | ${info.message}`
-                    )
+                    winston.format.colorize({ all: true }), // When running in Heroku we can't use colours in the console, so only allow this in non-production environments
+                    consoleFormat
                 )
         }),
         new winston.transports.Stream({
             stream, // Memory stream used for displaying the logs in HTML
             format: winston.format.combine(
                 timestamp,
-                winston.format.printf(
-                    // Includes a null character at the end so we can detect where each log entry ends in the stream
-                    (info) => `<font color=${colours[info.level]}>${info.timestamp} | ${info.level} | ${info.message}</font>\0`
-                ),
+                htmlFormat
             )
         }),
         new winston.transports.Stream({
             stream: dbStream, // Memory stream used for writing raw logs to the database
             format: winston.format.combine(
-                winston.format.timestamp({
-                    format: "YYYY-MM-DDTHH:mm:ss.sssZ", // ISO format
-                }),
-                winston.format.printf(
-                    (info) => toJSON({ timestamp: new Date(info.timestamp), level: info.level, message: info.message }) + "\0"
-                ),
+                timestamp,
+                htmlFormat
             ),
             level: "info" // To limit the size of the logs, and avoid an infinite loop, only log 'info' or higher
         }),

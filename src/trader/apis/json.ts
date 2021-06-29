@@ -45,5 +45,11 @@ function reviveJSON(key: string, value: any) {
 
 // Restores JSON to an object
 export function fromJSON(json: string) {
-    return JSON.parse(json, reviveJSON)
+    try {
+        return JSON.parse(json, reviveJSON)
+    } catch {
+        // If the original was alredy a string then it wouldn't have been converted to JSON
+        // Just have to assume this is the case, rather than some other parsing error
+        return json
+    }
 }

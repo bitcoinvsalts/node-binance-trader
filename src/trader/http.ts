@@ -68,7 +68,7 @@ export default function startWebserver(): http.Server {
             if (Object.keys(req.query).includes("db")) {
                 let page = req.query.db ? Number.parseInt(req.query.db.toString()) : 1
                 // Load the log from the database
-                res.send(HTMLTableFormat(Pages.LOG_DB, (await loadRecords("log", page)), page+1))
+                res.send(HTMLFormat(Pages.LOG_DB, (await loadRecords("log", page)).join("\r\n"), page+1))
             } else {
                 // Use the memory log
                 res.send(HTMLFormat(Pages.LOG_MEMORY, loggerOutput.slice().reverse().join("\r\n")))
@@ -128,8 +128,10 @@ function Authenticate(req: any, res: any): boolean {
     return true
 }
 
-function HTMLFormat(page: Pages, data: any): string {
+function HTMLFormat(page: Pages, data: any, nextPage?: number): string {
     let html = `<html><head><title>NBT: ${page}</title></head><body>`
+
+    // Menu
     html += `<p>`
     html += Object.values(Pages).map(name => {
         let link = ""
@@ -139,7 +141,20 @@ function HTMLFormat(page: Pages, data: any): string {
         return link
     }).join(" | ")
     html += `</p>`
-    return `${html}<pre><code>${typeof data == "string" ? data : JSON.stringify(data, null, 4)}</code></pre></body></html>`
+
+    // Content
+    if (data) {
+        html += `<pre><code>${typeof data == "string" ? data : JSON.stringify(data, null, 4)}</code></pre>`
+
+        // Pagination
+        if (nextPage) {
+            html += `<a href="${urls[page].replace("%d", nextPage.toString())}${env().WEB_PASSWORD}">Next Page...</a>`
+        }
+    } else {
+        html += "No data yet."
+    }
+    
+    return html + `</body></html>`
 }
 
 function HTMLTableFormat(page: Pages, data: any[], nextPage?: number): string {
@@ -176,13 +191,8 @@ function HTMLTableFormat(page: Pages, data: any[], nextPage?: number): string {
     }
     if (result != "") {
         result += "</table>"
-        if (nextPage) {
-            result += `<a href="${urls[page].replace("%d", nextPage.toString())}${env().WEB_PASSWORD}">Next Page...</a>`
-        }
-    } else {
-        result = "No data yet."
     }
-    return HTMLFormat(page, result)
+    return HTMLFormat(page, result, nextPage)
 }
 
 function PercentageChange(history: BalanceHistory[]): string {
