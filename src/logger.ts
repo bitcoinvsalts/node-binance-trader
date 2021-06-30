@@ -84,7 +84,7 @@ const colours = {
 } as any
 
 const timestamp = winston.format.timestamp({
-    format: "YYYY-MM-DD HH:mm:ss",
+    format: "YYYY-MM-DD HH:mm:ss.SSS",
 })
 
 const consoleFormat = winston.format.printf(

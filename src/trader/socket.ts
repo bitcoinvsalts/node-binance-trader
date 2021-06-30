@@ -44,27 +44,31 @@ export function connect(): void {
     })
 
     socket.on("buy_signal", async (signalJson: SignalJson) => {
+        const timestamp = new Date()
         logger.silly(`Received buy_signal: ${JSON.stringify(signalJson)}`)
-        await onBuySignal(signalJson).catch(() => {
+        await onBuySignal(signalJson, timestamp).catch(() => {
             return
         })
     })
     socket.on("sell_signal", async (signalJson: SignalJson) => {
+        const timestamp = new Date()
         logger.silly(`Received sell_signal: ${JSON.stringify(signalJson)}`)
-        await onSellSignal(signalJson).catch(() => {
+        await onSellSignal(signalJson, timestamp).catch(() => {
             return
         })
     })
 
     socket.on("close_traded_signal", async (signalJson: SignalJson) => {
+        const timestamp = new Date()
         logger.silly(`Received close_traded_signal: ${JSON.stringify(signalJson)}`)
-        await onCloseTradedSignal(signalJson).catch(() => {
+        await onCloseTradedSignal(signalJson, timestamp).catch(() => {
             return
         })
     })
     socket.on("stop_traded_signal", async (signalJson: SignalJson) => {
+        const timestamp = new Date()
         logger.silly(`Received stop_traded_signal: ${JSON.stringify(signalJson)}`)
-        await onStopTradedSignal(signalJson).catch(() => {
+        await onStopTradedSignal(signalJson, timestamp).catch(() => {
             return
         })
     })

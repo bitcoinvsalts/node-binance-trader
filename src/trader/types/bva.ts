@@ -148,10 +148,12 @@ export class Signal {
     symbol: string
     userId: string
     nickname: string
+    timestamp: Date
 
     constructor(
         signalJson: SignalJson,
-        positionType?: PositionType // Currently a hack as BVA's signals contain this information only implicitly through the differentiation between buy and sell signals.
+        timestamp: Date, // When the signal was first received on the web socket
+        positionType?: PositionType, // Currently a hack as BVA's signals contain this information only implicitly through the differentiation between buy and sell signals.
     ) {
         this.entryType = signalJson.new ? EntryType.ENTER : EntryType.EXIT
         this.positionType = positionType // Will typically be null initially, then set once the signal is decoded
@@ -161,7 +163,8 @@ export class Signal {
         this.strategyName = signalJson.stratname
         this.symbol = signalJson.pair
         this.userId = signalJson.userid
-        this.nickname = signalJson.nickname
+        this.nickname = signalJson.nickname,
+        this.timestamp = timestamp
     }
 }
 

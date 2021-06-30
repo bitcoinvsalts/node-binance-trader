@@ -90,9 +90,11 @@ export class Transaction {
     quantity: BigNumber // They quantity of this transaction
     price?: BigNumber // The price for this transaction (only for buy/sell)
     value?: BigNumber // Either the original cost when the trade was opened or the recalcuated value when closed (only for buy/sell)
+    signalPrice?: BigNumber // The expected price if initiated by a signal (only for buy/sell)
+    timeSinceSignal?: number // The total time in milliseconds from receiving the signal to executing on Binance
 
-    constructor(tradeOpen: TradeOpen, source: SourceType, action: ActionType, symbolAsset: string, quantity: BigNumber) {
-        this.timestamp = new Date()
+    constructor(timestamp: Date, tradeOpen: TradeOpen, source: SourceType, action: ActionType, symbolAsset: string, quantity: BigNumber, signal?: Signal) {
+        this.timestamp = timestamp
         this.tradeId = tradeOpen.id
         this.strategyId = tradeOpen.strategyId
         this.strategyName = tradeOpen.strategyName
@@ -109,6 +111,10 @@ export class Transaction {
             this.price = tradeOpen.priceSell
         }
         if (this.price) this.value = this.quantity.multipliedBy(this.price)
+        if (signal) {
+            this.signalPrice = signal.price
+            this.timeSinceSignal = timestamp.getTime() - signal.timestamp.getTime()
+        }
     }
 }
 

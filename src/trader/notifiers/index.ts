@@ -48,11 +48,12 @@ export function getNotifierMessage(
 
     if (signal) {
         content.push("strategy: " + signal.strategyName)
-        content.push("price: " + signal.price?.toFixed())
+        content.push("signal price: " + signal.price?.toFixed())
         content.push("score: ") + signal.score === "NA" ? "N/A" : signal.score
+        content.push("signal received: " + signal.timestamp.toISOString())
     } else if (tradeOpen) {
+        // This should only happen when we are re-balancing a LONG trade
         content.push("strategy: " + tradeOpen.strategyName)
-        content.push("price: " + tradeOpen.priceSell?.toFixed()) // This should only happen when we are re-balancing a LONG trade, so buy and sell price will be the same anyway
     }
 
     if (tradeOpen) {
@@ -63,7 +64,9 @@ export function getNotifierMessage(
         content.push("type: " + tradeOpen.tradingType)
 
         content.push("trade buy price: " + tradeOpen.priceBuy?.toFixed())
+        content.push("buy executed: " + tradeOpen.timeBuy?.toISOString())
         content.push("trade sell price: " + tradeOpen.priceSell?.toFixed())
+        content.push("sell executed: " + tradeOpen.timeSell?.toISOString())
     }
 
     if (reason) {
