@@ -43,6 +43,8 @@ export async function initialiseDatabase(): Promise<boolean> {
                 PRIMARY KEY (id)
             );`,
 
+            `CREATE INDEX IF NOT EXISTS ${RECORDS}_idx ON ${RECORDS} (env, type);`,
+
             `CREATE TABLE IF NOT EXISTS ${OBJECTS} (
 	            env VARCHAR(20) NOT NULL,
                 type VARCHAR(20) NOT NULL,
