@@ -117,29 +117,25 @@ export async function createMarketOrder(
 
 export async function marginBorrow(
     asset: string,
-    amount: BigNumber,
-    timestamp: number
+    amount: BigNumber
 ): Promise<ccxt.Order> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
     return binanceClient.sapiPostMarginLoan({
         asset,
         isIsolated: false, // "false" for cross margin borrow without specification of a symbol.
-        amount,
-        //timestamp,
+        amount
     })
 }
 
 export async function marginRepay(
     asset: string,
-    amount: BigNumber,
-    timestamp: number
+    amount: BigNumber
 ): Promise<ccxt.Order> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
     return binanceClient.sapiPostMarginRepay({
         asset,
         isIsolated: false, // "false" for cross margin repay without specification of a symbol.
-        amount,
-        //timestamp,
+        amount
     })
 }
 
