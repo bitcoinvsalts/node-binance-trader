@@ -40,7 +40,7 @@ export function loadMarkets(isReload?: boolean): Promise<ccxt.Dictionary<ccxt.Ma
                     markets[keyNew] = markets[key]
                     delete markets[key]
                 })
-                logger.info(`Loaded ${Object.keys(markets).length} markets.`)
+                logger.debug(`Loaded ${Object.keys(markets).length} markets.`)
                 resolve(markets)
             })
             .catch((reason) => {
@@ -58,9 +58,7 @@ export function fetchBalance(type: WalletType): Promise<ccxt.Balances> {
     return new Promise((resolve, reject) => {
         binanceClient
             .fetchBalance({
-                type: type,
-                //timestamp: Date.now(),
-                //recvWindow: 60000
+                type: type
             })
             .then((value) => {
                 logger.silly(`Fetched balance: ${JSON.stringify(value)}`)

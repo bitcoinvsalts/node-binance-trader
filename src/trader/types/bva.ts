@@ -22,6 +22,7 @@ export enum TradingType {
 
 export class Strategy {
     id: string
+    name?: string // This is not received from the NBT Hub, so it gets added later for logging
     isActive: boolean
     stopLoss: number
     takeProfit: number
@@ -139,24 +140,22 @@ export interface BvaCommand {
 /////
 
 export class Signal {
-    entryType: EntryType
-    positionType?: PositionType
-    price?: BigNumber
-    score: string
-    strategyId: string
-    strategyName: string
-    symbol: string
-    userId: string
-    nickname: string
-    timestamp: Date
+    entryType: EntryType // Derived based on the 'new' flag in the signal
+    positionType?: PositionType // Not provided by the NBT Hub explicitly, it will get set once the signal is decoded
+    price?: BigNumber // Not all signals come with a price (e.g. Stop signal)
+    score: string // Can represent a confidence level from strategies using machine learning, not currently used
+    strategyId: string // ID of the strategy
+    strategyName: string // Name of the strategy
+    symbol: string // The trading pair (e.g. ETHBTC)
+    userId: string // Strategy owner's user ID
+    nickname: string // Strategy owner's username
+    timestamp: Date // Time that the signal was received
 
     constructor(
         signalJson: SignalJson,
         timestamp: Date, // When the signal was first received on the web socket
-        positionType?: PositionType, // Currently a hack as BVA's signals contain this information only implicitly through the differentiation between buy and sell signals.
     ) {
         this.entryType = signalJson.new ? EntryType.ENTER : EntryType.EXIT
-        this.positionType = positionType // Will typically be null initially, then set once the signal is decoded
         this.price = signalJson.price ? new BigNumber(signalJson.price) : signalJson.close_price ? new BigNumber(signalJson.close_price) : undefined
         this.score = signalJson.score
         this.strategyId = signalJson.stratid
@@ -180,7 +179,7 @@ export class Signal {
 // }
 
 export interface SignalJson {
-    new: boolean
+    new: boolean // Indicates whether it is an enter or exit signal, used in combination with the signal type to determine LONG or SHORT
     nickname: string
     pair: string
     price: string

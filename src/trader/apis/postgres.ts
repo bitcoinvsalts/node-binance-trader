@@ -1,4 +1,3 @@
-import BigNumber from 'bignumber.js'
 import PQueue from 'p-queue'
 import { Pool, QueryResult } from 'pg'
 import logger from '../../logger'
@@ -32,8 +31,9 @@ pool.on('error', (err, client) => {
 // If no database has been configured it will still return successfully, but the result will be false
 export async function initialiseDatabase(): Promise<boolean> {
     if (process.env.DATABASE_URL) {
-        logger.info("Initialising database...")
+        logger.info("Initialising the database...")
 
+        // Uses the current NODE_ENV for all entries so that you can run production and testing on the same database
         const tables = [
             `CREATE TABLE IF NOT EXISTS ${RECORDS} (
 	            id SERIAL,
@@ -63,7 +63,7 @@ export async function initialiseDatabase(): Promise<boolean> {
 
         isReady = true
     } else {
-        logger.warn("A PostgreSQL database has not been configured, logs and history will be lost if it restarts.")
+        logger.warn("A PostgreSQL database has not been configured, logs, history, and some status information will be lost if the trader restarts.")
     }
     return Promise.resolve(isReady)
 }

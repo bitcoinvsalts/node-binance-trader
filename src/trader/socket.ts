@@ -25,11 +25,11 @@ export function connect(): void {
         autoConnect: false
     })
 
-    socket.on("connect", () => logger.info("Trader connected."))
-    socket.on("disconnect", () => logger.info("Trader disconnected."))
+    socket.on("connect", () => logger.info("Connected to the NBT Hub."))
+    socket.on("disconnect", () => logger.warn("Connection to the NBT Hub has been interrupted."))
 
     socket.on("error", (error: any) =>
-        logger.error(`Received error from socket: ${error}`)
+        logger.error(`Received an error from the socket: ${error}`)
     )
 
     socket.on("message", (message: string) => {
@@ -73,6 +73,7 @@ export function connect(): void {
         })
     })
 
+    logger.info("Connecting to the NBT Hub...")
     socket.open()
 }
 
