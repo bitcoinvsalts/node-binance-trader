@@ -788,18 +788,24 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
                 return Promise.reject(logMessage)
             }
 
-            logger.debug(`Getting position type from open trade: ${tradeOpen.positionType}.`)
-            signal.positionType = tradeOpen.positionType
+            if (!signal.positionType) {
+                // Needed for manual close signals
+                logger.debug(`Getting position type from open trade: ${tradeOpen.positionType}.`)
+                signal.positionType = tradeOpen.positionType
+            }
 
-            // A manual close won't have a price, so just have to use the original open price
-            if (!signal.price) signal.price = tradeOpen.priceBuy
-            if (!signal.price) signal.price = tradeOpen.priceSell
+            if (!signal.price) {
+                // Hopefully this won't happen anymore
+                logger.warn(`Signal didn't have a price, using original buy or sell price from the open trade.`)
+                signal.price = tradeOpen.priceBuy
+                if (!signal.price) signal.price = tradeOpen.priceSell
+            }
 
             // Check to satisfy the compiler, if no price it will fail later anyway
             if (signal.price) {
                 // Calculate whether this trade will make a profit or loss
                 const net = tradeOpen.positionType == PositionType.LONG ? signal.price.minus(tradeOpen.priceBuy!) : tradeOpen.priceSell!.minus(signal.price)
-                logger.debug(`Closing price difference is: ${net.toFixed()}.`)
+                logger.debug(`Closing price difference for ${getLogName(tradeOpen)} trade is ${net.toFixed()}.`)
 
                 // Check if strategy has hit the losing trade limit, and this an automatic trade signal
                 // Strategy may be undefined if no longer followed, but then we should only get here for a manual close
@@ -827,7 +833,7 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
 
     // Check if this type of trade can be executed
     switch (signal.positionType) {
-        case PositionType.LONG: {
+        case PositionType.LONG:
             if (!market.spot) {
                 // I don't think this would ever happen              
                 const logMessage = `Failed to trade as spot trading is unavailable for a long position on symbol ${market.symbol}.`
@@ -842,8 +848,7 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
             }
 
             break
-        }
-        case PositionType.SHORT: {
+        case PositionType.SHORT:
             // We can still close SHORT trades if they were previously opened on margin, so only skip the open trade signals
             if (signal.entryType === EntryType.ENTER) {
                 if (!env().IS_TRADE_SHORT_ENABLED) {
@@ -872,7 +877,6 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
             }
 
             break
-        }
         default:
             // Hopefully this shouldn't happen
             logger.error(logDefaultPositionType)
@@ -1047,12 +1051,6 @@ async function executeTradeAction(
         if (result.status == "closed") {
             // Check if the price and cost is different than we expected (it usually is)
             // TODO: It would be nice to feed these current prices back to the original trades when rebalancing
-            if (result.cost && !tradeOpen.cost!.isEqualTo(result.cost)) {
-                logger.debug(`${getLogName(tradeOpen)} trade cost slipped from ${tradeOpen.cost!.toFixed()} to ${result.cost}`)
-                // Update the cost for better accuracy
-                tradeOpen.cost = new BigNumber(result.cost)
-                tradeOpen.timeUpdated = timestamp
-            }
             if (result.price) {
                 switch (action) {
                     case ActionType.BUY:
@@ -1072,6 +1070,12 @@ async function executeTradeAction(
                         }
                         break
                 }
+            }
+            if (result.cost && !tradeOpen.cost!.isEqualTo(result.cost)) {
+                logger.debug(`${getLogName(tradeOpen)} trade cost slipped from ${tradeOpen.cost!.toFixed()} to ${result.cost}`)
+                // Update the cost for better accuracy
+                tradeOpen.cost = new BigNumber(result.cost)
+                tradeOpen.timeUpdated = timestamp
             }
             // Technically we may not always need to save the trade, but most of the time we will so do it here for simplicity
             saveState("tradesOpen")
@@ -1234,10 +1238,13 @@ export async function executeTradingTask(
     tradeOpen.isExecuted = true
     saveState("tradesOpen")
 
+    const market = tradingMetaData.markets[tradeOpen.symbol]
+
     const action = signal ? signal.entryType == EntryType.ENTER && signal.positionType == PositionType.LONG || signal.entryType == EntryType.EXIT && signal.positionType == PositionType.SHORT ? ActionType.BUY : ActionType.SELL : ActionType.SELL
     const timestamp = action == ActionType.BUY ? tradeOpen.timeBuy?.getTime() : tradeOpen.timeSell?.getTime()
     const diff = signal && timestamp ? timestamp - signal.timestamp.getTime() : undefined
-    logger.info(`${getLogName(tradeOpen)} trade successfully ${action == ActionType.BUY ? "bought" : "sold" } ${tradeOpen.quantity} units of symbol ${tradeOpen.symbol} on ${tradeOpen.wallet}` + (diff ? ` within ${diff} milliseconds of the signal` : "") + `.`)
+    const info = source == SourceType.SIGNAL ? `within ${diff} milliseconds of the signal` : `for ${source}`
+    logger.info(`${getLogName(tradeOpen)} trade successfully ${action == ActionType.BUY ? "bought" : "sold" } ${tradeOpen.quantity} ${market.base} for ${tradeOpen.cost} ${market.quote} on ${tradeOpen.wallet} ${info}.`)
 
     if (signal && signal.entryType == EntryType.EXIT) {
         // Remove the completed trade (no signal means it is from a rebalance and won't be in the trade list anyway)
@@ -1286,7 +1293,6 @@ export async function executeTradingTask(
     }
 
     // Send the entry type and/or value change to the balance history
-    const market = tradingMetaData.markets[tradeOpen.symbol]
     updateBalanceHistory(tradeOpen.tradingType!, market.quote, signal?.entryType, undefined, change)
 
     // Send notifications that trading completed successfully
@@ -1470,8 +1476,10 @@ async function rebalanceTrade(tradeOpen: TradeOpen, cost: BigNumber, wallet: Wal
 
     // Make sure the rebalance would not close the trade
     if (diffQTY.isGreaterThanOrEqualTo(tradeOpen.quantity)) {
-        return Promise.reject(`Could not rebalance ${tradeOpen.symbol} trade, it would exceed remaining funds.`)
+        return Promise.reject(`Could not rebalance ${getLogName(tradeOpen)} trade, it would be more than the remaining quantity.`)
     }
+
+    logger.debug(`Rebalancing ${getLogName(tradeOpen)} trade to reduce by ${diffQTY} quantity and ${diffCost} cost.`)
 
     // It is possible that multiple signals for the same coin can come in at the same time
     // So a second trade may try to rebalance the first before the first trade has executed
@@ -1693,6 +1701,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                         for (let wallet of Object.values(wallets)) {
                             // If there is nothing to rebalance, or the largest trade is already less than the free balance, then there is no point reducing anything
                             if (!wallet.largestTrade || wallet.free.isGreaterThanOrEqualTo(wallet.largestTrade.cost!)) {
+                                if (wallet.largestTrade) logger.debug(`Free ${tradingData.market.quote} amount is more than the cost of the largest trade.`)
                                 wallet.potential = wallet.free
                                 // Clear the trades so that we don't try to rebalance anything later
                                 wallet.trades = []
@@ -1741,34 +1750,40 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                         // Maybe rebalancing could give us more than we need for this trade, e.g. if we have more than the maximum trade volume
                         if (use.potential!.isLessThan(cost)) cost = use.potential!
 
-                        logger.info(`Attempting to rebalance ${use.trades.length} existing trade(s) on ${use.type} to ${use.potential?.toFixed()} ${tradingData.market.quote} to make a new trade of ${cost.toFixed()} ${tradingData.market.quote}.`)
+                        if (use.trades.length) {
+                            logger.info(`Attempting to rebalance ${use.trades.length} existing trade(s) on ${use.type} to ${use.potential?.toFixed()} ${tradingData.market.quote}.`)
 
-                        // Check for the minimum cost here as we don't want to start rebalancing if we can't make the trade
-                        if (tradingData.market.limits.cost?.min && cost.isLessThan(tradingData.market.limits.cost.min)) {
-                            const logMessage = `Failed to trade as rebalancing to free up ${cost.toFixed()} ${tradingData.market.quote} would be less than the minimum trade cost of ${tradingData.market.limits.cost.min} ${tradingData.market.quote}.`
-                            logger.error(logMessage)
-                            return Promise.reject(logMessage)            
-                        }
-
-                        // Rebalance all the remaining trades in this wallet to the calculated trade size
-                        for (let trade of use.trades) {
-                            await rebalanceTrade(trade, use.potential!, use).catch(
-                                (reason) => {
-                                    // Not actually going to stop processing, we may still be able to make the trade using the free balance, so just log the error
-                                    logger.error(reason)
-                                })
-                        }
-
-                        // Just to be sure, let's check the free balance again, this will probably alway happen due to rounding
-                        if (use.free.isLessThan(cost)) {
-                            // To limit spamming the logs, we'll only warn if there was more than 0.5% change
-                            if (use.free.multipliedBy(1.005).isLessThan(cost)) {
-                                logger.warn(`Rebalancing resulted in a lower trade of only ${use.free.toFixed()} ${tradingData.market.quote} instead of ${cost.toFixed()} ${tradingData.market.quote}.`)
+                            // Check for the minimum cost here as we don't want to start rebalancing if we can't make the trade
+                            if (tradingData.market.limits.cost?.min && cost.isLessThan(tradingData.market.limits.cost.min)) {
+                                const logMessage = `Failed to trade as rebalancing to free up ${cost.toFixed()} ${tradingData.market.quote} would be less than the minimum trade cost of ${tradingData.market.limits.cost.min} ${tradingData.market.quote}.`
+                                logger.error(logMessage)
+                                return Promise.reject(logMessage)            
                             }
-                            cost = use.free
+
+                            // Rebalance all the remaining trades in this wallet to the calculated trade size
+                            for (let trade of use.trades) {
+                                await rebalanceTrade(trade, use.potential!, use).catch(
+                                    (reason) => {
+                                        // Not actually going to stop processing, we may still be able to make the trade using the free balance, so just log the error
+                                        logger.error(reason)
+                                    })
+                            }
+
+                            // Just to be sure, let's check the free balance again, this will probably alway happen due to rounding
+                            if (use.free.isLessThan(cost)) {
+                                // To limit spamming the logs, we'll only warn if there was more than 0.5% change
+                                if (use.free.multipliedBy(1.005).isLessThan(cost)) {
+                                    logger.warn(`Rebalancing resulted in a lower trade of only ${use.free.toFixed()} ${tradingData.market.quote} instead of ${cost.toFixed()} ${tradingData.market.quote}.`)
+                                }
+                                cost = use.free
+                            }
+                        } else {
+                            logger.debug(`No ${tradingData.market.quote} trades to be rebalanced, so just using the available amount of ${cost.toFixed()}  instead.`)
                         }
                         break
                 }
+
+                logger.debug(`${getLogName(tradingData.signal)} trade can use ${cost} ${tradingData.market.quote}.`)
             }
             // Remember the wallet for recording in the trade
             preferred = [use.type]
