@@ -22,7 +22,7 @@ export enum TradingType {
 
 export class Strategy {
     id: string
-    name?: string // This is not received from the NBT Hub, so it gets added later for logging
+    name: string
     isActive: boolean
     stopLoss: number
     takeProfit: number
@@ -34,6 +34,7 @@ export class Strategy {
 
     constructor(bvaStrategyJson: StrategyJson) {
         this.id = bvaStrategyJson.stratid
+        this.name = "" // This is not received from the NBT Hub, so it gets added later for logging
         this.isActive = bvaStrategyJson.trading
         this.stopLoss = parseFloat(bvaStrategyJson.stop_loss)
         this.takeProfit = parseFloat(bvaStrategyJson.take_profit)

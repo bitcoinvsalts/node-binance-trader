@@ -2000,7 +2000,7 @@ function getLogName(source: TradeOpen | Signal | Strategy) {
     } else if (source instanceof Signal) {
         return `${source.strategyId} "${source.strategyName}" ${source.symbol} ${source.positionType ? source.positionType : ""}`
     } else if (source instanceof Strategy) {
-        return `${source.id} "${source.name ? source.name : ""}" ${source.tradingType}`
+        return `${source.id} "${source.name}" ${source.tradingType}`
     }
 
     return "[ERROR]: " + Object.getPrototypeOf(source)
