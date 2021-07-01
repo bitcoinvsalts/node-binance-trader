@@ -683,7 +683,7 @@ function logSignal(signal: Signal, type: "buy" | "sell" | "close" | "stop") {
             message += ` ${type} trade signal`
             break
         default:
-            message += signal.entryType == EntryType.EXIT ? "n opening" : " closing"
+            message += signal.entryType == EntryType.ENTER ? "n opening" : " closing"
             message += ` ${type} (${signal.entryType} ${signal.positionType}) signal`
     }
     message += ` for ${getLogName(signal)}.`
