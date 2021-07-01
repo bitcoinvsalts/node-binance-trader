@@ -689,8 +689,11 @@ function logSignal(signal: Signal, type: "buy" | "sell" | "close" | "stop") {
     message += ` for ${getLogName(signal)}.`
     const strategy = tradingMetaData.strategies[signal.strategyId]
     if (strategy) {
-        // Save strategy name for logging
-        strategy.name = signal.strategyName
+        // Because we don't get the strategy name with the strategy we have to copy it from the signal (for logging)
+        if (!strategy.name) {
+            strategy.name = signal.strategyName
+            saveState("strategies")
+        }
         logger.info(message)
     } else if (type == "close" || type == "stop") {
         // Still want to see close and stop even if no longer following the strategy
