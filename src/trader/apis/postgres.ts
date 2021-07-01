@@ -86,10 +86,14 @@ export function saveRecord(type: string, record: any) {
                 // So that we're not truncating every time a new entry is written, we'll drop the oldest 5% of records
                 const buffer = Math.round(env().MAX_DATABASE_ROWS * 0.05)
                 logger.debug(`Truncating ${buffer} database records.`)
+                // Only deletes one type of record, whichever has the most entries
+                // In practice this should usually delete the logs until you have an equal number of logs and transactions
                 // Just in case there weren't 5% to delete, subtract only what was deleted
                 rows -= (await query(`WITH deleted AS (
                         DELETE FROM ${RECORDS} WHERE id IN(
-                            SELECT id FROM ${RECORDS} WHERE env = $1 ORDER BY id LIMIT ${buffer} 
+                            SELECT id FROM ${RECORDS} WHERE env = $1 AND type IN(
+                                SELECT type FROM ${RECORDS} WHERE env = $1 GROUP BY type ORDER BY COUNT(*) DESC LIMIT 1
+                            ) ORDER BY id LIMIT ${buffer} 
                         ) RETURNING *
                     ) SELECT count(*) AS total FROM deleted`, [process.env.NODE_ENV]).catch((reason) => {
                         // To avoid an infinite loop when saving logs, the database will now be disabled
