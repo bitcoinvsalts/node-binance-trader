@@ -772,7 +772,7 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
             // It seems the NBT Hub will ignore the second traded_buy/sell_signal and only track the first open trade, so if we open a second one in the trader it will be orphaned and never close
             // So until we have a unique ID that is provided on the signal and NBT Hub can track them correctly, we're just going to have to ignore concurrent trades and treat this as a continuation
             if (tradeOpen) {
-                const logMessage = `Skipping signal as existing open trade already found for ${getLogName(signal)}.`
+                const logMessage = `Skipping signal as an existing open trade was already found for ${getLogName(signal)}.`
                 logger.error(logMessage)
                 return Promise.reject(logMessage)
             }
@@ -1263,7 +1263,7 @@ export async function executeTradingTask(
     if (tradeOpen.priceBuy && tradeOpen.priceSell && (!signal || signal.entryType == EntryType.EXIT)) {
         // Regardless of whether this was SHORT or LONG, you should always buy low and sell high
         change = tradeOpen.quantity.multipliedBy(tradeOpen.priceSell).minus(tradeOpen.quantity.multipliedBy(tradeOpen.priceBuy))
-        logger.debug(`Closing ${change.isNegative() ? "loss" : "profit"} is: ${change.toFixed()} ${market.quote}.`)
+        logger.debug(`Closing ${change.isNegative() ? "loss" : "profit"} for ${getLogName(tradeOpen)} trade is: ${change.toFixed()} ${market.quote}.`)
 
         const strategy = tradingMetaData.strategies[tradeOpen.strategyId]
         // Manually closing a trade or rebalancing should not affect the count of losses
@@ -1652,163 +1652,169 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
         logger.debug(`Total is made up of ${wallets[primary].free.toFixed()} free and ${wallets[primary].locked.toFixed()} locked ${tradingData.market.quote}`)
     }
 
-    // Check for the minimum trade cost supported by the exchange
-    // Need to do it here in case we have to borrow for the trade
-    if (tradingData.market.limits.cost?.min && cost.isLessThan(tradingData.market.limits.cost.min)) {
-        cost = new BigNumber(tradingData.market.limits.cost.min)
-        logger.warn(`Default trade cost is not enough, pushing it up to the minimum of ${cost.toFixed()} ${tradingData.market.quote}.`)
-    }
+    // Ensure that we have a valid quantity and cost to start with, especially if we are going to borrow to make this trade
+    quantity = getLegalQty(cost.dividedBy(tradingData.signal.price!), tradingData.market, tradingData.signal.price!)
+    cost = quantity.multipliedBy(tradingData.signal.price!)
+    logger.debug(`Legal trade cost is ${cost} ${tradingData.market.quote}`)
 
-    // Check for the maximum trade cost supported by the exchange
-    if (tradingData.market.limits.cost?.max && cost.isGreaterThan(tradingData.market.limits.cost.max)) {
-        cost = new BigNumber(tradingData.market.limits.cost.max)
-        logger.warn(`Default trade cost is too high, dropping it down to the maximum of ${cost.toFixed()} ${tradingData.market.quote}.`)
-    }
-
-    // Calculate the cost for LONG trades based on the configured funding model
-    if (tradingData.signal.positionType == PositionType.LONG) {
-        const model = env().TRADE_LONG_FUNDS.toLowerCase() as LongFundsType
-        if (model == LongFundsType.BORROW_ALL && tradingData.market.margin) {
-            // Special case for always borrowing for LONG trades
-            borrow = cost
-        } else {
-            // Find the best wallet based on free funds
-            let use = getBestWallet(cost, preferred, wallets)
-            // Check if we can just trade the full amount outright
-            if (cost.isGreaterThan(use.free)) {
-                // Otherwise, work out how to fund it
-                switch (model) {
-                    case LongFundsType.NONE:
-                        // Purchase whatever we can
-                        cost = use.free
-
-                        // Check for the minimum cost to see if we can make the trade
-                        if (tradingData.market.limits.cost?.min && cost.isLessThan(tradingData.market.limits.cost.min)) {
-                            const logMessage = `Failed to trade as available ${use.type} funds of ${cost.toFixed()} ${tradingData.market.quote} would be less than the minimum trade cost of ${tradingData.market.limits.cost.min} ${tradingData.market.quote}.`
-                            logger.error(logMessage)
-                            return Promise.reject(logMessage)            
-                        }
-                        break
-                    case LongFundsType.BORROW_MIN:
-                    case LongFundsType.BORROW_ALL: // This is the fallback option, the preferred model is above
-                        // Not enough free, so force to use margin and buy the remainder (if we can)
-                        if (tradingData.market.margin) {
-                            use = wallets[WalletType.MARGIN]
-                            borrow = cost.minus(use.free)
-                        } else {
-                            // Margin not supported, so just trade whatever we can
+    switch (tradingData.signal.positionType) {
+        case PositionType.LONG:
+            // Calculate the cost for LONG trades based on the configured funding model
+            const model: LongFundsType = env().TRADE_LONG_FUNDS
+            if (model == LongFundsType.BORROW_ALL && tradingData.market.margin) {
+                // Special case for always borrowing for LONG trades regardless of whether you could fund it yourself
+                borrow = cost
+            } else {
+                // Find the best wallet based on free funds
+                let use = getBestWallet(cost, preferred, wallets)
+                // Check if we can just trade the full amount outright
+                if (cost.isGreaterThan(use.free)) {
+                    // Otherwise, work out how to fund it
+                    switch (model) {
+                        case LongFundsType.NONE:
+                            // Purchase whatever we can, will check if this is valid later
                             cost = use.free
-                        }
-                        break
-                    case LongFundsType.SELL_ALL:
-                    case LongFundsType.SELL_LARGEST:
-                        // Calculate the potential for each wallet
-                        for (let wallet of Object.values(wallets)) {
-                            // If there is nothing to rebalance, or the largest trade is already less than the free balance, then there is no point reducing anything
-                            if (!wallet.largestTrade || wallet.free.isGreaterThanOrEqualTo(wallet.largestTrade.cost!)) {
-                                if (wallet.largestTrade) logger.debug(`Free ${tradingData.market.quote} amount is more than the cost of the largest trade.`)
-                                wallet.potential = wallet.free
-                                // Clear the trades so that we don't try to rebalance anything later
-                                wallet.trades = []
-                            } else {
-                                if (model == LongFundsType.SELL_ALL) {
-                                    // All trades may not have equivalent costs, due to the fact that we don't re-buy remaining trades after one is closed, i.e. new trades can use the full free balance
-                                    // So we have to go through and work out which of the highest trades need to be rebalanced so that the new trade is of equal cost to at least one other
-                                    let smaller = true
-                                    // Loop through and kick out any trades that are smaller than the average, keep going until we have the exact set of trades to rebalance and the average of just those trades
-                                    while (smaller) {
-                                        smaller = false
-                                        // Calculate the average trade size of the remaining trades and assuming the free balance will also be a trade
-                                        wallet.potential = wallet.total.dividedBy(wallet.trades.length + 1)
-                                        // Note we're going to overwrie the total and trades for this wallet because it is easier for processing, we shouldn't need the originals anymore
-                                        wallet.total = new BigNumber(0)
-                                        const largeTrades: TradeOpen[] = []
-                                        wallet.trades.forEach(trade => {
-                                            if (trade.cost!.isGreaterThanOrEqualTo(wallet.potential!)) {
-                                                largeTrades.push(trade)
-                                                // Keep a new total of only the large trades to calculate a new average
-                                                wallet.total = wallet.total.plus(trade.cost!)
-                                            } else {
-                                                // This trade is below the average, so it won't get rebalanced
-                                                logger.debug(`${getLogName(trade)} cost of ${trade.cost?.toFixed()} is below the average of ${wallet.potential} so won't be rebalanced.`)
-                                                // The list of trades is different, so we'll need to loop again and calculate a new average
-                                                smaller = true
-                                            }
-                                        })
-                                        // Add the usable free balance back to the remaining total trades
-                                        wallet.total = wallet.total.plus(wallet.free)
-                                        // Keep the remaining list of large trades
-                                        wallet.trades = largeTrades
-                                    }
+                            break
+                        case LongFundsType.BORROW_MIN:
+                        case LongFundsType.BORROW_ALL: // This is the fallback option, the preferred model is above
+                            // Not enough free, so force to use margin wallet and buy the remainder (if we can)
+                            if (tradingData.market.margin) {
+                                use = wallets[WalletType.MARGIN]
+                                // Sometimes the wallet buffer makes the free amount look negative
+                                if (use.free.isGreaterThan(0)) {
+                                    borrow = cost.minus(use.free)
                                 } else {
-                                    // Using half of the largest trade plus the free balance, both trades should then be equal
-                                    // This may not halve the largest trade, it might only take a piece
-                                    wallet.potential = wallet.free.plus(wallet.largestTrade.cost!).dividedBy(2)
-                                    // Overwrite the list of trades to make it easier for rebalancing later, we shouldn't need the original anymore
-                                    wallet.trades = [wallet.largestTrade]
+                                    // So we don't want to borrow more than the trade cost
+                                    borrow = cost
                                 }
-                            }
-                        }
-
-                        // Get the best wallet based on the new potential
-                        use = getBestWallet(cost, preferred, wallets)
-                        // Maybe rebalancing could give us more than we need for this trade, e.g. if we have more than the maximum trade volume
-                        if (use.potential!.isLessThan(cost)) cost = use.potential!
-
-                        if (use.trades.length) {
-                            logger.info(`Attempting to rebalance ${use.trades.length} existing trade(s) on ${use.type} to ${use.potential?.toFixed()} ${tradingData.market.quote}.`)
-
-                            // Check for the minimum cost here as we don't want to start rebalancing if we can't make the trade
-                            if (tradingData.market.limits.cost?.min && cost.isLessThan(tradingData.market.limits.cost.min)) {
-                                const logMessage = `Failed to trade as rebalancing to free up ${cost.toFixed()} ${tradingData.market.quote} would be less than the minimum trade cost of ${tradingData.market.limits.cost.min} ${tradingData.market.quote}.`
-                                logger.error(logMessage)
-                                return Promise.reject(logMessage)            
-                            }
-
-                            // Rebalance all the remaining trades in this wallet to the calculated trade size
-                            for (let trade of use.trades) {
-                                await rebalanceTrade(trade, use.potential!, use).catch(
-                                    (reason) => {
-                                        // Not actually going to stop processing, we may still be able to make the trade using the free balance, so just log the error
-                                        logger.error(reason)
-                                    })
-                            }
-
-                            // Just to be sure, let's check the free balance again, this will probably alway happen due to rounding
-                            if (use.free.isLessThan(cost)) {
-                                // To limit spamming the logs, we'll only warn if there was more than 0.5% change
-                                if (use.free.multipliedBy(1.005).isLessThan(cost)) {
-                                    logger.warn(`Rebalancing resulted in a lower trade of only ${use.free.toFixed()} ${tradingData.market.quote} instead of ${cost.toFixed()} ${tradingData.market.quote}.`)
-                                }
+                            } else {
+                                // Margin is not supported, so just trade whatever we can, will check if it is valid later
                                 cost = use.free
                             }
-                        } else {
-                            logger.debug(`No ${tradingData.market.quote} trades to be rebalanced, so just using the available amount of ${cost.toFixed()}  instead.`)
-                        }
-                        break
-                }
+                            break
+                        case LongFundsType.SELL_ALL:
+                        case LongFundsType.SELL_LARGEST:
+                            // Calculate the potential for each wallet
+                            for (let wallet of Object.values(wallets)) {
+                                // If there is nothing to rebalance, or the largest trade is already less than the free balance, then there is no point reducing anything
+                                if (!wallet.largestTrade || wallet.free.isGreaterThanOrEqualTo(wallet.largestTrade.cost!)) {
+                                    if (wallet.largestTrade) logger.debug(`Free ${tradingData.market.quote} amount is already more than the cost of the largest trade.`)
+                                    wallet.potential = wallet.free
+                                    // Clear the trades so that we don't try to rebalance anything later
+                                    wallet.trades = []
+                                } else {
+                                    if (model == LongFundsType.SELL_ALL) {
+                                        // All trades may not have equivalent costs, due to the fact that we don't re-buy remaining trades after one is closed, i.e. new trades can use the full free balance
+                                        // So we have to go through and work out which of the highest trades need to be rebalanced so that the new trade is of equal cost to at least one other
+                                        let smaller = true
+                                        // Loop through and kick out any trades that are smaller than the average, keep going until we have the exact set of trades to rebalance and the average of just those trades
+                                        while (smaller) {
+                                            smaller = false
+                                            // Calculate the average trade size of the remaining trades and assuming the free balance will also be a trade
+                                            wallet.potential = wallet.total.dividedBy(wallet.trades.length + 1)
+                                            // Note we're going to overwrie the total and trades for this wallet because it is easier for processing, we shouldn't need the originals anymore
+                                            wallet.total = new BigNumber(0)
+                                            const largeTrades: TradeOpen[] = []
+                                            wallet.trades.forEach(trade => {
+                                                if (trade.cost!.isGreaterThanOrEqualTo(wallet.potential!)) {
+                                                    largeTrades.push(trade)
+                                                    // Keep a new total of only the large trades to calculate a new average
+                                                    wallet.total = wallet.total.plus(trade.cost!)
+                                                } else {
+                                                    // This trade is below the average, so it won't get rebalanced
+                                                    logger.debug(`${getLogName(trade)} cost of ${trade.cost?.toFixed()} is below the average of ${wallet.potential} so won't be rebalanced.`)
+                                                    // The list of trades is different, so we'll need to loop again and calculate a new average
+                                                    smaller = true
+                                                }
+                                            })
+                                            // Add the usable free balance back to the remaining total trades
+                                            wallet.total = wallet.total.plus(wallet.free)
+                                            // Keep the remaining list of large trades
+                                            wallet.trades = largeTrades
+                                        }
+                                    } else {
+                                        // Using half of the largest trade plus the free balance, both trades should then be equal
+                                        // This may not halve the largest trade, it might only take a piece
+                                        wallet.potential = wallet.free.plus(wallet.largestTrade.cost!).dividedBy(2)
+                                        // Overwrite the list of trades to make it easier for rebalancing later, we shouldn't need the original anymore
+                                        wallet.trades = [wallet.largestTrade]
+                                    }
+                                }
+                            }
 
-                logger.debug(`${getLogName(tradingData.signal)} trade can use ${cost} ${tradingData.market.quote}.`)
+                            // Get the best wallet based on the new potential
+                            use = getBestWallet(cost, preferred, wallets)
+                            // Maybe rebalancing could give us more than we need for this trade, e.g. if we have more than the maximum trade volume
+                            if (use.potential!.isLessThan(cost)) cost = use.potential!
+
+                            if (use.trades.length) {
+                                logger.info(`Attempting to rebalance ${use.trades.length} existing trade(s) on ${use.type} to ${use.potential?.toFixed()} ${tradingData.market.quote}.`)
+
+                                // Check for the minimum cost here as we don't want to start rebalancing if we can't make the trade
+                                if (tradingData.market.limits.cost?.min && cost.isLessThan(tradingData.market.limits.cost.min)) {
+                                    const logMessage = `Failed to trade as rebalancing to free up ${cost.toFixed()} ${tradingData.market.quote} would be less than the minimum trade cost of ${tradingData.market.limits.cost.min} ${tradingData.market.quote}.`
+                                    logger.error(logMessage)
+                                    return Promise.reject(logMessage)            
+                                }
+
+                                // Rebalance all the remaining trades in this wallet to the calculated trade size
+                                for (let trade of use.trades) {
+                                    await rebalanceTrade(trade, use.potential!, use).catch(
+                                        (reason) => {
+                                            // Not actually going to stop processing, we may still be able to make the trade using the free balance, so just log the error
+                                            logger.error(reason)
+                                        })
+                                }
+
+                                // Just to be sure, let's check the free balance again, this will probably alway happen due to rounding
+                                if (use.free.isLessThan(cost)) {
+                                    // To limit spamming the logs, we'll only warn if there was more than 0.5% change
+                                    if (use.free.multipliedBy(1.005).isLessThan(cost)) {
+                                        logger.warn(`Rebalancing resulted in a lower trade of only ${use.free.toFixed()} ${tradingData.market.quote} instead of ${cost.toFixed()} ${tradingData.market.quote}.`)
+                                    }
+                                    cost = use.free
+                                }
+                            } else {
+                                logger.debug(`No ${tradingData.market.quote} trades to be rebalanced, so just using the available amount of ${cost.toFixed()}  instead.`)
+                            }
+                            break
+                    }
+
+                    logger.debug(`${getLogName(tradingData.signal)} trade can use ${cost} ${tradingData.market.quote}.`)
+
+                    // As cost probably changed, check for the minimum cost to see if we can make the trade
+                    if (tradingData.market.limits.cost?.min && cost.isLessThan(tradingData.market.limits.cost.min)) {
+                        const logMessage = `Failed to trade as available ${use.type} funds of ${cost.toFixed()} ${tradingData.market.quote} would be less than the minimum trade cost of ${tradingData.market.limits.cost.min} ${tradingData.market.quote}.`
+                        logger.error(logMessage)
+                        return Promise.reject(logMessage)
+                    }
+
+                    // Recalculate the purchase quantity based on the new cost
+                    quantity = getLegalQty(cost.dividedBy(tradingData.signal.price!), tradingData.market, tradingData.signal.price!)
+                    // Recalculate the cost again because the quantity may have been rounded up to the minimum, it may also cause it to drop below the minimum cost due to precision
+                    // Note this may result in the trade failing due to insufficient funds, but hopefully the buffer will compensate
+                    cost = quantity.multipliedBy(tradingData.signal.price!)
+                }
+                // Remember the wallet for recording in the trade
+                preferred = [use.type]
             }
-            // Remember the wallet for recording in the trade
-            preferred = [use.type]
-        }
+            break
+        case PositionType.SHORT:
+            // Need to borrow the full amount that will be sold
+            borrow = quantity
+            break
     }
 
-    // Calculate the purchase quantity based on the new cost
-    quantity = getLegalQty(cost.dividedBy(tradingData.signal.price!), tradingData.market, tradingData.signal.price!)
-    // Recalculate the cost because the quantity may have been rounded up to the minimum, it may also cause it to drop below the minimum cost due to precision
-    // Note this may result in the trade failing due to insufficient funds, but hopefully the buffer will compensate
-    cost = quantity.multipliedBy(tradingData.signal.price!)
-
-    if (tradingData.signal.positionType == PositionType.SHORT) {
-        // Need to borrow the full amount that will be sold
-        borrow = quantity
+    if (!cost.isGreaterThan(0)) {
+        // Something is wrong, maybe the wallet buffer, hopefully this won't happen
+        const logMessage = `Failed to trade as cost is invalid.`
+        logger.error(logMessage)
+        return Promise.reject(logMessage)
     }
 
     let msg = `${getLogName(tradingData.signal)} trade will be executed on ${preferred[0]}, total of ${quantity.toFixed()} ${tradingData.market.base} for ${cost.toFixed()} ${tradingData.market.quote}.`
     if (borrow.isGreaterThan(0)) {
-        msg += ` Also need to borrow ${borrow} ${tradingData.market.quote}.`
+        msg += ` Also need to borrow ${borrow} ${tradingData.signal.positionType == PositionType.LONG ? tradingData.market.quote : tradingData.market.base}.`
     }
     logger.info(msg)
 
@@ -2014,14 +2020,12 @@ function getLogName(source: TradeOpen | Signal | Strategy) {
 export function getTradeOpen(match: Signal | TradeOpen): TradeOpen | undefined {
     const tradesOpenFiltered = getTradeOpenFiltered(match, tradingMetaData.tradesOpen)
 
-    const logData = `for ${getLogName(match)}`
-
     if (tradesOpenFiltered.length > 1) {
-        logger.warn(`There is more than one trade open ${logData}. Using the first found.`)
-    } else if (tradesOpenFiltered.length === 0) {
-        logger.debug(`No open trade found ${logData}.`)
+        logger.warn(`There is more than one trade open for ${getLogName(match)}. Using the first found.`)
+    } else if (tradesOpenFiltered.length == 0) {
+        logger.debug(`No open trade found for ${getLogName(match)}.`)
     } else {
-        logger.debug(`Exactly one open trade found ${logData}.`)
+        logger.silly(`Exactly one open trade found for ${getLogName(match)}.`)
         return tradesOpenFiltered[0]
     }
 }
@@ -2145,6 +2149,7 @@ async function run() {
     if (!Number.isInteger(env().STRATEGY_LOSS_LIMIT)) issues.push("STRATEGY_LOSS_LIMIT must be a whole number.")
     if (env().VIRTUAL_WALLET_FUNDS <= 0) issues.push("VIRTUAL_WALLET_FUNDS must be greater than 0.")
     if (!env().IS_TRADE_MARGIN_ENABLED && env().PRIMARY_WALLET == WalletType.MARGIN) issues.push(`PRIMARY_WALLET cannot be ${WalletType.MARGIN} if IS_TRADE_MARGIN_ENABLED is false.`)
+    if (!env().IS_TRADE_MARGIN_ENABLED && (env().TRADE_LONG_FUNDS == LongFundsType.BORROW_ALL || env().TRADE_LONG_FUNDS == LongFundsType.BORROW_MIN)) issues.push(`TRADE_LONG_FUNDS cannot be ${env().TRADE_LONG_FUNDS} if IS_TRADE_MARGIN_ENABLED is false.`)
     if (env().IS_NOTIFIER_GMAIL_ENABLED && (!env().NOTIFIER_GMAIL_ADDRESS || !env().NOTIFIER_GMAIL_APP_PASSWORD)) issues.push("NOTIFIER_GMAIL_ADDRESS and NOTIFIER_GMAIL_APP_PASSWORD are required for IS_NOTIFIER_GMAIL_ENABLED.")
     if (env().IS_NOTIFIER_TELEGRAM_ENABLED && (!env().NOTIFIER_TELEGRAM_API_KEY || !env().NOTIFIER_TELEGRAM_RECEIVER_ID)) issues.push("NOTIFIER_TELEGRAM_API_KEY and NOTIFIER_TELEGRAM_RECEIVER_ID are required for IS_NOTIFIER_TELEGRAM_ENABLED.")
     if (issues.length) {
