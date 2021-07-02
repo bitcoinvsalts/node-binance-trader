@@ -1543,11 +1543,13 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
         return Promise.reject(logMessage)
     }
 
+    // We need to calculate ballances for all wallets because we'll pass them into the balance history later
     const wallets: Dictionary<WalletData> = {}
-    preferred.forEach(w => wallets[w] = new WalletData(w))
-    if (!preferred.includes(primary)) wallets[primary] = new WalletData(primary) // May also need the primary wallet for reference quantity
+    Object.values(WalletType).forEach(w => wallets[w] = new WalletData(w))
+    // Exclude margin if disabled
+    if (!env().IS_TRADE_MARGIN_ENABLED) delete wallets[WalletType.MARGIN]
 
-    // Get the available balances each potential wallet
+    // Get the available balances of each wallet
     for (let wallet of Object.values(wallets)) {
         if (tradingData.strategy.tradingType == TradingType.real) {
             // Get the current balance from Binance for the base coin (e.g. BTC)
