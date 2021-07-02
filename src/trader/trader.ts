@@ -1263,7 +1263,7 @@ export async function executeTradingTask(
     if (tradeOpen.priceBuy && tradeOpen.priceSell && (!signal || signal.entryType == EntryType.EXIT)) {
         // Regardless of whether this was SHORT or LONG, you should always buy low and sell high
         change = tradeOpen.quantity.multipliedBy(tradeOpen.priceSell).minus(tradeOpen.quantity.multipliedBy(tradeOpen.priceBuy))
-        logger.debug(`Closing cost difference is: ${change.toFixed()}.`)
+        logger.debug(`Closing ${change.isNegative() ? "loss" : "profit"} is: ${change.toFixed()} ${market.quote}.`)
 
         const strategy = tradingMetaData.strategies[tradeOpen.strategyId]
         // Manually closing a trade or rebalancing should not affect the count of losses
@@ -1420,6 +1420,8 @@ export async function trade(signal: Signal, source: SourceType) {
         } else {
             tradeOpen.priceSell = tradingData.signal.price
         }
+        // Recalculate the cost for logging, and just in case the close trade fails we will have a more up to date value
+        tradeOpen.cost = tradeOpen.quantity.multipliedBy(tradingData.signal.price!)
         saveState("tradesOpen")
     }
 
