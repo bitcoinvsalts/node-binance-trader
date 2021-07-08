@@ -420,7 +420,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
 
         // Log results
         prevTrades.forEach(trade =>
-            logger.info(`Previous trade ${getLogName(trade)} assigned to ${trade.wallet}, quantity = ${trade.quantity.toFixed()}, cost = ${trade.cost?.toFixed()}, borrowed = ${trade.borrow?.toFixed()}`)
+            logger.info(`Previous trade ${getLogName(trade)} assigned to ${trade.wallet}, quantity = ${trade.quantity.toFixed()}, cost = ${trade.cost?.toFixed()}, borrowed = ${trade.borrow?.toFixed()}.`)
         )
     }
 
@@ -987,7 +987,7 @@ async function executeTradeAction(
 ) {
     let result: Order | null = null
 
-    logger.debug(`${action} ${quantity.toFixed()} ${symbolAsset} on ${tradeOpen.wallet}`)
+    logger.debug(`Execute ${action} ${quantity.toFixed()} ${symbolAsset} on ${tradeOpen.wallet}.`)
 
     // Execute the real or virtual actions
     switch (action) {
@@ -1058,7 +1058,7 @@ async function executeTradeAction(
                 switch (action) {
                     case ActionType.BUY:
                         if (!tradeOpen.priceBuy!.isEqualTo(result.price)) {
-                            logger.debug(`${getLogName(tradeOpen)} trade buy price slipped from ${tradeOpen.priceBuy!.toFixed()} to ${result.price}`)
+                            logger.debug(`${getLogName(tradeOpen)} trade buy price slipped from ${tradeOpen.priceBuy!.toFixed()} to ${result.price}.`)
                             // Update the price for better accuracy
                             tradeOpen.priceBuy = new BigNumber(result.price)
                             tradeOpen.timeUpdated = timestamp
@@ -1066,7 +1066,7 @@ async function executeTradeAction(
                         break
                     case ActionType.SELL:
                         if (!tradeOpen.priceSell!.isEqualTo(result.price)) {
-                            logger.debug(`${getLogName(tradeOpen)} trade sell price slipped from ${tradeOpen.priceSell!.toFixed()} to ${result.price}`)
+                            logger.debug(`${getLogName(tradeOpen)} trade sell price slipped from ${tradeOpen.priceSell!.toFixed()} to ${result.price}.`)
                             // Update the price for better accuracy
                             tradeOpen.priceSell = new BigNumber(result.price)
                             tradeOpen.timeUpdated = timestamp
@@ -1075,7 +1075,7 @@ async function executeTradeAction(
                 }
             }
             if (result.cost && !tradeOpen.cost!.isEqualTo(result.cost)) {
-                logger.debug(`${getLogName(tradeOpen)} trade cost slipped from ${tradeOpen.cost!.toFixed()} to ${result.cost}`)
+                logger.debug(`${getLogName(tradeOpen)} trade cost slipped from ${tradeOpen.cost!.toFixed()} to ${result.cost}.`)
                 // Update the cost for better accuracy
                 tradeOpen.cost = new BigNumber(result.cost)
                 tradeOpen.timeUpdated = timestamp
@@ -1637,7 +1637,8 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
     })
 
     // We only look at the balances when opening a trade, so keep them for the history
-    updateBalanceHistory(tradingData.strategy.tradingType, tradingData.market.quote, EntryType.ENTER, totalBalance)
+    // Don't send the entry type because it will be called again when the trade executes
+    updateBalanceHistory(tradingData.strategy.tradingType, tradingData.market.quote, undefined, totalBalance)
 
     // See if the cost should be converted to a fraction of the balance
     if (env().IS_BUY_QTY_FRACTION) {
@@ -1657,7 +1658,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
     // Ensure that we have a valid quantity and cost to start with, especially if we are going to borrow to make this trade
     quantity = getLegalQty(cost.dividedBy(tradingData.signal.price!), tradingData.market, tradingData.signal.price!)
     cost = quantity.multipliedBy(tradingData.signal.price!)
-    logger.debug(`Legal trade cost is ${cost} ${tradingData.market.quote}`)
+    logger.debug(`Legal trade cost is ${cost} ${tradingData.market.quote}.`)
 
     switch (tradingData.signal.positionType) {
         case PositionType.LONG:
@@ -1700,7 +1701,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                             for (let wallet of Object.values(wallets)) {
                                 // If there is nothing to rebalance, or the largest trade is already less than the free balance, then there is no point reducing anything
                                 if (!wallet.largestTrade || wallet.free.isGreaterThanOrEqualTo(wallet.largestTrade.cost!)) {
-                                    if (wallet.largestTrade) logger.debug(`Free ${tradingData.market.quote} amount is already more than the cost of the largest trade.`)
+                                    if (wallet.largestTrade) logger.debug(`Free ${tradingData.market.quote} amount on ${wallet.type} is already more than the cost of the largest trade.`)
                                     wallet.potential = wallet.free
                                     // Clear the trades so that we don't try to rebalance anything later
                                     wallet.trades = []
@@ -1932,7 +1933,7 @@ function initialiseVirtualBalances(walletType: WalletType, market: Market) {
         // If the quote asset is not BTC, then use the minimum costs to scale the opening balance
         if (market.quote != "BTC" && market.limits.cost && btc && btc.limits.cost) {
             value = value.dividedBy(btc.limits.cost.min).multipliedBy(market.limits.cost.min)
-            logger.debug(`Calculated virtual opening balance of ${value} ${market.quote}`)
+            logger.debug(`Calculated virtual opening balance of ${value} ${market.quote} on ${walletType}.`)
             if (!value.isGreaterThan(0)) value = virtualWalletFunds // Just in case
         }
     
@@ -1967,14 +1968,18 @@ function updateBalanceHistory(tradingType: TradingType, quote: string, entryType
     }
 
     // Calculate number of concurrent open trades
-    // This method should be called before the opened trade is added, or after the closed trade is removed, so that's why we add 1 to count the calling trade
-    const openTradeCount = tradingMetaData.tradesOpen.filter(trade => trade.tradingType == tradingType && tradingMetaData.markets[trade.symbol].quote == quote).length + 1
-
+    // This method should only be called with a signal after the trade has executed, so it would have been removed on closing
+    // It may be called without a signal for setting the opening balance or auto balancing trades, so trade count won't be affected
+    // If called for setting the openening balance it will be before the trade is added, which is fine because it may not execute
+    const maxOpenTradeCount = tradingMetaData.tradesOpen.filter(trade => trade.tradingType == tradingType && tradingMetaData.markets[trade.symbol].quote == quote).length + (entryType == EntryType.EXIT ? 1 : 0)
+    // Unless this fires on exactly midnight, there must have been a time before or after this trade without it
+    const minOpenTradeCount = maxOpenTradeCount - (entryType ? 1 : 0)
+    
     // Update latest balances and stats
     if (change) balance = balance.plus(change)
     h.closeBalance = balance
-    if (h.minOpenTrades == undefined || openTradeCount-1 < h.minOpenTrades) h.minOpenTrades = openTradeCount-1 // Unless this fires on exactly midnight, there must have been a time before or after this trade
-    if (h.maxOpenTrades == undefined || openTradeCount > h.maxOpenTrades) h.maxOpenTrades = openTradeCount
+    if (h.minOpenTrades == undefined || minOpenTradeCount < h.minOpenTrades) h.minOpenTrades = minOpenTradeCount
+    if (h.maxOpenTrades == undefined || maxOpenTradeCount > h.maxOpenTrades) h.maxOpenTrades = maxOpenTradeCount
     if (entryType == EntryType.ENTER) {
         h.totalOpenedTrades++
     } else if (entryType == EntryType.EXIT) {
@@ -2254,7 +2259,7 @@ async function sellEverything(base: string, fraction: number) {
         const market = tradingMetaData.markets[quote + base]
         if (market && balances[quote].free) {
             const qty = balances[quote].free * fraction
-            logger.debug(`Selling ${qty} ${quote}`)
+            logger.debug(`Selling ${qty} ${quote}.`)
             logger.debug(await createMarketOrder(quote + "/" + base, "sell", new BigNumber(qty)).then(order => `${order.status} ${order.cost}`).catch(e => e.name))
         }
     }
