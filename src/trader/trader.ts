@@ -1,5 +1,5 @@
 import BigNumber from "bignumber.js"
-import { Balances, Dictionary, Market, Order } from "ccxt"
+import { Balances, binance, Dictionary, Market, Order } from "ccxt"
 import PQueue from "p-queue"
 
 import logger from "../logger"
@@ -146,11 +146,12 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
         for (const prevTrade of prevTrades) {
             const tradeOpen = getTradeOpen(prevTrade)
             if (tradeOpen) {
-                if (tradeOpen.id != prevTrade.id) {
+                // As the real trade ID is not used for anything at the moment, we'll just keep the one we generated for consistency in the transactions
+                /*if (tradeOpen.id != prevTrade.id) {
                     // We don't get the trade ID when the trade was opened normally, so it is likely to change after a restart
                     logger.debug(`Trade ID ${tradeOpen.id} changed to ${prevTrade.id}.`)
                     tradeOpen.id = prevTrade.id 
-                }
+                }*/
 
                 // The trade may have stopped previously due to the trader logic that the NBT Hub doesn't know about
                 // But there is a chance that the user stopped the trade while the trader was offline, so we'll take the new state
@@ -712,7 +713,7 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
     if (source == SourceType.SIGNAL) {
         if (!strategy) {
             const logMessage = `Skipping signal as strategy for ${getLogName(signal)} isn't followed.`
-            logger.info(logMessage)
+            logger.debug(logMessage)
             return Promise.reject(logMessage)
         }
 

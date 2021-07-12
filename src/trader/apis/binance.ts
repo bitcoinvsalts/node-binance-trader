@@ -120,8 +120,8 @@ export async function marginBorrow(
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
     return binanceClient.sapiPostMarginLoan({
         asset,
-        isIsolated: false, // "false" for cross margin borrow without specification of a symbol.
-        amount
+        //isIsolated: 'FALSE', // "FALSE" for cross margin borrow without specification of a symbol.
+        amount: amount.toFixed()
     })
 }
 
@@ -132,8 +132,8 @@ export async function marginRepay(
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
     return binanceClient.sapiPostMarginRepay({
         asset,
-        isIsolated: false, // "false" for cross margin repay without specification of a symbol.
-        amount
+        //isIsolated: 'FALSE', // "FALSE" for cross margin repay without specification of a symbol.
+        amount: amount.toFixed()
     })
 }
 

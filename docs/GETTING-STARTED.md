@@ -21,6 +21,8 @@ First, you need an account with Binance. The registration can be done here: [Bin
 By default the trader tries to trade with margin, so you need to have at least 0.001 BTC in your spot as well as your margin account.
 Also, to cover trading fees, you'll need a small amount of BNB in both your spot and margin wallets.
 
+If you want to allow SHORT trades (or borrowing for LONG trades) then you will need to tick the 'Enable Margin' option under the API Management settings in Binance.
+
 If you need more information on how to set up Binance and the different wallets you can find lots of additional information here: https://www.binance.com/en/support/
 
 You will also need to create an account on [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com), which you can do by clicking the login button and choosing the sign up option.
