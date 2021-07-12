@@ -35,6 +35,8 @@ const nbt_vers = env.VERSION
 const pairs = ["BTCUSDT"] //, 'ETHBTC', 'XRPBTC', 'XRPETH']
 
 const stratname = "DEMO STRATS"
+const description = "".substr(0, 255)
+const max_concurrent = pairs.length
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -47,6 +49,7 @@ console.log("send_signal_to_bva: ", send_signal_to_bva)
 
 let pairData = {}
 let openSignals = {}
+let first_signal = true
 
 const nbt_prefix = "nbt_"
 const interv_time = 10000
@@ -378,6 +381,11 @@ async function trackPairData(pair) {
                     stop_profit: signalCheck.takeProfit,
                 }
 
+                if (first_signal) {
+                    signal.description = description
+                    signal.max_concurrent = max_concurrent
+                }
+
                 // store signal
                 const openSignal = {
                     type: signalCheck.isBuy ? "LONG" : "SHORT",
@@ -402,6 +410,8 @@ async function trackPairData(pair) {
                             : "sell_signal",
                         signal
                     )
+
+                    first_signal = false
                 }
 
                 // store open signal
@@ -433,6 +443,11 @@ async function trackPairData(pair) {
                         pair: pair,
                     }
 
+                    if (first_signal) {
+                        signal.description = description
+                        signal.max_concurrent = max_concurrent
+                    }
+
                     if (openSignal.type === "LONG") {
                         signal.sell_price = Number(first_bid_price)
                     } else {
@@ -448,6 +463,8 @@ async function trackPairData(pair) {
                                 : "buy_signal",
                             signal
                         )
+
+                        first_signal = false
                     }
 
                     // remove open signal
