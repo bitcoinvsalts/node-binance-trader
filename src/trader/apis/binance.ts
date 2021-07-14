@@ -27,6 +27,10 @@ export interface Loan {
     interest: number
 }
 
+export interface Trans {
+    tranId: number
+}
+
 // Gets all of the supported coin pairs (symbols) and associated flags and limits
 export function loadMarkets(isReload?: boolean): Promise<ccxt.Dictionary<ccxt.Market>> {
     return new Promise((resolve, reject) => {
@@ -116,7 +120,7 @@ export async function createMarketOrder(
 export async function marginBorrow(
     asset: string,
     amount: BigNumber
-): Promise<ccxt.Order> {
+): Promise<Trans> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
     return binanceClient.sapiPostMarginLoan({
         asset,
@@ -128,7 +132,7 @@ export async function marginBorrow(
 export async function marginRepay(
     asset: string,
     amount: BigNumber
-): Promise<ccxt.Order> {
+): Promise<Trans> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
     return binanceClient.sapiPostMarginRepay({
         asset,
