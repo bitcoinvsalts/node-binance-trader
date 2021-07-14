@@ -1,6 +1,7 @@
 import BigNumber from "bignumber.js"
 import { Balances, binance, Dictionary, Market, Order } from "ccxt"
 import PQueue from "p-queue"
+import { createContext } from "vm"
 
 import logger from "../logger"
 import {
@@ -11,6 +12,7 @@ import {
     loadMarkets,
     marginBorrow,
     marginRepay,
+    Trans,
 } from "./apis/binance"
 import { getTradeOpenList } from "./apis/bva"
 import { initialiseDatabase, loadObject, saveObjects, saveRecord } from "./apis/postgres"
@@ -986,7 +988,7 @@ async function executeTradeAction(
     quantity: BigNumber,
     signal?: Signal
 ) {
-    let result: Order | null = null
+    let result: Order | Trans | null = null
 
     logger.debug(`Execute ${action} ${quantity.toFixed()} ${symbolAsset} on ${tradeOpen.wallet}.`)
 
@@ -1051,41 +1053,50 @@ async function executeTradeAction(
     // We want to know as close as possible to when the trade was executed on Binance so that we can compare to the incoming timestamp
     const timestamp = new Date()
 
+    // null is returned for virtual actions
     if (result != null) {
-        if (result.status == "closed") {
-            // Check if the price and cost is different than we expected (it usually is)
-            // TODO: It would be nice to feed these current prices back to the original trades when rebalancing
-            if (result.price) {
-                switch (action) {
-                    case ActionType.BUY:
-                        if (!tradeOpen.priceBuy!.isEqualTo(result.price)) {
-                            logger.debug(`${getLogName(tradeOpen)} trade buy price slipped from ${tradeOpen.priceBuy!.toFixed()} to ${result.price}.`)
-                            // Update the price for better accuracy
-                            tradeOpen.priceBuy = new BigNumber(result.price)
-                            tradeOpen.timeUpdated = timestamp
-                        }
-                        break
-                    case ActionType.SELL:
-                        if (!tradeOpen.priceSell!.isEqualTo(result.price)) {
-                            logger.debug(`${getLogName(tradeOpen)} trade sell price slipped from ${tradeOpen.priceSell!.toFixed()} to ${result.price}.`)
-                            // Update the price for better accuracy
-                            tradeOpen.priceSell = new BigNumber(result.price)
-                            tradeOpen.timeUpdated = timestamp
-                        }
-                        break
+        // Status is returned for real buy / sell orders
+        if ("status" in result) {
+            if (result.status == "closed") {
+                // Check if the price and cost is different than we expected (it usually is)
+                // TODO: It would be nice to feed these current prices back to the original trades when rebalancing
+                if (result.price) {
+                    switch (action) {
+                        case ActionType.BUY:
+                            if (!tradeOpen.priceBuy!.isEqualTo(result.price)) {
+                                logger.debug(`${getLogName(tradeOpen)} trade buy price slipped from ${tradeOpen.priceBuy!.toFixed()} to ${result.price}.`)
+                                // Update the price for better accuracy
+                                tradeOpen.priceBuy = new BigNumber(result.price)
+                                tradeOpen.timeUpdated = timestamp
+                            }
+                            break
+                        case ActionType.SELL:
+                            if (!tradeOpen.priceSell!.isEqualTo(result.price)) {
+                                logger.debug(`${getLogName(tradeOpen)} trade sell price slipped from ${tradeOpen.priceSell!.toFixed()} to ${result.price}.`)
+                                // Update the price for better accuracy
+                                tradeOpen.priceSell = new BigNumber(result.price)
+                                tradeOpen.timeUpdated = timestamp
+                            }
+                            break
+                    }
                 }
+                if (result.cost && !tradeOpen.cost!.isEqualTo(result.cost)) {
+                    logger.debug(`${getLogName(tradeOpen)} trade cost slipped from ${tradeOpen.cost!.toFixed()} to ${result.cost}.`)
+                    // Update the cost for better accuracy
+                    tradeOpen.cost = new BigNumber(result.cost)
+                    tradeOpen.timeUpdated = timestamp
+                }
+                // Technically we may not always need to save the trade, but most of the time we will so do it here for simplicity
+                saveState("tradesOpen")
+            } else {
+                // Order did not close successfully
+                // Trade information will be added to the log message by the calling method
+                return Promise.reject(`Result status was "${result.status}".`)
             }
-            if (result.cost && !tradeOpen.cost!.isEqualTo(result.cost)) {
-                logger.debug(`${getLogName(tradeOpen)} trade cost slipped from ${tradeOpen.cost!.toFixed()} to ${result.cost}.`)
-                // Update the cost for better accuracy
-                tradeOpen.cost = new BigNumber(result.cost)
-                tradeOpen.timeUpdated = timestamp
-            }
-            // Technically we may not always need to save the trade, but most of the time we will so do it here for simplicity
-            saveState("tradesOpen")
-        } else {
+        } else if (!result.tranId) {
+            // Margin borrow and repay will only have a transaction ID, so anything other than that is unexpected
             // Trade information will be added to the log message by the calling method
-            return Promise.reject(`Result status was "${result.status}".`)
+            return Promise.reject(`Unexpected result: "${result}"`)
         }
     }
 
