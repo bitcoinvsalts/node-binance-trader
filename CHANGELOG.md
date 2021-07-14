@@ -2,6 +2,7 @@
 
 ### Bug Fixes
 
+* **trader:** margin borrow and repay functions now work.
 * **trader:** identify when a trade request was not fulfilled in Binance.
 * **trader:** correct calculation of trade quantity to account for LOT_SIZE and precision.
 * **trader:** only allow one concurrent open trade per strategy + symbol + position, this matches the NBT Hub rules.
@@ -10,8 +11,9 @@
 * **trader:** truncate memory logs.
 
 ### Features
-These are all for **trader**. Refer to the README for more details.
+* **server:** added description and max_concurrent parameters.
 
+These are all for **trader**. Refer to the README for more details:
 * ***CONFIG:* Quantity as Fraction**
 * ***CONFIG:* Funding / Auto-Balancing for LONG Trades**
 * ***CONFIG:* Primary Wallet**
