@@ -675,6 +675,7 @@ export async function onStopTradedSignal(signalJson: SignalJson, timestamp: Date
     }
 
     tradeOpen.isStopped = true
+    saveState("tradesOpen")
 }
 
 function logSignal(signal: Signal, type: "buy" | "sell" | "close" | "stop") {
