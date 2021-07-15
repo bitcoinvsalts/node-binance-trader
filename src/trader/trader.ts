@@ -1,7 +1,6 @@
 import BigNumber from "bignumber.js"
 import { Balances, binance, Dictionary, Market, Order } from "ccxt"
 import PQueue from "p-queue"
-import { createContext } from "vm"
 
 import logger from "../logger"
 import {
@@ -11,8 +10,7 @@ import {
     getMarginLoans,
     loadMarkets,
     marginBorrow,
-    marginRepay,
-    Trans,
+    marginRepay
 } from "./apis/binance"
 import { getTradeOpenList } from "./apis/bva"
 import { initialiseDatabase, loadObject, saveObjects, saveRecord } from "./apis/postgres"
@@ -20,6 +18,7 @@ import env from "./env"
 import startWebserver from "./http"
 import initializeNotifiers, { getNotifierMessage, notifyAll } from "./notifiers"
 import socket from "./socket"
+import { LoanTransaction } from "./types/binance"
 import {
     EntryType,
     PositionType,
@@ -988,7 +987,7 @@ async function executeTradeAction(
     quantity: BigNumber,
     signal?: Signal
 ) {
-    let result: Order | Trans | null = null
+    let result: Order | LoanTransaction | null = null
 
     logger.debug(`Execute ${action} ${quantity.toFixed()} ${symbolAsset} on ${tradeOpen.wallet}.`)
 
@@ -1598,12 +1597,14 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                     // Add up all the costs from active LONG trades
                     wallets[trade.wallet].locked = wallets[trade.wallet].locked.plus(trade.cost)
 
-                    // Count the number of active LONG trades
+                    // Keep the list of active LONG trades
+                    // We still need to include the stopped trades here so we can subtract them from the total later
                     wallets[trade.wallet].trades.push(trade)
 
                     // Find the largest active LONG trade
+                    // We're going to ignore anything that is stopped, hopefully there will be other trades to choose from
                     // TODO: It would be nice to use current market price instead of cost calculated from opening price
-                    if (wallets[trade.wallet].largestTrade == undefined || trade.cost.isGreaterThan(wallets[trade.wallet].largestTrade!.cost!)) {
+                    if (!trade.isStopped && (wallets[trade.wallet].largestTrade == undefined || trade.cost.isGreaterThan(wallets[trade.wallet].largestTrade!.cost!))) {
                         wallets[trade.wallet].largestTrade = trade
                     }
                 }
@@ -1663,14 +1664,14 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
 
         // Calculate the fraction of the total balance
         cost = wallets[primary].total.multipliedBy(cost)
-        logger.debug(`Total usable ${primary} wallet is ${wallets[primary].total.toFixed()} so target trade cost will be ${cost.toFixed()} ${tradingData.market.quote}`)
-        logger.debug(`Total is made up of ${wallets[primary].free.toFixed()} free and ${wallets[primary].locked.toFixed()} locked ${tradingData.market.quote}`)
+        logger.debug(`Total usable ${primary} wallet is ${wallets[primary].total.toFixed()} so target trade cost will be ${cost.toFixed()} ${tradingData.market.quote}.`)
+        logger.debug(`Total is made up of ${wallets[primary].free.toFixed()} free and ${wallets[primary].locked.toFixed()} locked ${tradingData.market.quote}.`)
     }
 
     // Ensure that we have a valid quantity and cost to start with, especially if we are going to borrow to make this trade
     quantity = getLegalQty(cost.dividedBy(tradingData.signal.price!), tradingData.market, tradingData.signal.price!)
     cost = quantity.multipliedBy(tradingData.signal.price!)
-    logger.debug(`Legal trade cost is ${cost} ${tradingData.market.quote}.`)
+    logger.debug(`Legal target trade cost is ${cost} ${tradingData.market.quote}.`)
 
     switch (tradingData.signal.positionType) {
         case PositionType.LONG:
@@ -1719,6 +1720,15 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                                     wallet.trades = []
                                 } else {
                                     if (model == LongFundsType.SELL_ALL) {
+                                        // Deduct any stopped trades as these cannot be rebalanced
+                                        wallet.trades.forEach(trade => {
+                                            if (trade.isStopped) {
+                                                logger.debug(`${getLogName(trade)} trade is stopped so will not be used for rebalancing.`)
+                                                wallet.total = wallet.total.minus(trade.cost!)
+                                            }
+                                        })
+                                        wallet.trades = wallet.trades.filter(trade => !trade.isStopped)
+
                                         // All trades may not have equivalent costs, due to the fact that we don't re-buy remaining trades after one is closed, i.e. new trades can use the full free balance
                                         // So we have to go through and work out which of the highest trades need to be rebalanced so that the new trade is of equal cost to at least one other
                                         let smaller = true
@@ -1781,7 +1791,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
                                         })
                                 }
 
-                                // Just to be sure, let's check the free balance again, this will probably alway happen due to rounding
+                                // Just to be sure, let's check the free balance again, this will probably always happen due to rounding
                                 if (use.free.isLessThan(cost)) {
                                     // To limit spamming the logs, we'll only warn if there was more than 0.5% change
                                     if (use.free.multipliedBy(1.005).isLessThan(cost)) {
