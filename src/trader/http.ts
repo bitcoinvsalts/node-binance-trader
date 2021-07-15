@@ -70,8 +70,8 @@ export default function startWebserver(): http.Server {
                 // Load the log from the database
                 res.send(HTMLFormat(Pages.LOG_DB, (await loadRecords("log", page)).join("\r\n"), page+1))
             } else {
-                // Use the memory log
-                res.send(HTMLFormat(Pages.LOG_MEMORY, loggerOutput.slice().reverse().join("\r\n")))
+                // Use the memory log, exclude blank lines (i.e. the latest one)
+                res.send(HTMLFormat(Pages.LOG_MEMORY, loggerOutput.filter(line => line).reverse().join("\r\n")))
             }
         }
     })
@@ -140,6 +140,7 @@ function HTMLFormat(page: Pages, data: any, nextPage?: number): string {
         if (page != name) link += `</a>`
         return link
     }).join(" | ")
+    html += `<br><font size=-2>${new Date().toLocaleString()}</font>`
     html += `</p>`
 
     // Content
