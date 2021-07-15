@@ -4,6 +4,7 @@ import env from "../env"
 import logger from "../../logger"
 import BigNumber from "bignumber.js"
 import { WalletType } from "../types/trader"
+import { Loan, LoanTransaction } from "../types/binance"
 
 const logBinanceUndefined = "Binance client is undefined!"
 
@@ -20,15 +21,6 @@ if (process.env.NODE_ENV !== "test") {
     if (sandbox) {
         binanceClient.setSandboxMode(true)
     }
-}
-
-export interface Loan {
-    borrowed: number
-    interest: number
-}
-
-export interface Trans {
-    tranId: number
 }
 
 // Gets all of the supported coin pairs (symbols) and associated flags and limits
@@ -120,7 +112,7 @@ export async function createMarketOrder(
 export async function marginBorrow(
     asset: string,
     amount: BigNumber
-): Promise<Trans> {
+): Promise<LoanTransaction> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
     return binanceClient.sapiPostMarginLoan({
         asset,
@@ -132,7 +124,7 @@ export async function marginBorrow(
 export async function marginRepay(
     asset: string,
     amount: BigNumber
-): Promise<Trans> {
+): Promise<LoanTransaction> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
     return binanceClient.sapiPostMarginRepay({
         asset,
