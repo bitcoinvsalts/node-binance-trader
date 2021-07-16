@@ -85,6 +85,7 @@ export function getMarginLoans(marginBalance: ccxt.Balances): Dictionary<Loan> {
     } else {
         if (!('userAssets' in marginBalance.info)) {
             logger.error("Invalid margin balances, cannot extract loans.")
+            return {}
         }
 
         // Extract the loans from the secret property, and remap to a dictionary of assets

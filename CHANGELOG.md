@@ -16,6 +16,7 @@
 These are all for **trader**. Refer to the README for more details:
 * ***CONFIG:* Quantity as Fraction**
 * ***CONFIG:* Funding / Auto-Balancing for LONG Trades**
+* ***CONFIG:* Repay Loan Interest**
 * ***CONFIG:* Primary Wallet**
 * ***CONFIG:* Wallet Buffer**
 * ***CONFIG:* Maximum Count of Trades**

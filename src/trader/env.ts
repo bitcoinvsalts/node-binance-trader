@@ -48,6 +48,7 @@ export function getDefault(): Readonly<any> {
         STRATEGY_LOSS_LIMIT: num({ default: 0, desc: "Number of sequential losses before a strategy is stopped" }),
         IS_TRADE_SHORT_ENABLED: bool({ default: true, desc: "SHORT trades will always borrow the full funds in margin to execute, disable if you don't want this" }),
         IS_TRADE_MARGIN_ENABLED: bool({ default: true, desc: "Used to disable use of margin wallet trading for both LONG and SHORT trades" }),
+        IS_PAY_INTEREST_ENABLED: bool({ default: true, desc: "Automatically repays all BNB interest before repaying margin loans" }),
         VIRTUAL_WALLET_FUNDS: num({ default: 0.1, desc: "The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets" }),
         WEB_PASSWORD: str({ default: "", desc: "Password to restrict access to the internal diagnostics webserver" }),
 

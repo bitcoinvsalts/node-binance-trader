@@ -1071,6 +1071,15 @@ async function executeTradeAction(
             })
             break
         case ActionType.REPAY:
+            if (tradeOpen.tradingType == TradingType.real && env().IS_PAY_INTEREST_ENABLED) {
+                // Pay any interest accumulated in BNB
+                // This needs to be done before repaying the loan in case the loan is also for BNB
+                await repayInterest().catch(reason => {
+                    logger.silly("executeTradeAction->repayInterest: " + reason)
+                    // Not going to stop here because we still want to repay the loan if we can
+                })
+            }
+
             result = await (tradeOpen.tradingType == TradingType.real ?
                 marginRepay(
                     symbolAsset,
@@ -1134,7 +1143,7 @@ async function executeTradeAction(
         } else if (!result.tranId) {
             // Margin borrow and repay will only have a transaction ID, so anything other than that is unexpected
             // Trade information will be added to the log message by the calling method
-            return Promise.reject(`Unexpected result: "${result}"`)
+            return Promise.reject(`Unexpected result: "${result}".`)
         }
     }
 
@@ -1160,6 +1169,40 @@ async function executeTradeAction(
     }
 
     return Promise.resolve(result)
+}
+
+// Repays all the interest accumulated in BNB
+// This assumes that the user has selected the "Using BNB For Interest option" in Binance so that all interest is accumulated in the one place
+async function repayInterest() {
+    // Get the margin balance info
+    const balance = await fetchBalance(WalletType.MARGIN).catch((reason) => {
+        logger.silly("repayInterest->fetchBalance: " + reason)
+        return Promise.reject(reason)
+    })
+    
+    // Extract BNB loan information from balances
+    const marginLoan = getMarginLoans(balance)["BNB"]
+
+    // Start with the full interest amount then check if there is enough free balance to pay it
+    let repay = marginLoan.interest
+    if (repay > balance["BNB"].free) {
+        logger.warn(`Not enough free BNB to repay the outstanding interest of ${repay}, you will need to top up the balance and repay it manually.`)
+        // So just repay the maximum that we can
+        repay = balance["BNB"].free
+    }
+    if (repay) {
+        logger.info(`Repaying interest of ${repay} BNB.`)
+        const result = await marginRepay("BNB", new BigNumber(repay)).catch((reason) => {
+            const logMessage = `An error occurred when repaying interest: ${reason}`
+            logger.error(logMessage)
+            return Promise.reject(logMessage)
+        })
+        if (!result.tranId) {
+            const logMessage = `Unexpected result when repaying interest: "${result}".`
+            logger.error(logMessage)
+            return Promise.reject(logMessage)
+        }
+    }
 }
 
 // Simulates buy and sell transactions on the virtual balances

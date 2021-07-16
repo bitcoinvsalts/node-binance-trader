@@ -23,6 +23,10 @@ The new features that I have added to the trader include:
   * If a trade has been manually stopped, it will not be touched by the **Sell All** or **Sell Largest** options.
   * Each model will first attempt to use the "Quantity to Buy" from the NBT Hub (either as an absolute or a fraction), this will represent the largest possible trade value. Only if there are insufficient funds, then it will apply one of the options or reduce the trade quantity.
   * Only LONG trades consume your available balance (all SHORT trades are funded through borrowing).
+* ***CONFIG:* Repay Loan Interest**
+  * Before repaying a margin loan the trader will check your current BNB margin balance info to see how much interest has been accumulated. It will then use your BNB to repay that interest first before repaying the principal loan. Obviously you will need to periodically top up your BNB balance to cover the interest repayments.
+  * For this to work properly you need to enable the "Using BNB For Interest" option in your margin wallet in Binance. This means that regardless of what coin is borrowed, it will always accumulate the interest as BNB.
+  * If there are multiple open trades with borrowed funds, when the first one closes it will repay all the interest accumulated from all loans, so then the next trade to close will only have to repay anything new.
 * ***CONFIG:* Primary Wallet**
   * You can choose whether to use the spot or margin wallet as your primary wallet for LONG trades. It will also use the total balance from this primary wallet to calculate the size of SHORT trades if you are using **Quantity as Fraction**.
   * The default is margin.

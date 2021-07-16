@@ -87,6 +87,10 @@
         "description": "Used to disable use of margin wallet trading for both LONG and SHORT trades",
         "required": false
       },
+      "IS_PAY_INTEREST_ENABLED": {
+        "description": "Automatically repays all BNB interest before repaying margin loans",
+        "required": false
+      },
       "VIRTUAL_WALLET_FUNDS": {
         "description": "The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets",
         "required": false

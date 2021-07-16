@@ -19,9 +19,8 @@ The total time to complete this guide should be less than 10 minutes if you alre
 First, you need an account with Binance. The registration can be done here: [Binance](https://www.binance.com/en-AU/register?ref=141340247)
 
 By default the trader tries to trade with margin, so you need to have at least 0.001 BTC in your spot as well as your margin account.
-Also, to cover trading fees, you'll need a small amount of BNB in both your spot and margin wallets.
 
-If you want to allow SHORT trades (or borrowing for LONG trades) then you will need to tick the 'Enable Margin' option under the API Management settings in Binance.
+If you want to allow SHORT trades (or borrowing for LONG trades) then you will need to tick the 'Enable Margin' option under the API Management settings in Binance. Then go to your margin wallet and enable the setting fo "Using BNB For Interest". You will need to have some BNB in your margin wallet always as this is used to pay off interest and to calculate how much you are allowed to borrow.
 
 If you need more information on how to set up Binance and the different wallets you can find lots of additional information here: https://www.binance.com/en/support/
 
@@ -145,6 +144,7 @@ To add new Config Vars in Heroku:
 | STRATEGY_LOSS_LIMIT | integer >= 0 | Number of sequential losses before a strategy is stopped |
 | IS_TRADE_SHORT_ENABLED | true / false | SHORT trades will always borrow the full funds in margin to execute, disable if you don't want this |
 | IS_TRADE_MARGIN_ENABLED | true / false | Used to disable use of margin wallet trading for both LONG and SHORT trades |
+| IS_PAY_INTEREST_ENABLED | true / false | Automatically repays all BNB interest before repaying margin loans |
 | VIRTUAL_WALLET_FUNDS | decimal number > 0 | The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets |
 | WEB_PASSWORD | string | Password to restrict access to the internal diagnostics webserver |
 
