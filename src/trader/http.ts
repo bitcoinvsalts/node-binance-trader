@@ -84,7 +84,7 @@ export default function startWebserver(): http.Server {
                 res.send(HTMLTableFormat(Pages.TRANS_DB, (await loadRecords("transaction", page)), page+1))
             } else {
                 // Use the memory transactions
-                res.send(HTMLTableFormat(Pages.TRANS_MEMORY, tradingMetaData.transactions.slice().reverse()))
+                res.send(HTMLTableFormat(Pages.TRANS_MEMORY, tradingMetaData.transactions.slice().reverse(), ))
             }
         }
     })
@@ -160,38 +160,44 @@ function HTMLFormat(page: Pages, data: any, nextPage?: number): string {
 
 function HTMLTableFormat(page: Pages, data: any[], nextPage?: number): string {
     let result = ""
-    let cols: string[] = []
-    for (let row of data) {
+    if (data.length) {
+        const cols = new Set<string>()
+        // Because objects may have been reloaded from the database via JSON, they lose their original properties
+        // So we need to check the entire dataset to make sure we have all possible columns
+        for (let row of data) {
+            Object.keys(row).forEach(col => cols.add(col))
+        }
+        
         // Add table headers before first row
-        if (result == "") {
-            cols = Object.keys(row) // Remember cols here as they can change if objects are created dynamically
-            result = "<table border=1 cellspacing=0><tr>"
+        result = "<table border=1 cellspacing=0><tr>"
+        for (let col of cols) {
+            result += "<th>" + col + "</th>"
+        }
+        result += "</tr>"
+
+        // Add row data
+        for (let row of data) {
+            result += "<tr>"
             for (let col of cols) {
-                result += "<th>" + col + "</th>"
+                result += "<td"
+                if (row[col] instanceof Date) {
+
+                    result += " title='" + row[col].getTime() + "'>"
+                    result += row[col].toLocaleString()
+                } else if (row[col] instanceof BigNumber) {
+                    result += ">"
+                    if (row[col] != undefined) result += row[col].toFixed()
+                } else {
+                    result += ">"
+                    if (row[col] != undefined) result += row[col]
+                }
+                result += "</td>"
             }
             result += "</tr>"
         }
-
-        result += "<tr>"
-        for (let col of cols) {
-            result += "<td"
-            if (row[col] instanceof Date) {
-
-                result += " title='" + row[col].getTime() + "'>"
-                result += row[col].toLocaleString()
-            } else if (row[col] instanceof BigNumber) {
-                result += ">"
-                if (row[col] != undefined) result += row[col].toFixed()
-            } else {
-                result += ">"
-                if (row[col] != undefined) result += row[col]
-            }
-            result += "</td>"
+        if (result != "") {
+            result += "</table>"
         }
-        result += "</tr>"
-    }
-    if (result != "") {
-        result += "</table>"
     }
     return HTMLFormat(page, result, nextPage)
 }
