@@ -1,5 +1,5 @@
 import BigNumber from "bignumber.js"
-import { Balances, binance, Dictionary, Market, Order } from "ccxt"
+import { Balances, Dictionary, Market, Order } from "ccxt"
 import PQueue from "p-queue"
 
 import logger from "../logger"
