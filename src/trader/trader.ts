@@ -1662,11 +1662,14 @@ async function loadWalletBalances(tradingType: TradingType, market: Market) {
         wallet.total = wallet.free.plus(wallet.locked)
         totalBalance = totalBalance.plus(wallet.total)
 
+        let logMessage = `Actual ${wallet.type} total of ${wallet.total} ${market.quote} is made up of ${wallet.free.toFixed()} free and ${wallet.locked.toFixed()} locked`
         if (env().WALLET_BUFFER) {
             const buffer = wallet.total.multipliedBy(env().WALLET_BUFFER)
             wallet.free = wallet.free.minus(buffer)
             wallet.total = wallet.total.minus(buffer)
+            logMessage += ` with a buffer of ${buffer}`
         }
+        logger.debug(`${logMessage}.`)
     })
 
     // We only look at the balances when opening a trade, so keep them for the history
@@ -1696,7 +1699,6 @@ async function calculateTradeSize(tradingData: TradingData, wallets: Dictionary<
         // Calculate the fraction of the total balance
         cost = wallets[primary].total.multipliedBy(cost)
         logger.debug(`Total usable ${primary} wallet is ${wallets[primary].total.toFixed()} so target trade cost will be ${cost.toFixed()} ${tradingData.market.quote}.`)
-        logger.debug(`Total is made up of ${wallets[primary].free.toFixed()} free and ${wallets[primary].locked.toFixed()} locked ${tradingData.market.quote}.`)
     }
 
     // Ensure that we have a valid quantity and cost to start with, especially if we are going to borrow to make this trade
