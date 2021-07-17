@@ -806,6 +806,13 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
                 return Promise.reject(logTradeOpenNone)
             }
 
+            // Check that the trade is not already closing
+            if (tradingMetaData.tradesClosing.has(tradeOpen)) {
+                const logMessage = `Skipping duplicate signal as trade ${getLogName(tradeOpen)} is already closing.`
+                logger.warn(logMessage)
+                return Promise.reject(logMessage)
+            }
+
             // Can't automatically close a stopped trade, but will still let through a manual close
             if (source == SourceType.SIGNAL && tradeOpen.isStopped) {
                 const logMessage = `Skipping signal as trade ${getLogName(tradeOpen)} is stopped.`
