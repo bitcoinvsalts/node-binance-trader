@@ -1,4 +1,4 @@
-## [1.0.0] (2021-06-20)
+## [1.0.0] (2021-07-17)
 
 ### Bug Fixes
 
@@ -12,6 +12,8 @@
 
 ### Features
 * **server:** added description and max_concurrent parameters.
+* **trader:** configurable logging levels.
+* **trader:** a lot more validation and logging.
 
 These are all for **trader**. Refer to the README for more details:
 * ***CONFIG:* Quantity as Fraction**

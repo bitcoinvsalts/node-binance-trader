@@ -18,11 +18,13 @@ The total time to complete this guide should be less than 10 minutes if you alre
 
 First, you need an account with Binance. The registration can be done here: [Binance](https://www.binance.com/en-AU/register?ref=141340247)
 
-By default the trader tries to trade with margin, so you need to have at least 0.001 BTC in your spot as well as your margin account. Also, to cover trading fees, you'll need a small amount of BNB in both your spot and margin wallets. You will need to keep an eye on this and top it up periodically.
+By default the trader tries to trade with margin, so you should have at least 0.001 BTC in your spot as well as your margin account. Also, to cover trading fees, you'll need a small amount of BNB in both your spot and margin wallets. You will need to keep an eye on this and top it up periodically. Make sure you have "Using BNB to pay for fees" enabled in your Binance profile to get the discount.
 
-If you want to allow SHORT trades (or borrowing for LONG trades) then you will need to tick the 'Enable Margin' option under the API Management settings in Binance. Then go to your margin wallet and enable the setting fo "Using BNB For Interest". You will need to have enough BNB in your margin wallet to repay any interest.
+If you want to allow SHORT trades (or borrowing for LONG trades) then you will need to tick the 'Enable Margin' option under the API Management settings in Binance. Then go to your margin wallet and enable the setting for "Using BNB For Interest". You will need to keep enough BNB in your margin wallet to repay any interest. Also, the amount you can borrow is relative to your total margin balance (or equity), so you will need to have enough collateral to support the number of open trades you expect. Typically you can borrow 2x your current equity.
 
 If you need more information on how to set up Binance and the different wallets you can find lots of additional information here: https://www.binance.com/en/support/
+
+More information on how margin loans work in Binance can be found here: https://www.binance.com/en/support/faq/360041505471
 
 You will also need to create an account on [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com), which you can do by clicking the login button and choosing the sign up option.
 
