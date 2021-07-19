@@ -53,7 +53,6 @@ export const tradingMetaData: TradingMetaData = {
 
 // Used for initialising and resetting the virtual balances
 let virtualWalletFunds = new BigNumber(env().VIRTUAL_WALLET_FUNDS) // Default to environment variable, but can be changed later
-const REFERENCE_SYMBOL = "BNBBTC" // Uses this market data to calculate wallet funds for other coins
 export function setVirtualWalletFunds(value: BigNumber) { virtualWalletFunds = value }
 
 // Set of object names from the tradingMetaData that have recently been modified
@@ -1876,9 +1875,9 @@ async function calculateTradeSize(tradingData: TradingData, wallets: Dictionary<
 
                                 // Just to be sure, let's check the free balance again, this will probably always happen due to rounding
                                 if (use.free.isLessThan(cost)) {
-                                    // To limit spamming the logs, we'll only warn if there was more than 0.5% change
-                                    if (use.free.multipliedBy(1.005).isLessThan(cost)) {
-                                        logger.warn(`Rebalancing resulted in a lower trade of only ${use.free.toFixed()} ${tradingData.market.quote} instead of ${cost.toFixed()} ${tradingData.market.quote}.`)
+                                    // To limit spamming the logs, we'll only warn if there was more than 2% change
+                                    if (use.free.multipliedBy(1.02).isLessThan(cost)) {
+                                        logger.warn(`Rebalancing calculated a lower trade of only ${use.free.toFixed()} ${tradingData.market.quote} instead of ${cost.toFixed()} ${tradingData.market.quote}.`)
                                     }
                                     cost = use.free
                                 }
@@ -2072,7 +2071,7 @@ function initialiseVirtualBalances(walletType: WalletType, market: Market) {
     }
     if (tradingMetaData.virtualBalances[walletType][market.quote] == undefined) {
         let value = virtualWalletFunds
-        const btc = tradingMetaData.markets[REFERENCE_SYMBOL]
+        const btc = tradingMetaData.markets[env().REFERENCE_SYMBOL]
         // If the quote asset is not BTC, then use the minimum costs to scale the opening balance
         if (market.quote != "BTC" && market.limits.cost && btc && btc.limits.cost) {
             value = value.dividedBy(btc.limits.cost.min).multipliedBy(market.limits.cost.min)
@@ -2372,10 +2371,6 @@ export function shutDown(reason: any) {
     }
 }
 
-function delay(ms: number) {
-    return new Promise( resolve => setTimeout(resolve, ms) );
-}
-
 // Adds the tradingMetaData object type to the dirty set for saving to the database
 function saveState(type: keyof typeof tradingMetaData) {
     // Save state may be called many times in the same thread
@@ -2387,7 +2382,7 @@ function saveState(type: keyof typeof tradingMetaData) {
 // Processes the dirty meta data requests and writes them to the database
 async function flushDirty() {
     // Wait 100 milliseconds to allow other execution to complete in case there are more objects that need to be saved
-    if (dirty.size) await delay(100)
+    if (dirty.size) await new Promise( resolve => setTimeout(resolve, 100) )
     // Double check that another flush didn't get here first
     if (dirty.size) {
         logger.debug(`Flushing ${dirty.size} dirty objects: ${Array.from(dirty).join(", ")}.`)

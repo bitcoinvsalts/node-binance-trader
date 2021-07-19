@@ -58,6 +58,8 @@ export function getDefault(): Readonly<any> {
         MAX_LOG_LENGTH: num({ default: 1000, desc: "Maximum number of entries for in-memory logging and transactions" }),
         MAX_DATABASE_ROWS: num({ default: 10000, desc: "Maximum number of records that can be written to the database" }),
         LOG_LEVEL: str({ default: "info", choices: ["silly", "debug", "info", "warn", "error" ]}),
+        REFERENCE_SYMBOL: str({ default: "BNBBTC", desc: "Uses this market data to calculate wallet funds for other coins" }),
+        BALANCE_SYNC_DELAY: num({ default: 1500, desc: "Number of milliseconds to wait after making a trade before fetching current balances" }),
     })
 }
 
