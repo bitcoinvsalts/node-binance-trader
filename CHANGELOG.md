@@ -13,7 +13,7 @@
 ### Features
 * **server:** added description and max_concurrent parameters.
 * **trader:** configurable logging levels.
-* **trader:** a lot more validation and logging.
+* **trader:** a lot more validation.
 
 These are all for **trader**. Refer to the README for more details:
 * ***CONFIG:* Quantity as Fraction**
@@ -34,6 +34,7 @@ These are all for **trader**. Refer to the README for more details:
 * **Clean Up Stopped Trades**
 * **Track Order Price / Cost**
 * **Additional Notifications**
+* ***CONFIG:* Additional Logging**
 
 ## [0.3.1](https://github.com/jsappme/node-binance-trader/compare/0.3.0...0.3.1) (2021-03-08)
 

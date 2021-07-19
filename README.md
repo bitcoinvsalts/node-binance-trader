@@ -81,6 +81,9 @@ The new features that I have added to the trader include:
   * If a trade fails to execute it will now send a notification with the error message.
   * If there are any issues loading previous trades after the trader restarts it will now send a notification message.
   * Trade notifications now include the quantity, cost, borrowed amount, wallet, trading type (live or virtual), and actual buy and sell prices from the transaction.
+* ***CONFIG:* Additional Logging**
+  * By default the trader will only log 'info', 'warn', and 'error' messages. But there is an internal setting to change the logging level to 'debug' if you want more insight into what decisions the trader is making. You can even drop the level to 'silly' to see all incoming JSON messages and SQL statements.
+  * If you have the database backup enabled then it will keep the logs in the database, but only the original 'info', 'warn', and 'error' messages will be saved to minimise space. If you enable the other levels they will only be held in memory while the trader is running, and can be viewed via the web diagnostics interface.
 * **Comments**
   * I've added extensive comments to the trader.ts code to (hopefully) help you understand how it works. But please feel free to find me on Discord if you have any questions.
 
