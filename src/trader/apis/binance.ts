@@ -11,6 +11,10 @@ const logBinanceUndefined = "Binance client is undefined!"
 let binanceClient: ccxt.binance
 const sandbox = process.env.NODE_ENV === "staging"
 
+// Used to track when the last buy / sell / borrow / repay occurred to allow for balance sync
+// This should always be updated before and after the transaction is executed on Binance
+let lastChangeTime = 0
+
 if (process.env.NODE_ENV !== "test") {
     binanceClient = new ccxt.binance({
         apiKey: env().BINANCE_API_KEY,
@@ -24,48 +28,57 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 // Gets all of the supported coin pairs (symbols) and associated flags and limits
-export function loadMarkets(isReload?: boolean): Promise<ccxt.Dictionary<ccxt.Market>> {
-    return new Promise((resolve, reject) => {
-        binanceClient
-            .loadMarkets(isReload)
-            .then((value) => {
-                logger.silly(`Loaded markets: ${JSON.stringify(value)}`)
-                const markets = JSON.parse(JSON.stringify(value)) // Clone object.
-                Object.keys(markets).forEach((key) => { // Work around the missing slash ("/") in BVA's signal data.
-                    const keyNew = markets[key].id
-                    markets[keyNew] = markets[key]
-                    delete markets[key]
-                })
-                logger.debug(`Loaded ${Object.keys(markets).length} markets.`)
-                resolve(markets)
+export async function loadMarkets(isReload?: boolean): Promise<ccxt.Dictionary<ccxt.Market>> {
+    if (!binanceClient) return Promise.reject(logBinanceUndefined)
+    
+    return binanceClient.loadMarkets(isReload)
+        .then((value) => {
+            logger.silly(`Loaded markets: ${JSON.stringify(value)}`)
+            const markets = JSON.parse(JSON.stringify(value)) // Clone object.
+            Object.keys(markets).forEach((key) => { // Work around the missing slash ("/") in BVA's signal data.
+                const keyNew = markets[key].id
+                markets[keyNew] = markets[key]
+                delete markets[key]
             })
-            .catch((reason) => {
-                logger.error(`Failed to get markets: ${reason}`)
-                reject(reason)
-            })
-    })
+            logger.debug(`Loaded ${Object.keys(markets).length} markets.`)
+            return markets
+        })
+        .catch((reason) => {
+            logger.error(`Failed to get markets: ${reason}`)
+            return Promise.reject(reason)
+        })
 }
 
 // Gets the current balances for a given wallet type 'margin' or 'spot'
-export function fetchBalance(type: WalletType): Promise<ccxt.Balances> {
+export async function fetchBalance(type: WalletType): Promise<ccxt.Balances> {
+    if (!binanceClient) return Promise.reject(logBinanceUndefined)
+
     // Hack, as you can't look up margin balances on testnet (NotSupported error), but this is only for testing
     if (sandbox) type = WalletType.SPOT
 
-    return new Promise((resolve, reject) => {
-        binanceClient
-            .fetchBalance({
-                type: type
-            })
-            .then((value) => {
-                logger.silly(`Fetched balance: ${JSON.stringify(value)}`)
-                logger.debug(`Loaded ${Object.keys(value).length} ${type} balances.`)
-                resolve(value)
-            })
-            .catch((reason) => {
-                logger.error(`Failed to get ${type} balance: ${reason}`)
-                reject(reason)
-            })
-    })
+    // According to Binance support it can take from 1 to 10 seconds for the balances to sync after making a trade
+    // Therefore if there are a lot of signals happening at the same time it can give the wrong results, so we're just going to slow it down a bit
+    // The recommended subscribing to the web socket for user updates, but that would be more work, and hopefully this won't happen too often
+    // Just in case another trade happens while waiting, check again after waiting
+    while (timeSinceLastChange() < env().BALANCE_SYNC_DELAY) {
+        // Add an extra 10ms just so we don't go around again
+        const delay = (env().BALANCE_SYNC_DELAY - timeSinceLastChange()) + 10
+
+        logger.debug(`Waiting ${delay} milliseconds to allow balances to synchronise.`)
+
+        await new Promise( resolve => setTimeout(resolve, delay) )
+    }
+
+    return binanceClient.fetchBalance({type: type})
+        .then((value) => {
+            logger.silly(`Fetched balance: ${JSON.stringify(value)}`)
+            logger.debug(`Loaded ${Object.keys(value).length} ${type} balances.`)
+            return value
+        })
+        .catch((reason) => {
+            logger.error(`Failed to get ${type} balance: ${reason}`)
+            return Promise.reject(reason)
+        })
 }
 
 // Takes the output from fetchBalance(MARGIN) and extracts the borrowed and interest values for each asset
@@ -99,6 +112,16 @@ export function getMarginLoans(marginBalance: ccxt.Balances): Dictionary<Loan> {
     }
 }
 
+// Calculate how much time has elapsed since the balances were changed in Binance
+function timeSinceLastChange(): number {
+    const now = Date.now()
+
+    // Maybe a time update, so we can't trust it anymore
+    if (now < lastChangeTime) lastChangeTime = 0
+
+    return now - lastChangeTime
+}
+
 export async function createMarketOrder(
     symbol: string,
     side: "buy" | "sell",
@@ -107,7 +130,17 @@ export async function createMarketOrder(
     params?: ccxt.Params
 ): Promise<ccxt.Order> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
-    return binanceClient.createMarketOrder(symbol, side, amount.toNumber(), price?.toNumber(), params)
+    lastChangeTime = Date.now()
+    return binanceClient.createMarketOrder(
+        symbol,
+        side,
+        amount.toNumber(),
+        price?.toNumber(),
+        params
+    ).then((result) => {
+        lastChangeTime = Date.now()
+        return result
+    })
 }
 
 export async function marginBorrow(
@@ -115,10 +148,14 @@ export async function marginBorrow(
     amount: BigNumber
 ): Promise<LoanTransaction> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
+    lastChangeTime = Date.now()
     return binanceClient.sapiPostMarginLoan({
         asset,
         //isIsolated: 'FALSE', // "FALSE" for cross margin borrow without specification of a symbol.
         amount: amount.toFixed()
+    }).then((result: LoanTransaction) => {
+        lastChangeTime = Date.now()
+        return result
     })
 }
 
@@ -127,10 +164,14 @@ export async function marginRepay(
     amount: BigNumber
 ): Promise<LoanTransaction> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
+    lastChangeTime = Date.now()
     return binanceClient.sapiPostMarginRepay({
         asset,
         //isIsolated: 'FALSE', // "FALSE" for cross margin repay without specification of a symbol.
         amount: amount.toFixed()
+    }).then((result: LoanTransaction) => {
+        lastChangeTime = Date.now()
+        return result
     })
 }
 
