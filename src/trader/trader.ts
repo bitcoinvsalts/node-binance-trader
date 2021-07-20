@@ -1362,7 +1362,8 @@ export async function executeTradingTask(
     if (tradeOpen.priceBuy && tradeOpen.priceSell && (!signal || signal.entryType == EntryType.EXIT)) {
         // Regardless of whether this was SHORT or LONG, you should always buy low and sell high
         change = tradeOpen.quantity.multipliedBy(tradeOpen.priceSell).minus(tradeOpen.quantity.multipliedBy(tradeOpen.priceBuy))
-        logger.debug(`Closing ${change.isNegative() ? "loss" : "profit"} for ${getLogName(tradeOpen)} trade is: ${change.toFixed()} ${market.quote}.`)
+        const percent = tradeOpen.priceSell.minus(tradeOpen.priceBuy).dividedBy(tradeOpen.priceBuy).multipliedBy(100)
+        logger.debug(`Closing ${change.isNegative() ? "loss" : "profit"} for ${getLogName(tradeOpen)} trade is: ${change.toFixed()} ${market.quote} (${percent.toFixed(3)}%).`)
 
         const strategy = tradingMetaData.strategies[tradeOpen.strategyId]
         // Manually closing a trade or rebalancing should not affect the count of losses
