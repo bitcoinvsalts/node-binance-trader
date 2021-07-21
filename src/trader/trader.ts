@@ -874,7 +874,7 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
 
             if (signal.entryType === EntryType.ENTER && env().MAX_LONG_TRADES && getOpenTradeCount(signal.positionType, strategy.tradingType) >= env().MAX_LONG_TRADES) {
                 const logMessage = "Skipping signal as maximum number of short trades has been reached."
-                logger.error(logMessage)
+                logger.warn(logMessage)
                 return Promise.reject(logMessage)
             }
 
@@ -884,19 +884,19 @@ async function checkTradingData(signal: Signal, source: SourceType): Promise<Tra
             if (signal.entryType === EntryType.ENTER) {
                 if (!env().IS_TRADE_SHORT_ENABLED) {
                     const logMessage = "Skipping signal as short trading is disabled."
-                    logger.error(logMessage)
+                    logger.warn(logMessage)
                     return Promise.reject(logMessage)
                 }
 
                 if (!env().IS_TRADE_MARGIN_ENABLED) {
                     const logMessage = "Skipping signal as margin trading is disabled but is required for short trading."
-                    logger.error(logMessage)
+                    logger.warn(logMessage)
                     return Promise.reject(logMessage)
                 }
 
                 if (env().MAX_SHORT_TRADES && getOpenTradeCount(signal.positionType, strategy.tradingType) >= env().MAX_SHORT_TRADES) {
                     const logMessage = "Skipping signal as maximum number of short trades has been reached."
-                    logger.error(logMessage)
+                    logger.warn(logMessage)
                     return Promise.reject(logMessage)
                 }
             }
