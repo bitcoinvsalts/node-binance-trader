@@ -92,6 +92,7 @@ export class Transaction {
     value?: BigNumber // Either the original cost when the trade was opened or the recalcuated value when closed (only for buy/sell)
     signalPrice?: BigNumber // The expected price if initiated by a signal (only for buy/sell)
     timeSinceSignal?: number // The total time in milliseconds from receiving the signal to executing on Binance
+    profitLoss?: BigNumber // Calculated profit or loss of the quote coin on a closing trade
 
     constructor(timestamp: Date, tradeOpen: TradeOpen, source: SourceType, action: ActionType, symbolAsset: string, quantity: BigNumber, signal?: Signal) {
         this.timestamp = timestamp
@@ -114,6 +115,10 @@ export class Transaction {
         if (signal) {
             this.signalPrice = signal.price
             this.timeSinceSignal = timestamp.getTime() - signal.timestamp.getTime()
+        }
+        if ((action == ActionType.BUY || action == ActionType.SELL) && tradeOpen.priceBuy && tradeOpen.priceSell) {
+            // Regardless of whether this was SHORT or LONG, you should always buy low and sell high
+            this.profitLoss = tradeOpen.quantity.multipliedBy(tradeOpen.priceSell).minus(tradeOpen.quantity.multipliedBy(tradeOpen.priceBuy))
         }
     }
 }
