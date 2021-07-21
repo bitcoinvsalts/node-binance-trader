@@ -1353,7 +1353,7 @@ export async function executeTradingTask(
         removeTradeOpen(tradeOpen)
     }
 
-    logger.debug(`Now ${tradingMetaData.tradesOpen.length} open trades.`)
+    logger.debug(`Now ${tradingMetaData.tradesOpen.length} open trades and ${tradingMetaData.tradesClosing.size} closing trades.`)
 
     // Prices should have just been updated by the order result
     // Calculate the change in value, for checking loss limit and updating balance history
@@ -1535,7 +1535,7 @@ export async function trade(signal: Signal, source: SourceType) {
 
     // If all went well, update the trade history
     // We need to do this now in the current thread even though the trade hasn't actually been executed yet, because other signals may need to reference it either for closing or auto balancing
-    logger.debug(`Were ${tradingMetaData.tradesOpen.length} open trades.`)
+    logger.debug(`Were ${tradingMetaData.tradesOpen.length} open trades and ${tradingMetaData.tradesClosing.size} closing trades.`)
     if (tradingData.signal.entryType == EntryType.ENTER) {
         // Add the new opened trade
         tradingMetaData.tradesOpen.push(tradeOpen)
