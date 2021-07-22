@@ -181,13 +181,18 @@ function HTMLTableFormat(page: Pages, data: any[], nextPage?: number): string {
             for (let col of cols) {
                 result += "<td"
                 if (row[col] instanceof Date) {
-
+                    // Include raw time as the tooltip
                     result += " title='" + row[col].getTime() + "'>"
                     result += row[col].toLocaleString()
                 } else if (row[col] instanceof BigNumber) {
+                    // Colour negative numbers as red
+                    if (row[col].isLessThan(0)) result += " style='color: red;'"
                     result += ">"
                     if (row[col] != undefined) result += row[col].toFixed()
                 } else {
+                    // Colour true boolean values as blue
+                    if (typeof(row[col]) == "boolean" && row[col]) result += " style='color: blue;'"
+
                     result += ">"
                     if (row[col] != undefined) result += row[col]
                 }
