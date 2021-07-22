@@ -166,11 +166,22 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
             }
         }
 
-        // Check the db trades exist in what was received
         for (const dbTrade of tradingMetaData.tradesOpen) {
+            // Check the db trades exist in what was received
             if (!getTradeOpenFiltered(dbTrade, prevTrades).length) {
-                logger.error(`${getLogName(dbTrade)} trade is missing from the NBT Hub, it will remain until the next exit signal.`)
-                same = false
+                // Check that the trade actually executed before the trader restarted
+                if (!dbTrade.isExecuted) {
+                    logger.error(`${getLogName(dbTrade)} trade did not execute, it will be discarded.`)
+                    badTrades.push(dbTrade)
+                } else {
+                    logger.error(`${getLogName(dbTrade)} trade is missing from the NBT Hub, it will remain until the next exit signal.`)
+                    same = false
+                }
+            } else if (!dbTrade.isExecuted) {
+                // There might be a rare case where the trader crashed before it could record the state of the trade, but the trade still executed and sent the signal to the hub
+                logger.warn(`${getLogName(dbTrade)} trade did not record as executed, but it was found on the NBT Hub, so it must be ok.`)
+                // Just have to assume it all went through ok, so we'll update the state
+                dbTrade.isExecuted = true
             }
         }
 
@@ -179,7 +190,8 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
         }
 
         // Use what was loaded from the database because this will have accurate funding and balancing, not what was received from the NBT Hub
-        prevTrades = tradingMetaData.tradesOpen
+        // Most of the bad trades won't be in the db list anyway, but there is a case for non-executed that need to be removed
+        prevTrades = tradingMetaData.tradesOpen.filter(trade => !badTrades.includes(trade))
     } else {
         // Make sure trades are valid for loading
         // We didn't check this above because we could still close the trade if it was loaded from the database
@@ -427,7 +439,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
 
     // Send notifications of discarded trades
     badTrades.forEach(trade => 
-        notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, "This previous trade was received from the NBT Hub but could not be reloaded. Check the log for details.")).catch((reason) => {
+        notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, "This previous trade could not be reloaded. Check the log for details.")).catch((reason) => {
             logger.silly("loadPreviousOpenTrades->notifyAll: " + reason)
         })
     )
