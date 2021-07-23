@@ -704,7 +704,7 @@ function logSignal(signal: Signal, type: "buy" | "sell" | "close" | "stop") {
     const strategy = tradingMetaData.strategies[signal.strategyId]
     if (strategy) {
         // Because we don't get the strategy name with the strategy we have to copy it from the signal (for logging)
-        if (!strategy.name) {
+        if (!strategy.name && signal.strategyName) {
             strategy.name = signal.strategyName
             saveState("strategies")
         }
