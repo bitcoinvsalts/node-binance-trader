@@ -8,28 +8,7 @@ import { Dictionary } from "ccxt"
 import { BalanceHistory } from "./types/trader"
 import BigNumber from "bignumber.js"
 import { loadRecords } from "./apis/postgres"
-
-enum Pages {
-    TRADES = "Open Trades",
-    STRATEGIES = "Strategies",
-    VIRTUAL = "Virtual Balances",
-    LOG_MEMORY = "Log (Since Restart)",
-    LOG_DB = "Log (History)",
-    TRANS_MEMORY = "Transactions (Since Restart)",
-    TRANS_DB = "Transactions (History)",
-    PNL = "Profit n Loss / Balance History"
-}
-
-const urls = {
-    [Pages.TRADES]: "trades?",
-    [Pages.STRATEGIES]: "strategies?",
-    [Pages.VIRTUAL]: "virtual?",
-    [Pages.LOG_MEMORY]: "log?",
-    [Pages.LOG_DB]: "log?db=%d&", // Page number will be inserted as needed
-    [Pages.TRANS_MEMORY]: "trans?",
-    [Pages.TRANS_DB]: "trans?db=%d&", // Page number will be inserted as needed
-    [Pages.PNL]: "pnl?",
-}
+import { Pages, Percent, URLs } from "./types/http"
 
 export default function startWebserver(): http.Server {
     const webserver = express()
@@ -96,16 +75,16 @@ export default function startWebserver(): http.Server {
             for (let tradingType of Object.keys(tradingMetaData.balanceHistory)) {
                 pnl[tradingType] = {}
                 for (let coin of Object.keys(tradingMetaData.balanceHistory[tradingType])) {
-                    pnl[tradingType][coin] = {
-                        Today: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))),
-                        SevenDays: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-6))),
-                        ThirtyDays: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-29))),
-                        OneEightyDays: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-179))),
-                        Total: PercentageChange(tradingMetaData.balanceHistory[tradingType][coin]),
-                    }
+                    pnl[tradingType][coin] = [
+                        PercentageChange("Today", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))),
+                        PercentageChange("Seven Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-6))),
+                        PercentageChange("Thirty Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-29))),
+                        PercentageChange("180 Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-179))),
+                        PercentageChange("Total", tradingMetaData.balanceHistory[tradingType][coin]),
+                    ]
                 }
             }
-            res.send(HTMLFormat(Pages.PNL, {"Profit and Loss": pnl, "Balance History": tradingMetaData.balanceHistory}))
+            res.send(HTMLTableFormat(Pages.PNL, {"Profit and Loss": pnl, "Balance History": tradingMetaData.balanceHistory}))
         }
     })
     return webserver.listen(env().TRADER_PORT, () =>
@@ -135,7 +114,7 @@ function HTMLFormat(page: Pages, data: any, nextPage?: number): string {
     html += `<p>`
     html += Object.values(Pages).map(name => {
         let link = ""
-        if (page != name) link += `<a href="${urls[name].replace("%d", "1")}${env().WEB_PASSWORD}">`
+        if (page != name) link += `<a href="${URLs[name].replace("%d", "1")}${env().WEB_PASSWORD}">`
         link += name
         if (page != name) link += `</a>`
         return link
@@ -149,7 +128,7 @@ function HTMLFormat(page: Pages, data: any, nextPage?: number): string {
 
         // Pagination
         if (nextPage) {
-            html += `<a href="${urls[page].replace("%d", nextPage.toString())}${env().WEB_PASSWORD}">Next Page...</a>`
+            html += `<a href="${URLs[page].replace("%d", nextPage.toString())}${env().WEB_PASSWORD}">Next Page...</a>`
         }
     } else {
         html += "No data yet."
@@ -158,65 +137,123 @@ function HTMLFormat(page: Pages, data: any, nextPage?: number): string {
     return html + `</body></html>`
 }
 
-function HTMLTableFormat(page: Pages, data: any[], nextPage?: number): string {
+function HTMLTableFormat(page: Pages, data: any, nextPage?: number, breadcrumb?: string): string {
     let result = ""
-    if (data.length) {
-        const cols = new Set<string>()
-        // Because objects may have been reloaded from the database via JSON, they lose their original properties
-        // So we need to check the entire dataset to make sure we have all possible columns
-        for (let row of data) {
-            Object.keys(row).forEach(col => cols.add(col))
-        }
-        
-        // Add table headers before first row
-        result = "<table border=1 cellspacing=0><tr>"
-        for (let col of cols) {
-            result += "<th>" + col + "</th>"
-        }
-        result += "</tr>"
 
-        // Add row data
-        for (let row of data) {
-            result += "<tr>"
+    // Just in case
+    if (!data) return result
+
+    if (!Array.isArray(data)) {
+        if (!breadcrumb) breadcrumb = ""
+        for (let section of Object.keys(data)) {
+            result += HTMLTableFormat(page, data[section], nextPage, breadcrumb + section + " : ")
+        }
+    } else {
+        if (data.length) {
+            const cols = new Set<string>()
+            const valueSets: { [col: string] : Set<string> } = {}
+            for (let row of data) {
+                Object.keys(row).forEach(col => {
+                    // Because objects may have been reloaded from the database via JSON, they lose their original properties
+                    // So we need to check the entire dataset to make sure we have all possible columns
+                    cols.add(col)
+
+                    // We also want to keep the unique string values for colourising later
+                    if (typeof(row[col]) == "string" && row[col]) {
+                        if (!(col in valueSets)) valueSets[col] = new Set()
+                        // Allow one extra so that we know it is over the limit
+                        if (valueSets[col].size <= env().MAX_WEB_COLOURS) valueSets[col].add(row[col])
+                    }
+                })
+            }
+
+            const values: { [col: string] : string[] } = {}
+            Object.keys(valueSets).forEach(col => {
+                // Convert to sorted array if not over the maximum limit of values
+                if (valueSets[col].size <= env().MAX_WEB_COLOURS) values[col] = [...valueSets[col]].sort()
+            })
+
+            // Add breadcrumb header
+            if (breadcrumb) result += `<h2>${breadcrumb}</h2>`
+
+            // Add table headers before first row
+            result += "<table border=1 cellspacing=0><tr>"
             for (let col of cols) {
-                result += "<td"
-                if (row[col] instanceof Date) {
-                    // Include raw time as the tooltip
-                    result += " title='" + row[col].getTime() + "'>"
-                    result += row[col].toLocaleString()
-                } else if (row[col] instanceof BigNumber) {
-                    // Colour negative numbers as red
-                    if (row[col].isLessThan(0)) result += " style='color: red;'"
-                    result += ">"
-                    if (row[col] != undefined) result += row[col].toFixed()
-                } else {
-                    // Colour true boolean values as blue
-                    if (typeof(row[col]) == "boolean" && row[col]) result += " style='color: blue;'"
-
-                    result += ">"
-                    if (row[col] != undefined) result += row[col]
-                }
-                result += "</td>"
+                result += "<th>" + col + "</th>"
             }
             result += "</tr>"
-        }
-        if (result != "") {
-            result += "</table>"
+
+            // Add row data
+            for (let row of data) {
+                result += "<tr>"
+                for (let col of cols) {
+                    result += "<td"
+                    if (row[col] instanceof Date) {
+                        // Include raw time as the tooltip
+                        result += " title='" + row[col].getTime() + "'>"
+                        result += row[col].toLocaleString()
+                    } else if (row[col] instanceof BigNumber) {
+                        // Colour negative numbers as red
+                        if (row[col].isLessThan(0)) result += " style='color: red;'"
+                        result += ">"
+                        if (row[col] != undefined) result += row[col].toFixed()
+                    } else {
+                        // Colour negative percentages as red
+                        if (row[col] instanceof Percent && row[col].value.isLessThan(0)) result += " style='color: red;'"
+
+                        // Colour true boolean values as blue
+                        if (typeof(row[col]) == "boolean" && row[col]) result += " style='color: blue;'"
+
+                        // Colour string as a gradient based on unique values (too many colours get meaningless)
+                        if (typeof(row[col]) == "string" && row[col] && col in values) result += ` style='color: ${makeColor(values[col].indexOf(row[col]), values[col].length)};'`
+
+                        result += ">"
+                        if (row[col] != undefined) result += row[col]
+                    }
+                    result += "</td>"
+                }
+                result += "</tr>"
+            }
+            if (result != "") {
+                result += "</table>"
+            }
         }
     }
-    return HTMLFormat(page, result, nextPage)
+    if (!breadcrumb) {
+        // This is top level, so wrap in HTML page
+        return HTMLFormat(page, result, nextPage)
+    } else {
+        return result
+    }
 }
 
-function PercentageChange(history: BalanceHistory[]): string {
+function PercentageChange(period: string, history: BalanceHistory[]): {} {
     if (history.length) {
         const open = history[0].openBalance
         const close = history[history.length-1].closeBalance
         const time = Date.now() - history[0].timestamp.getTime()
         const value = close.minus(open)
-        const percent = (!open.isZero()) ? value.dividedBy(open).multipliedBy(100).toFixed(2) : ""
-        const apr = (!open.isZero() && time) ? value.dividedBy(open).dividedBy(time).multipliedBy(365 * 24 * 60 * 60 * 1000).multipliedBy(100).toFixed(2) : ""
+        const percent = (!open.isZero()) ? new Percent(value.dividedBy(open).multipliedBy(100)) : ""
+        const apr = (!open.isZero() && time) ? new Percent(value.dividedBy(open).dividedBy(time).multipliedBy(365 * 24 * 60 * 60 * 1000).multipliedBy(100)) : ""
 
-        return `Value = ${value.toFixed()} | Total = ${percent}% | APR = ${apr}%`
+        return {
+            Period: period,
+            Value: value,
+            Total: percent,
+            APR: apr,
+        }
     }
-    return "No data."
+    return {
+        Period: period,
+        Value: undefined,
+        Total: undefined,
+        APR: undefined,
+    }
+}
+
+function makeColor(n: number, total: number): string {
+    if (total <= 1) return "black"
+
+    // Offset to start with blue, darken a bit for readability
+    return `hsl(${(225 + (n * (360 / total))) % 360}, 100%, 40%)`
 }
