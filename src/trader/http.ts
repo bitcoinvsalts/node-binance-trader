@@ -70,21 +70,34 @@ export default function startWebserver(): http.Server {
     // Allow user to see actual PnL and daily balances for the past year
     webserver.get("/pnl", (req, res) => {
         if (Authenticate(req, res)) {
-            const pnl: Dictionary<Dictionary<{}>> = {}
-            const now = new Date()
-            for (let tradingType of Object.keys(tradingMetaData.balanceHistory)) {
-                pnl[tradingType] = {}
-                for (let coin of Object.keys(tradingMetaData.balanceHistory[tradingType])) {
-                    pnl[tradingType][coin] = [
-                        PercentageChange("Today", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))),
-                        PercentageChange("Seven Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-6))),
-                        PercentageChange("Thirty Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-29))),
-                        PercentageChange("180 Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-179))),
-                        PercentageChange("Total", tradingMetaData.balanceHistory[tradingType][coin]),
-                    ]
+            if (req.query.reset) {
+                const asset = req.query.reset.toString().toUpperCase()
+                let result = ""
+                for (let tradingType of Object.keys(tradingMetaData.balanceHistory)) {
+                    if (asset in tradingMetaData.balanceHistory[tradingType]) {
+                        delete tradingMetaData.balanceHistory[tradingType][asset]
+                        result += `${asset} ${tradingType} balance history has been reset.<br>`
+                    }
                 }
+                if (!result) result = `No balance history found for ${asset}.`
+                res.send(result)
+            } else {
+                const pnl: Dictionary<Dictionary<{}>> = {}
+                const now = new Date()
+                for (let tradingType of Object.keys(tradingMetaData.balanceHistory)) {
+                    pnl[tradingType] = {}
+                    for (let coin of Object.keys(tradingMetaData.balanceHistory[tradingType])) {
+                        pnl[tradingType][coin] = [
+                            PercentageChange("Today", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))),
+                            PercentageChange("Seven Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-6))),
+                            PercentageChange("Thirty Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-29))),
+                            PercentageChange("180 Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-179))),
+                            PercentageChange("Total", tradingMetaData.balanceHistory[tradingType][coin]),
+                        ]
+                    }
+                }
+                res.send(HTMLTableFormat(Pages.PNL, {"Profit and Loss": pnl, "Balance History": tradingMetaData.balanceHistory}))
             }
-            res.send(HTMLTableFormat(Pages.PNL, {"Profit and Loss": pnl, "Balance History": tradingMetaData.balanceHistory}))
         }
     })
     return webserver.listen(env().TRADER_PORT, () =>

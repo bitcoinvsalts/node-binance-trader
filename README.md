@@ -27,6 +27,7 @@ The new features that I have added to the trader include:
   * Before repaying a margin loan the trader will check your current BNB margin balance info to see how much interest has been accumulated. It will then use your BNB to repay that interest first before repaying the principal loan. Obviously you will need to periodically top up your BNB balance to cover the interest repayments.
   * For this to work properly you need to enable the "Using BNB For Interest" option in your margin wallet in Binance. This means that regardless of what coin is borrowed, it will always accumulate the interest as BNB.
   * If there are multiple open trades with borrowed funds, when the first one closes it will repay all the interest accumulated from all loans, so then the next trade to close will only have to repay anything new.
+  * Be aware that because the interest is accrued and repaid in BNB only, it will affect the calculated PnL that is displayed in the **Web Diagnostics**. Interest accrued from other coins will not be reflected in their own PnL, and if you have a strategy that accumulates BNB then it will have a lower PnL as a result of all interest.
 * ***CONFIG:* Primary Wallet**
   * You can choose whether to use the spot or margin wallet as your primary wallet for LONG trades. It will also use the total balance from this primary wallet to calculate the size of SHORT trades if you are using **Quantity as Fraction**.
   * The default is margin.
@@ -59,14 +60,14 @@ The new features that I have added to the trader include:
   * If you are concerned that the data in the database is out of sync with the NBT Hub then you can just reset the database (there is a button in Heroku to do this). This will then load the strategies and open trades from the NBT Hub and clear other history. If rebalancing has occurred on open trades it will make its best guess as to what these should be based on the current balances in Binance.
 * **Web Diagnostics**
   * You can connect to the trader webserver to view the internal information that is being tracked (e.g. http://localhost:8003/log). The following commands are available:
-    * /log - Internal log currently held in memory, and nicely coloured (newest entries at the top)
-    * /log?db=1 - Internal log loaded from the database (newest entries at the top)
-    * /pnl - Calculated rate of return and history of open and close balances (best estimation based on available data)
-    * /strategies - Configured strategies
-    * /trades - Current open trades list
-    * /trans - Log of actual buy, sell, borrow, repay transactions held in memory (newest entries at the top)
-    * /trans?db=1 - Log of actual buy, sell, borrow, repay transactions loaded from the database (newest entries at the top)
-    * /virtual - Views the current virtual balances. You can also apply a 'reset' parameter to clear and reload the virtual balances and virtual PnL, if you pass a number on the reset it will change the default value for **Virtual Wallet Funds** (e.g. ?reset=true or ?reset=100)
+    * **/log** - Internal log currently held in memory, and nicely coloured (newest entries at the top).
+    * **/log?db=1** - Internal log loaded from the database (newest entries at the top).
+    * **/pnl** - Calculated rate of return and history of open and close balances (best estimation based on available data). You can also apply a 'reset' parameter with a coin to clear the Balance History and PnL for that coin (e.g. ?reset=BTC). This is useful if you have manually added or removed funds in Binance. Note that it will clear both real and virtual history at the same time, if you only want to clear virtual history then use the reset command on the **/virtual** page.
+    * **/strategies** - Configured strategies.
+    * **/trades** - Current open trades list.
+    * **/trans** - Log of actual buy, sell, borrow, repay transactions held in memory (newest entries at the top).
+    * **/trans?db=1** - Log of actual buy, sell, borrow, repay transactions loaded from the database (newest entries at the top).
+    * **/virtual** - Views the current virtual balances. You can also apply a 'reset' parameter to clear and reload the virtual balances and virtual PnL, if you pass a number on the reset it will change the default value for **Virtual Wallet Funds** (e.g. ?reset=true or ?reset=100).
   * You can also configure a **Web Password** in the environment variables to restrict access to these commands (e.g. http://localhost:8003/log?mypassword).
 * **Individual Tracking of Real / Virtual Trades**
   * In the original trader if you started a strategy in virtual trading and switched to real trading, or vice versa, it would attempt to close trades based on the current status of the strategy, rather than how the trade was originally opened. This means it could try to close a trade on Binance that was originally opened virtually, or never close the open trade on Binance because you've now switched the strategy to virtual. Now, if the trade opened on Binance it will close on Binance even if the strategy has been switched to virtual. If you don't want this to happen, make sure you close or stop the open trades before switching modes.
