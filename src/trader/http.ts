@@ -3,7 +3,7 @@ import express from "express"
 
 import logger, { loggerOutput } from "../logger"
 import env from "./env"
-import { resetVirtualBalances, setVirtualWalletFunds, tradingMetaData} from "./trader"
+import { deleteTrade, resetVirtualBalances, setVirtualWalletFunds, tradingMetaData} from "./trader"
 import { Dictionary } from "ccxt"
 import { BalanceHistory } from "./types/trader"
 import BigNumber from "bignumber.js"
@@ -15,9 +15,21 @@ export default function startWebserver(): http.Server {
     webserver.get("/", (req, res) =>
         res.send("Node Binance Trader is running.")
     )
-    // Allow user to see open trades
+    // Allow user to see open trades or delete a trade
     webserver.get("/trades", (req, res) => {
-        if (Authenticate(req, res)) res.send(HTMLTableFormat(Pages.TRADES, tradingMetaData.tradesOpen))
+        if (Authenticate(req, res)) {
+            if (req.query.delete) {
+                const tradeId = req.query.delete.toString()
+                const tradeName = deleteTrade(tradeId)
+                if (tradeName) {
+                    res.send(`${tradeName} has been deleted.`)
+                } else {
+                    res.send(`No trade was found with the ID of '${tradeId}'.`)
+                }
+            } else {
+                res.send(HTMLTableFormat(Pages.TRADES, tradingMetaData.tradesOpen))
+            }
+        }
     })
     // Allow user to see configured strategies
     webserver.get("/strategies", (req, res) => {
@@ -67,7 +79,7 @@ export default function startWebserver(): http.Server {
             }
         }
     })
-    // Allow user to see actual PnL and daily balances for the past year
+    // Allow user to see actual PnL and daily balances for the past year, or reset balances for a coin
     webserver.get("/pnl", (req, res) => {
         if (Authenticate(req, res)) {
             if (req.query.reset) {

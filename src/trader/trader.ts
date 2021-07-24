@@ -187,7 +187,7 @@ async function loadPreviousOpenTrades(strategies: Dictionary<Strategy>): Promise
         }
 
         if (!same) {
-            logger.error(`The list of open trades loaded from the NBT Hub does not match what was reloaded from the database, so the list from the database will be used. If there are discarded trades then you can close them on the NBT Hub, for missing trades you can wait for the next exit signal and the trade will close normally, otherwise you can clear the database and restart the trader to resync with the NBT Hub.`)
+            logger.error(`The list of open trades loaded from the NBT Hub does not match what was reloaded from the database, so the list from the database will be used. If there are discarded trades then you can close them on the NBT Hub, for missing trades you can wait for the next exit signal and the trade will close normally or delete them from the Open Trades list, otherwise you can clear the database and restart the trader to resync with the NBT Hub.`)
         }
 
         // Use what was loaded from the database because this will have accurate funding and balancing, not what was received from the NBT Hub
@@ -2192,6 +2192,16 @@ function removeTradeOpen(tradeOpen: TradeOpen) {
                 tradesOpenElement !== tradeOpen
         )
     saveState("tradesOpen")
+}
+
+// Used by the web server to allow users to delete trades
+export function deleteTrade(tradeId: string): string | undefined {
+    const tradeOpen = tradingMetaData.tradesOpen.find(trade => trade.id == tradeId)
+    if (tradeOpen) {
+        logger.info(`Deleting ${getLogName(tradeOpen)} trade.`)
+        removeTradeOpen(tradeOpen)
+        return getLogName(tradeOpen)
+    }
 }
 
 // Gets a count of the open active trades for a given position type, and also within the same real/virtual trading
