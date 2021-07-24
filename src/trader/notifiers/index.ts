@@ -17,6 +17,7 @@ export default function initializeNotifiers(): Notifier {
     }
 }
 
+// Sends notifications on all the different channels
 export function notifyAll(notifierMessage: NotifierMessage): Promise<void> {
     return new Promise((resolve) => {
         Promise.all(
