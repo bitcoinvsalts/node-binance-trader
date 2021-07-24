@@ -114,10 +114,11 @@ export async function onUserPayload(strategies: StrategyJson[]) {
 
             isOperational = true
             logger.info("NBT Trader is operational.")
-        } else {
-            checkStrategyChanges(newStrategies)
         }
 
+        // Compare differences with any previous strategies
+        checkStrategyChanges(newStrategies)
+        
         // Everything is good to go, so update to the new strategies
         tradingMetaData.strategies = newStrategies
         saveState("strategies")
@@ -495,15 +496,16 @@ function checkStrategyChanges(strategies: Dictionary<Strategy>) {
         }
     }
 
-    // Copy the stopped flag, count of lost trades, and name because these aren't sent from NBT Hub, but only if the trade (active) flag has not been switched
-    // Toggling the trade flag is how the user can choose to reset the stopped status and loss run
-    // Note, I think if you turn trade off in the NBT Hub you don't get the strategy in the payload anyway
-    for (let strategy of Object.keys(strategies).filter(strategy =>
-        strategy in tradingMetaData.strategies &&
-        strategies[strategy].isActive == tradingMetaData.strategies[strategy].isActive)) {
+    // Copy the stopped flag, count of lost trades, and name because these aren't sent from NBT Hub
+    for (let strategy of Object.keys(strategies).filter(strategy => strategy in tradingMetaData.strategies)) {
+        // Only if the trade (active) flag has not been switched
+        // Toggling the trade flag is how the user can choose to reset the stopped status and loss run
+        if (strategies[strategy].isActive == tradingMetaData.strategies[strategy].isActive) {
             strategies[strategy].isStopped = tradingMetaData.strategies[strategy].isStopped
             strategies[strategy].lossTradeRun = tradingMetaData.strategies[strategy].lossTradeRun
-            strategies[strategy].name = tradingMetaData.strategies[strategy].name
+        }
+        // Note, I think if you turn trade off in the NBT Hub you don't get the strategy in the payload, so you'll lose the name anyway
+        strategies[strategy].name = tradingMetaData.strategies[strategy].name
     }
 }
 
