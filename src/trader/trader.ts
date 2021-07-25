@@ -58,7 +58,7 @@ export function setVirtualWalletFunds(value: BigNumber) { virtualWalletFunds = v
 // Set of object names from the tradingMetaData that have recently been modified
 const dirty = new Set<keyof typeof tradingMetaData>()
 
-// Configuration for the asynchronous queue that executes the trades on Binance
+// Configuration for the asynchronous queue that processes signals and executes the trades on Binance
 const queue = new PQueue({
     concurrency: 1,
     interval: 250,
@@ -541,10 +541,10 @@ export async function onBuySignal(signalJson: SignalJson, timestamp: Date) {
 
     logSignal(signal, "buy")
 
-    // Process the trade signal
-    await trade(signal, SourceType.SIGNAL).catch((reason) => {
+    // Add the trade signal to the queue because we want each signal to process before the next comes
+    queue.add(() => trade(signal, SourceType.SIGNAL)).catch((reason) => {
         logger.silly("onBuySignal->trade: " + reason)
-        return Promise.reject(reason)
+        // If it fails it should already have been logged and cleaned up, the socket doesn't care
     })
 }
 
@@ -580,10 +580,10 @@ export async function onSellSignal(signalJson: SignalJson, timestamp: Date) {
 
     logSignal(signal, "sell")
 
-    // Process the trade signal
-    await trade(signal, SourceType.SIGNAL).catch((reason) => {
+    // Add the trade signal to the queue because we want each signal to process before the next comes
+    queue.add(() => trade(signal, SourceType.SIGNAL)).catch((reason) => {
         logger.silly("onSellSignal->trade: " + reason)
-        return Promise.reject(reason)
+        // If it fails it should already have been logged and cleaned up, the socket doesn't care
     })
 }
 
@@ -600,13 +600,13 @@ export async function onCloseTradedSignal(signalJson: SignalJson, timestamp: Dat
     signal.entryType = EntryType.EXIT
     logSignal(signal, "close")
     
-    await trade(signal, SourceType.MANUAL).catch((reason) => {
-        logger.silly("onCloseTradedSignal->trade: " + reason)
-
+    // Add the trade signal to the queue because we want each signal to process before the next comes
+    queue.add(() => trade(signal, SourceType.SIGNAL)).catch((reason) => {
         // This was rejected before the trade even started
         if (!checkFailedCloseTrade(signal)) {
             // User tried to close an open trade and it could not be processed
-            return Promise.reject(reason)
+            logger.silly("onCloseTradedSignal->trade: " + reason)
+            // If it fails it should already have been logged and cleaned up, the socket doesn't care
         }
     })
 }
@@ -879,19 +879,11 @@ function checkTradingData(signal: Signal, source: SourceType): TradingData {
     // Check if this type of trade can be executed
     switch (signal.positionType) {
         case PositionType.LONG:
-            if (!market.spot) {
-                // I don't think this would ever happen              
-                const logMessage = `Failed to trade as spot trading is unavailable for a long position on symbol ${market.symbol}.`
-                logger.error(logMessage)
-                throw logMessage
-            }
-
             if (signal.entryType === EntryType.ENTER && env().MAX_LONG_TRADES && getOpenTradeCount(signal.positionType, strategy.tradingType) >= env().MAX_LONG_TRADES) {
                 const logMessage = "Skipping signal as maximum number of short trades has been reached."
                 logger.warn(logMessage)
                 throw logMessage
             }
-
             break
         case PositionType.SHORT:
             // We can still close SHORT trades if they were previously opened on margin, so only skip the open trade signals
@@ -920,7 +912,6 @@ function checkTradingData(signal: Signal, source: SourceType): TradingData {
                 logger.error(logMessage)
                 throw logMessage
             }
-
             break
         default:
             // Hopefully this shouldn't happen
