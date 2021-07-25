@@ -3,7 +3,7 @@ import express from "express"
 
 import logger, { loggerOutput } from "../logger"
 import env from "./env"
-import { deleteTrade, resetVirtualBalances, setVirtualWalletFunds, tradingMetaData} from "./trader"
+import { deleteBalanceHistory, deleteTrade, resetVirtualBalances, setVirtualWalletFunds, tradingMetaData} from "./trader"
 import { Dictionary } from "ccxt"
 import { BalanceHistory } from "./types/trader"
 import BigNumber from "bignumber.js"
@@ -84,15 +84,16 @@ export default function startWebserver(): http.Server {
         if (Authenticate(req, res)) {
             if (req.query.reset) {
                 const asset = req.query.reset.toString().toUpperCase()
-                let result = ""
-                for (let tradingType of Object.keys(tradingMetaData.balanceHistory)) {
-                    if (asset in tradingMetaData.balanceHistory[tradingType]) {
-                        delete tradingMetaData.balanceHistory[tradingType][asset]
+                const tradingTypes = deleteBalanceHistory(asset)
+                if (tradingTypes.length) {
+                    let result = ""
+                    for (let tradingType of tradingTypes) {
                         result += `${asset} ${tradingType} balance history has been reset.<br>`
                     }
+                    res.send(result)
+                } else {
+                    res.send(`No balance history found for ${asset}.`)
                 }
-                if (!result) result = `No balance history found for ${asset}.`
-                res.send(result)
             } else {
                 const pnl: Dictionary<Dictionary<{}>> = {}
                 const now = new Date()

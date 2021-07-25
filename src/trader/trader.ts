@@ -2071,6 +2071,19 @@ function initialiseVirtualBalances(walletType: WalletType, market: Market) {
     }
 }
 
+// Just clears the Balance History for a given coin, will clear both real and virtual
+export function deleteBalanceHistory(asset: string): string[] {
+    const result: string[] = []
+    for (let tradingType of Object.keys(tradingMetaData.balanceHistory)) {
+        if (asset in tradingMetaData.balanceHistory[tradingType]) {
+            delete tradingMetaData.balanceHistory[tradingType][asset]
+            result.push(tradingType)
+        }
+    }
+    if (result.length) saveState("virtualBalances")
+    return result
+}
+
 // Updates the running balance for the current day
 function updateBalanceHistory(tradingType: TradingType, quote: string, entryType?: EntryType, balance?: BigNumber, change?: BigNumber) {
     if (!Object.keys(tradingMetaData.balanceHistory).includes(tradingType)) tradingMetaData.balanceHistory[tradingType] = {}
