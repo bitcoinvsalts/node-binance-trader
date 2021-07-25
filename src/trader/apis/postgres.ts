@@ -201,10 +201,9 @@ async function execute(commands: string[], params?: any[]) {
             const command = commands[i]
             const param = params ? params[i] : undefined
             logger.silly(`Executing: ${command} ${param}`)
-            client.query(command, param)
+            await client.query(command, param)
         }
-    }
-    finally {
+    } finally {
         client.release()
     }
 }
@@ -214,9 +213,8 @@ async function query(command: string, params?: any): Promise<QueryResult<any>> {
     const client = await pool.connect()
     logger.silly(`Querying: ${command} ${params}`)
     try {
-        return client.query(command, params)
-    }
-    finally {
+        return await client.query(command, params)
+    } finally {
         client.release()
     }
 }
