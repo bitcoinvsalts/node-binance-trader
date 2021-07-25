@@ -100,10 +100,10 @@ export default function startWebserver(): http.Server {
                     pnl[tradingType] = {}
                     for (let coin of Object.keys(tradingMetaData.balanceHistory[tradingType])) {
                         pnl[tradingType][coin] = [
-                            PercentageChange("Today", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))),
-                            PercentageChange("Seven Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-6))),
-                            PercentageChange("Thirty Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-29))),
-                            PercentageChange("180 Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.timestamp >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-179))),
+                            PercentageChange("Today", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.date >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))),
+                            PercentageChange("Seven Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.date >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-6))),
+                            PercentageChange("Thirty Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.date >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-29))),
+                            PercentageChange("180 Days", tradingMetaData.balanceHistory[tradingType][coin].filter(h => h.date >= new Date(now.getFullYear(), now.getMonth(), now.getDate()-179))),
                             PercentageChange("Total", tradingMetaData.balanceHistory[tradingType][coin]),
                         ]
                     }
@@ -256,7 +256,7 @@ function PercentageChange(period: string, history: BalanceHistory[]): {} {
     if (history.length) {
         const open = history[0].openBalance
         const close = history[history.length-1].closeBalance
-        const time = Date.now() - history[0].timestamp.getTime()
+        const time = Date.now() - history[0].date.getTime()
         const value = close.minus(open)
         const percent = (!open.isZero()) ? new Percent(value.dividedBy(open).multipliedBy(100)) : ""
         const apr = (!open.isZero() && time) ? new Percent(value.dividedBy(open).dividedBy(time).multipliedBy(365 * 24 * 60 * 60 * 1000).multipliedBy(100)) : ""

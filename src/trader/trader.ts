@@ -2087,11 +2087,12 @@ function updateBalanceHistory(tradingType: TradingType, quote: string, entryType
         // Copy the closing balance from the previous day
         balance = h!.closeBalance
     }
-    // Initialise history here so that the timestamp is locked
+
+    // Initialise a history object here so that the timestamp is locked
     const tmpH = new BalanceHistory(balance)
 
     // Check if existing balance history is still the same date
-    if (!h || !(h.timestamp.getFullYear() == tmpH.timestamp.getFullYear() && h.timestamp.getMonth() == tmpH.timestamp.getMonth() && h.timestamp.getDate() == tmpH.timestamp.getDate())) {
+    if (!h || h.date.getTime() != tmpH.date.getTime()) {
         tradingMetaData.balanceHistory[tradingType][quote].push(tmpH)
         h = tmpH
     }
@@ -2116,8 +2117,8 @@ function updateBalanceHistory(tradingType: TradingType, quote: string, entryType
     }
 
     // Remove previous history slices that are older than 1 year, but keep the very first entry for lifetime opening balance
-    const lastYear = new Date(tmpH.timestamp.getFullYear()-1, tmpH.timestamp.getMonth(), tmpH.timestamp.getDate())
-    while (tradingMetaData.balanceHistory[tradingType][quote].length > 1 && tradingMetaData.balanceHistory[tradingType][quote][1].timestamp <= lastYear) {
+    const lastYear = new Date(tmpH.date.getFullYear()-1, tmpH.date.getMonth(), tmpH.date.getDate()).getTime()
+    while (tradingMetaData.balanceHistory[tradingType][quote].length > 1 && tradingMetaData.balanceHistory[tradingType][quote][1].date.getTime() <= lastYear) {
         tradingMetaData.balanceHistory[tradingType][quote].splice(1, 1)
     }
 
@@ -2316,7 +2317,7 @@ async function run() {
 async function startUp() {
     if (await initialiseDatabase()) {
         logger.info("Loading previous operating state from the database...")
-        
+
         // Markets will come from Binance
         // If the process restarts we'll lose the queue, so no need to reload tradesClosing
         // Transactions can be huge, so we save them differently

@@ -125,7 +125,7 @@ export class Transaction {
 
 // Used for tracking history over time to calculate Profit and Loss
 export class BalanceHistory {
-    timestamp: Date // Date and time that this history slice started
+    date: Date // Date and time that this history slice started
     openBalance: BigNumber // Opening balance
     closeBalance: BigNumber // Last observed balance
     minOpenTrades?: number // Lowest number of concurrent open trades
@@ -134,7 +134,8 @@ export class BalanceHistory {
     totalClosedTrades: number // Total number of trades closed
 
     constructor(balance: BigNumber) {
-        this.timestamp = new Date()
+        this.date = new Date()
+        this.date.setHours(0,0,0,0) // Clear the time
         this.openBalance = balance
         this.closeBalance = balance
         this.totalOpenedTrades = 0
