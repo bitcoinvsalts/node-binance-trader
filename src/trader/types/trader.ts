@@ -128,6 +128,7 @@ export class BalanceHistory {
     date: Date // Date and time that this history slice started
     openBalance: BigNumber // Opening balance
     closeBalance: BigNumber // Last observed balance
+    profitLoss: BigNumber // Difference between open and close balance
     minOpenTrades?: number // Lowest number of concurrent open trades
     maxOpenTrades?: number // Highest number of concurrent open trades
     totalOpenedTrades: number // Total number of trades opened
@@ -138,6 +139,7 @@ export class BalanceHistory {
         this.date.setHours(0,0,0,0) // Clear the time
         this.openBalance = balance
         this.closeBalance = balance
+        this.profitLoss = new BigNumber(0)
         this.totalOpenedTrades = 0
         this.totalClosedTrades = 0
     }
