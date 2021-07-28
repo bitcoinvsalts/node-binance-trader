@@ -1,5 +1,8 @@
 # Getting started manually
 
+> WARNING: This documentation has not been updated for Spat's fork. These were the instructions for the previous version of the trader.
+> So please don't expect any of the below to work, but I'm leaving it here for reference just in case.
+
 ## Table of contents
 
 1. **[Requirements](#requirements)**
