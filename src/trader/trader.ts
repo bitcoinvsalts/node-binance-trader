@@ -1039,10 +1039,7 @@ async function executeTradeAction(
                     symbolAsset,
                     action,
                     quantity,
-                    undefined,
-                    {
-                        type: tradeOpen.wallet!,
-                    }
+                    tradeOpen.wallet!
                 )
             :
                 createVirtualOrder(
@@ -2413,7 +2410,7 @@ async function sellEverything(base: string, fraction: number) {
         if (market && balances[quote].free) {
             const qty = balances[quote].free * fraction
             logger.debug(`Selling ${qty} ${quote}.`)
-            logger.debug(await createMarketOrder(quote + "/" + base, "sell", new BigNumber(qty)).then(order => `${order.status} ${order.cost}`).catch(e => e.name))
+            logger.debug(await createMarketOrder(quote + "/" + base, "sell", new BigNumber(qty), WalletType.SPOT).then(order => `${order.status} ${order.cost}`).catch(e => e.name))
         }
     }
     await fetchBalance(WalletType.SPOT)
