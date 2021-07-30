@@ -12,7 +12,8 @@ The new features that I have added to the trader include:
 * ***CONFIG:* Quantity as Fraction**
   * If enabled, this will interpret the "Quantity to Buy" that you have configured on the NBT Hub as a fraction of your total balance in [Binance](https://www.binance.com/en-AU/register?ref=141340247). E.g. if you say 0.1 BTC it will actually spend 10% of your balance on each trade. However, it will only use the balance from a single wallet, it will not add the two together. This will apply to both SHORT and LONG trades, even though SHORT will not use the actual balance. Both trades will always be calculated relative the **Primary Wallet** (see below), regardless of which wallet is actually chosen to execute the trade.
   * As the funds can be locked up in active trades, the trader will calculate an estimated total balance rather than just using the current free balance. This may not always be exactly right because it uses the original price when the trades were opened, not the current market price.
-  * NOTE: It is never a good idea to use 100% of your balance for a single trade. The rule of thumb is about 10%, but you can choose higher or lower depending on your preferred level of risk. The calculated PnL that is displayed on the NBT Hub does not take into consideration the trade quantities. So a strategy with a reported PnL of 500% would only increase your balance by a maximum of 50% if you set the trade quantity to 10%.
+  * To improve performance the trader will cache the balance of each wallet for up to 24 hours. So if you have manually moved funds in Binance it is best to restart the trader after so that it picks up the new balances.
+  * It is never a good idea to use 100% of your balance for a single trade. The rule of thumb is about 10%, but you can choose higher or lower depending on your preferred level of risk. The calculated PnL that is displayed on the NBT Hub does not take into consideration the trade quantities. So a strategy with a reported PnL of 500% would only increase your balance by a maximum of 50% if you set the trade quantity to 10%.
 * ***CONFIG:* Funding / Auto-Balancing for LONG Trades**
   * Several options are now available for choosing where the funds come from for LONG trades. Please make sure you fully understand the implications of these before using them, as they can provide greater gains but can also cause greater losses. I encourage you to take a look at the code and understand the decisions that are being made by each model.
     * **(Default)**: This will use the available funds in margin or spot wallets, and will stop opening new trades when funds run out (low risk).
@@ -39,10 +40,10 @@ The new features that I have added to the trader include:
   * The defaults are zero, which is unlimited.
 * ***CONFIG:* Disable SHORT Trades**
   * Because SHORT trades will always borrow the full amount of the trade, you can choose to ignore SHORT trades to prevent borrowing.
-  * NOTE: you can still choose to allow borrowing for LONG trades using one of the borrow funding options above.
+  * You can still choose to allow borrowing for LONG trades using one of the borrow funding options above.
 * ***CONFIG:* Disable Margin Trades**
   * This will prevent any trades from executing on your margin wallet. All LONG trades will then execute on spot, and SHORT trades will be disabled as a result.
-  * NOTE: even if a LONG trade is executed on your margin wallet it will not borrow any funds by default. You would have to choose one of the borrow funding options above.
+  * Even if a LONG trade is executed on your margin wallet it will not borrow any funds by default. You would have to choose one of the borrow funding options above.
 * ***CONFIG:* Disable Coins**
   * You can provide a comma delimited list of coins that you want to ignore trade signals for (e.g. DOGE).
 * ***CONFIG:* Strategy Loss Limit**
