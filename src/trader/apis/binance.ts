@@ -88,6 +88,11 @@ export async function fetchBalance(type: WalletType): Promise<ccxt.Balances> {
         .then((value) => {
             logger.silly(`Fetched balance: ${JSON.stringify(value)}`)
             logger.debug(`Loaded ${Object.keys(value).length} ${type} balances.`)
+
+            // Cache for next time
+            balances[type] = value
+            balanceTimestamps[type] = Date.now()
+            
             return value
         })
         .catch((reason) => {
