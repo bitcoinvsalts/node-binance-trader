@@ -1,6 +1,8 @@
 import BigNumber from "bignumber.js"
 import { Balances, Dictionary, Market, Order } from "ccxt"
 import PQueue from "p-queue"
+import crypto from "crypto"
+import { v4 as uuidv4 } from 'uuid'
 
 import logger from "../logger"
 import {
@@ -1949,7 +1951,7 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
 
     // Create the new trade
     return Promise.resolve({
-        id: "T" + Date.now(), // Generate a temporary internal ID, because we only get one from the NBT Hub when reloading the payload
+        id: newTradeID(), // Generate a temporary internal ID, because we only get one from the NBT Hub when reloading the payload
         isStopped: false,
         positionType: tradingData.signal.positionType!,
         tradingType: tradingData.strategy.tradingType,
@@ -1967,6 +1969,14 @@ async function createTradeOpen(tradingData: TradingData): Promise<TradeOpen> {
         timeSell: undefined, // This will be set when the trade is executed
         isExecuted: false
     })
+}
+
+// Generate a shortened MD5 hash of a UUID
+function newTradeID(): string {
+    var md5sum = crypto.createHash('md5');
+    md5sum.update(uuidv4());
+    // 12 characters should still be unique enough for our purposes
+    return md5sum.digest('hex').substr(0, 12)
 }
 
 // Get the list of wallets that are applicable for the market and trade position, sorted by priority
