@@ -15,7 +15,7 @@ jobs:
 
       - name: Docker Buildx setup
         id: buildx
-        uses: docker/setup-buildx-action@v1.1.1
+        uses: docker/setup-buildx-action@v1.3.0
 
       - name: Registry login
         if: github.event_name != 'pull_request'
@@ -32,7 +32,7 @@ jobs:
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
 
-          # Push the Docker image to the registry on git pushes that either pushed a tag or one of the following branches: [master, develop]
+          # Push the Docker image to the registry on git pushes that either pushed a tag or one of the following branches: [master, testing]
           if [[
             (
               "${{ github.event_name }}" == "create"
@@ -48,7 +48,7 @@ jobs:
               (
                 $VERSION == "latest"
                 ||
-                $VERSION == "develop"
+                $VERSION == "testing"
               )
             )
           ]]
@@ -93,7 +93,7 @@ jobs:
 
       - name: Docker Buildx setup
         id: buildx
-        uses: docker/setup-buildx-action@v1.1.1
+        uses: docker/setup-buildx-action@v1.3.0
 
       - name: Build "build"
         run: |
@@ -108,7 +108,7 @@ jobs:
           docker container rm -f extract
 
       - name: Zip
-        uses: montudor/action-zip@v0.1.1
+        uses: montudor/action-zip@v1.0.0
         with:
           args: zip -qq -r ./nbt.zip ./
 

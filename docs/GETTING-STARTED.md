@@ -1,5 +1,3 @@
-[Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com)
-
 # Getting started
 
 This step by step guide will help you get your account up and running with the popular BVA strategy.
@@ -13,20 +11,24 @@ The total time to complete this guide should be less than 10 minutes if you alre
 1. **[Getting it running](#getting-it-running)**
 1. **[Start trading](#start-trading)**
 1. **[Keep it trading 24/7](#keep-it-trading-24/7)**
+1. **[Additional configuration options](#additional-configuration-options)**
 1. **[Common questions](#common-questions)**
 
 ## How to get started
 
-First, you need an account with Binance. The registration can be done here: https://accounts.binance.com/en/register
+First, you need an account with Binance. The registration can be done here: [Binance](https://www.binance.com/en-AU/register?ref=141340247)
 
-By default the trader tries to trade with margin, so you need to have at least 0.001 BTC in your spot as well as your margin account.
-Also, to cover trading fees, you'll need a small amount of BNB in both your spot and margin wallets.
+By default the trader tries to trade with margin, so you should have at least 0.001 BTC in your spot as well as your margin account. Also, to cover trading fees, you'll need a small amount of BNB in both your spot and margin wallets. You will need to keep an eye on this and top it up periodically. Make sure you have "Using BNB to pay for fees" enabled in your Binance profile to get the discount.
+
+If you want to allow SHORT trades (or borrowing for LONG trades) then you will need to tick the 'Enable Margin' option under the API Management settings in Binance. Then go to your margin wallet and enable the setting for "Using BNB For Interest". You will need to keep enough BNB in your margin wallet to repay any interest. Also, the amount you can borrow is relative to your total margin balance (or equity), so you will need to have enough collateral to support the number of open trades that you expect.
 
 If you use Margin Trading on Binance, please make sure to enable "Using BNB For Interest" like this:
 
 ![Binance Margin Trading](images/image12.png)
 
 If you need more information on how to set up Binance and the different wallets you can find lots of additional information here: https://www.binance.com/en/support/
+
+More information on how margin loans work in Binance can be found here: https://www.binance.com/en/support/faq/360041505471
 
 You will also need to create an account on [Bitcoin vs. Altcoins](https://bitcoinvsaltcoins.com), which you can do by clicking the login button and choosing the sign up option.
 
@@ -37,11 +39,11 @@ Once you have these accounts set up, you're ready to set up the actual trading!
 
 ## Setting up your own personal trading bot
 
-While the Bitcoin vs. Altcoins website itself is closed source, the  automated trading bot called [Node Binance Trader (NBT)](https://github.com/jsappme/node-binance-trader) is open source. It connects to your Binance account via the Binance API and executes the trades on your behalf.
+While the Bitcoin vs. Altcoins website itself is closed source, the  automated trading bot called [Node Binance Trader (NBT)](https://github.com/PostmanSpat/node-binance-trader) is open source. It connects to your Binance account via the Binance API and executes the trades on your behalf.
 
 NBT needs to be hosted by yourself, which makes the deployment independent and secure. Luckily this is easy to set up and can be done with one click!
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/jsappme/node-binance-trader)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/PostmanSpat/node-binance-trader)
 
 Clicking this button will take you to this screen:
 
@@ -50,6 +52,8 @@ Clicking this button will take you to this screen:
 Choose any unique name you like and enter a region. You will then need to retrieve your Binance API keys from Binance. They will need to allow trading and margin wallet access. Follow this guide for more information on how to do so: https://www.binance.com/en/support/faq/360002502072-How-to-create-API
 
 You will find your Bitcoin vs. Altcoins support key in your account here: https://bitcoinvsaltcoins.com/profile
+
+There are other configuration options available, but they can be left blank if you just want to get started. You can always add or change them later, see **[Additional configuration options](#additional-configuration-options)** below.
 
 Once you have filled in these details you can hit *Deploy app* and the app will be created for you.
 
@@ -61,7 +65,7 @@ Use the *Fav.* toggle to select strategies that you like. It's usually wise to j
 
 ![favorite](images/image9.png)
 
-The BVA stategy's philosophy is to accumulate BTC, so there will only be trades against BTC.
+Some strategies (such as BVA) aim to accumulate BTC, so there will only be trades against BTC. Other community strategies are available that accumulate different altcoins.
 
 Another key metric to look for is how many positions have closed in profit vs. those that have closed in loss.
 
@@ -69,7 +73,9 @@ Once you have selected your strategies you will see that they are now present in
 
 ![trade configuration](images/image6.png)
 
-Here you can choose if you want to trade for real or paper trade (with virtual money), as well as the amount from your Binance account which you want to trade with. Please note, this is the amount the bot will use per trade and there can be multiple open trades at once. A sensible approach may be start with this value set at 10% of the value you want to trade with. You'll also need to check the *trade* box to make the signal live.
+Here you can choose if you want to trade for real or paper trade (with virtual money), as well as the amount from your Binance account which you want to trade with*. Please note, this is the amount the bot will use per trade and there can be multiple open trades at once. A sensible approach may be start with this value set at 10% of the value you want to trade with. You'll also need to check the *trade* box to make the signal live.
+
+*The trader has several options for calculating the amount to trade, see the additional configuration options below.
 
 You're almost done.
 
@@ -88,6 +94,8 @@ Let's check if the bot is running from the logs. You also can check detailed inf
 ![heroku_logs](images/running.png)
 
 This is an example of how it looks if the bot is running. Make sure to switch from All process to Web.
+
+You can also access the log and other diagnostics via the webservice (e.g. https://example-trader-BVA.herokuapp.com/log). Refer to the **[README File 📖](../README.md)** for all options.
 
 ## Keep it trading 24/7
 
@@ -109,7 +117,46 @@ You can find the URL within your Heroku settings:
 
 Once you have created this monitor, you're done! Now you have a live trading bot running your chosen strategy.
 
-## Common Questions
+## Additional configuration options
+
+Using the Config Vars in Heroku (an environment variable configuration file) you can configure any of the following options. See the **[README File 📖](../README.md)** for more details on what the trader features do.
+
+To add new Config Vars in Heroku:
+1. Go to **Settings**
+1. Click **Reveal Config Vars**
+1. Enter the **Key** and **Value**
+1. Click **Add**
+
+**External Notifications**
+| Key | Value Format | Description |
+| --- | --- | --- |
+| IS_NOTIFIER_GMAIL_ENABLED | true / false | Selects if Gmail will be used (Enable less secure apps https://myaccount.google.com/lesssecureapps) |
+| NOTIFIER_GMAIL_ADDRESS | email address | Gmail email to get notifications |
+| NOTIFIER_GMAIL_APP_PASSWORD | string | Gmail password to get notifications |
+| IS_NOTIFIER_TELEGRAM_ENABLED | true / false | Selects if Telegram will be used
+| NOTIFIER_TELEGRAM_API_KEY | string | Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather)
+| NOTIFIER_TELEGRAM_RECEIVER_ID | string | Unique identifier for the target chat or username of the target channel (in the format @channelusername)
+
+**Trader Features**
+| Key | Value Format | Description |
+| --- | --- | --- |
+| IS_BUY_QTY_FRACTION | true / false | Uses the 'Quantity to Buy' from the NBT Hub as a fraction of your wallet balance (e.g. 0.1 is 10%) |
+| TRADE_LONG_FUNDS | borrow min / borrow all / sell all / sell largest | See README for explanation |
+| PRIMARY_WALLET | margin / spot | Primary wallet to execute LONG trades, it may still swap to the other if there are insufficient funds |
+| WALLET_BUFFER | decimal number >= 0 and < 1 | Decimal fraction of the total balance of each wallet that should be reserved for slippage, spread, and bad short trades (e.g. 0.1 is 10%) |
+| MAX_SHORT_TRADES | integer >= 0 | Maximum number of SHORT trades that can be open concurrently (i.e. limit your borrowing), zero is no limit |
+| MAX_LONG_TRADES | integer >= 0 | Maximum number of LONG trades that can be open concurrently (i.e. limit borrowing or rebalancing), zero is no limit |
+| EXCLUDE_COINS | coin, coin, coin | Comma delimited list of coins to exclude from trading (e.g. DOGE) |
+| STRATEGY_LOSS_LIMIT | integer >= 0 | Number of sequential losses before a strategy is stopped |
+| IS_TRADE_SHORT_ENABLED | true / false | SHORT trades will always borrow the full funds in margin to execute, disable if you don't want this |
+| IS_TRADE_MARGIN_ENABLED | true / false | Used to disable use of margin wallet trading for both LONG and SHORT trades |
+| IS_PAY_INTEREST_ENABLED | true / false | Automatically repays all BNB interest before repaying margin loans |
+| VIRTUAL_WALLET_FUNDS | decimal number > 0 | The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets |
+| WEB_PASSWORD | string | Password to restrict access to the internal diagnostics webserver |
+
+*There are a few other internal configuration options available, check the env.ts file for details.*
+
+## Common questions
 
 ### How do I know it's running?
 

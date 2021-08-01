@@ -1,9 +1,12 @@
 {
     "name": "node-binance-trader",
     "description": "Auto trader to trade signals from your BitcoinVsAltcoins.com strategy selection.",
-    "logo": "https://pbs.twimg.com/profile_images/1144199654831267841/SyDG8MA1_400x400.jpg",
-    "repository": "https://github.com/jsappme/node-binance-trader",
+    "logo": "https://github.com/PostmanSpat/node-binance-trader/blob/master/docs/images/logo_small.png?raw=true",
+    "repository": "https://github.com/PostmanSpat/node-binance-trader",
     "keywords": ["node", "binance","trading","trader","bot","market","maker","algo","crypto"],
+    "addons": [{
+      "plan": "heroku-postgresql:hobby-dev"
+    }],
     "env": {
       "BINANCE_API_KEY": {
         "description": "Your Binance API Key",
@@ -17,28 +20,83 @@
         "description": "Your BitcoinVsAltcoins.com Account API Key",
         "required": true
       },
-      "GMAIL_ADDRESS": {
+
+      "IS_NOTIFIER_GMAIL_ENABLED": {
+        "description": "Selects if Gmail will be used (Enable less secure apps https://myaccount.google.com/lesssecureapps)",
+        "required": false
+      },
+      "NOTIFIER_GMAIL_ADDRESS": {
         "description": "Gmail email to get notifications",
         "required": false
       },
-      "GMAIL_APP_PASSWORD": {
+      "NOTIFIER_GMAIL_APP_PASSWORD": {
         "description": "Gmail password to get notifications",
         "required": false
       },
-      "TELEGRAM_API_KEY": {
-        "description": "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather )",
+
+      "IS_NOTIFIER_TELEGRAM_ENABLED": {
+        "description": "Selects if Telegram will be used",
         "required": false
       },
-      "TELEGRAM_RECEIVER_ID": {
+      "NOTIFIER_TELEGRAM_API_KEY": {
+        "description": "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather)",
+        "required": false
+      },
+      "NOTIFIER_TELEGRAM_RECEIVER_ID": {
         "description": "Unique identifier for the target chat or username of the target channel (in the format @channelusername)",
         "required": false
       },
-      "USE_GMAIL": {
-        "description": "Selects if Gmail will be used",
+
+      "IS_BUY_QTY_FRACTION": {
+        "description": "Uses the 'Quantity to Buy' from the NBT Hub as a fraction of your wallet balance (e.g. 0.1 is 10%)",
         "required": false
       },
-      "USE_TELEGRAM": {
-        "description": "Selects if Telegram will be used",
+      "TRADE_LONG_FUNDS": {
+        "description": "Valid options: '', 'borrow min', 'borrow all', 'sell all', or 'sell largest' - see README for explanation",
+        "required": false
+      },
+      "PRIMARY_WALLET": {
+        "description": "Valid options: 'margin' or 'spot' - primary wallet to execute LONG trades, it may still swap to the other if there are insufficient funds",
+        "required": false
+      },
+      "WALLET_BUFFER": {
+        "description": "Decimal fraction of the total balance of each wallet that should be reserved for slippage, spread, and bad short trades (e.g. 0.1 is 10%)",
+        "required": false
+      },
+      "MAX_SHORT_TRADES": {
+        "description": "Maximum number of SHORT trades that can be open concurrently (i.e. limit your borrowing), zero is no limit",
+        "required": false
+      },
+      "MAX_LONG_TRADES": {
+        "description": "Maximum number of LONG trades that can be open concurrently (i.e. limit borrowing or rebalancing), zero is no limit",
+        "required": false
+      },
+      "EXCLUDE_COINS": {
+        "description": "Comma delimited list of coins to exclude from trading (e.g. DOGE)",
+        "required": false
+      },
+      "STRATEGY_LOSS_LIMIT": {
+        "description": "Number of sequential losses before a strategy is stopped",
+        "required": false
+      },
+      "IS_TRADE_SHORT_ENABLED": {
+        "description": "SHORT trades will always borrow the full funds in margin to execute, disable if you don't want this",
+        "required": false
+      },
+      "IS_TRADE_MARGIN_ENABLED": {
+        "description": "Used to disable use of margin wallet trading for both LONG and SHORT trades",
+        "required": false
+      },
+      "IS_PAY_INTEREST_ENABLED": {
+        "description": "Automatically repays all BNB interest before repaying margin loans",
+        "required": false
+      },
+      "VIRTUAL_WALLET_FUNDS": {
+        "description": "The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets",
+        "required": false
+      },
+      "WEB_PASSWORD": {
+        "description": "Password to restrict access to the internal diagnostics webserver",
         "required": false
       }
     }

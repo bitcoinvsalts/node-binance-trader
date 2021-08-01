@@ -1,5 +1,8 @@
 # Getting started manually
 
+> WARNING: This documentation has not been updated for Spat's fork. These were the instructions for the previous version of the trader.
+> So please don't expect any of the below to work, but I'm leaving it here for reference just in case.
+
 ## Table of contents
 
 1. **[Requirements](#requirements)**
@@ -36,12 +39,12 @@ It contains your most private information.
 
 **To start the server** to save pair data, define strategies and emit trading signals:
 ```
-npm run start
+npm run server
 // or
-docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" -p 4000:4000 jsappme/node-binance-trader npm run start
+docker run -d --name node-binance-trader -v "$PWD/.env:/srv/app/.env" -p 4000:4000 jsappme/node-binance-trader npm run server
 ```
 
-**To start the auto trader** to monitor strategies and signals received from the server or the NBT Hub:
+**To start the auto trader** to monitor strategies and signals received from the server via the NBT Hub:
 
 <i>Important note: Always make sure to have some BNB available on your corresponding wallet to pay for the fees.</i>
 

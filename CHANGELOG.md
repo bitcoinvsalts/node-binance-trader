@@ -1,30 +1,40 @@
-# [0.5.0](https://github.com/jsappme/node-binance-trader/compare/0.4.1...0.5.0) (2021-05-19)
-
-
-### Features
-
-* **funding:** rename funding file ([b906477](https://github.com/jsappme/node-binance-trader/commit/b9064775557839d1e6810181bccc5cb2d2181022))
-* **funding:** temporarily disable funding ([5b2b5a3](https://github.com/jsappme/node-binance-trader/commit/5b2b5a3410be18809d9e530254f7433d3e2db271)), closes [#110](https://github.com/jsappme/node-binance-trader/issues/110)
-
-## [0.4.1](https://github.com/jsappme/node-binance-trader/compare/0.4.0...0.4.1) (2021-03-22)
-
+## [1.0.0] (2021-08-01)
 
 ### Bug Fixes
 
-* **deps:** recreate package-lock.json ([a2a5099](https://github.com/jsappme/node-binance-trader/commit/a2a50991292ad16819fffb1ff319d9999d415f57))
-
-# [0.4.0](https://github.com/jsappme/node-binance-trader/compare/0.3.1...0.4.0) (2021-03-21)
-
-
-### Bug Fixes
-
-* **trader:** correct merge ([989af49](https://github.com/jsappme/node-binance-trader/commit/989af492cc1f007a9b2f021d34d6ab4be23b23fb))
-* **trader:** use trading data variable ([38dfb20](https://github.com/jsappme/node-binance-trader/commit/38dfb202d415f002f120a9cbc0cbcd3ad883a92a))
-
+* **trader:** margin borrow and repay functions now work.
+* **trader:** identify when a trade request was not fulfilled in Binance.
+* **trader:** correct calculation of trade quantity to account for LOT_SIZE and precision.
+* **trader:** only allow one concurrent open trade per strategy + symbol + position, this matches the NBT Hub rules.
+* **trader:** support (as a workaround) for running on Binance Testnet.
+* **trader:** use cached market data.
+* **trader:** truncate memory logs.
 
 ### Features
+* **server:** added description and max_concurrent parameters.
+* **trader:** configurable logging levels.
+* **trader:** a lot more validation.
 
-* **trader:** implement requested changes ([6b46938](https://github.com/jsappme/node-binance-trader/commit/6b469384d558801be77c6cd3f750a8a9676de0dd))
+These are all for **trader**. Refer to the README for more details:
+* ***CONFIG:* Quantity as Fraction**
+* ***CONFIG:* Funding / Auto-Balancing for LONG Trades**
+* ***CONFIG:* Repay Loan Interest**
+* ***CONFIG:* Primary Wallet**
+* ***CONFIG:* Wallet Buffer**
+* ***CONFIG:* Maximum Count of Trades**
+* ***CONFIG:* Disable SHORT Trades**
+* ***CONFIG:* Disable Margin Trades**
+* ***CONFIG:* Disable Coins**
+* ***CONFIG:* Strategy Loss Limit**
+* ***CONFIG:* Virtual Wallet Funds**
+* **Alternate Wallet Fall Back**
+* **Database Backup**
+* **Web Diagnostics**
+* **Individual Tracking of Real / Virtual Trades**
+* **Clean Up Stopped Trades**
+* **Track Order Price / Cost**
+* **Additional Notifications**
+* ***CONFIG:* Additional Logging**
 
 ## [0.3.1](https://github.com/jsappme/node-binance-trader/compare/0.3.0...0.3.1) (2021-03-08)
 

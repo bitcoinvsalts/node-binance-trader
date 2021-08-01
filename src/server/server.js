@@ -4,7 +4,7 @@ const path = require("path")
 const binance = require("binance-api-node").default
 const moment = require("moment")
 const BigNumber = require("bignumber.js")
-const _ = require("lodash")
+const _ = require("lodash") // TODO: Get rid of lodash.
 const tulind = require("tulind")
 const axios = require("axios")
 const { Client } = require("pg")
@@ -35,6 +35,8 @@ const nbt_vers = env.VERSION
 const pairs = ["BTCUSDT"] //, 'ETHBTC', 'XRPBTC', 'XRPETH']
 
 const stratname = "DEMO STRATS"
+const description = "".substr(0, 255)
+const max_concurrent = pairs.length
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -47,6 +49,7 @@ console.log("send_signal_to_bva: ", send_signal_to_bva)
 
 let pairData = {}
 let openSignals = {}
+let first_signal = true
 
 const nbt_prefix = "nbt_"
 const interv_time = 10000
@@ -96,8 +99,8 @@ if (insert_into_db && pg_connectionString) {
 
 //////////////////////////////////////////////////////////////////////////////////
 
-const server = express()
-    .use((req, res) => res.sendFile(INDEX))
+express()
+    .use((_req, res) => res.sendFile(INDEX))
     .listen(PORT, () => console.log(`NBT server running on port ${PORT}`))
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -190,7 +193,7 @@ async function trackPairData(pair) {
     }
     await sleep(wait_time)
     // setup candle websocket
-    const candlesWs = binance_client.ws.candles(
+    binance_client.ws.candles(
         pair,
         timeframe,
         async (candle) => {
@@ -217,7 +220,7 @@ async function trackPairData(pair) {
     await sleep(wait_time)
 
     // setup depth websocket
-    const depthWs = binance_client.ws.partialDepth(
+    binance_client.ws.partialDepth(
         { symbol: pair, level: 10 },
         (depth) => {
             pairData[pair].sum_bids = _.sumBy(depth.bids, (o) => {
@@ -237,7 +240,7 @@ async function trackPairData(pair) {
     await sleep(wait_time)
 
     // setup trade  (1 per second)
-    const tradesWs = binance_client.ws.trades([pair], (trade) => {
+    binance_client.ws.trades([pair], (trade) => {
         pairData[pair].price = BigNumber(trade.price)
         pairData[pair].volumes.unshift({
             timestamp: Date.now(),
@@ -348,8 +351,8 @@ async function trackPairData(pair) {
                     pairData[pair].srsi === null
                         ? null
                         : Number(
-                              pairData[pair].srsi.decimalPlaces(2).toString()
-                          ),
+                            pairData[pair].srsi.decimalPlaces(2).toString()
+                        ),
                 ]
                 const insert_query =
                     "INSERT INTO " +
@@ -359,7 +362,6 @@ async function trackPairData(pair) {
                     " VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING * "
                 pg_client
                     .query(insert_query, insert_values)
-                    .then((res) => {})
                     .catch((e) => {
                         console.log(e)
                     })
@@ -377,6 +379,11 @@ async function trackPairData(pair) {
                     pair: pair,
                     stop_loss: signalCheck.stopLoss,
                     stop_profit: signalCheck.takeProfit,
+                }
+
+                if (first_signal) {
+                    signal.description = description
+                    signal.max_concurrent = max_concurrent
                 }
 
                 // store signal
@@ -403,6 +410,8 @@ async function trackPairData(pair) {
                             : "sell_signal",
                         signal
                     )
+
+                    first_signal = false
                 }
 
                 // store open signal
@@ -414,13 +423,13 @@ async function trackPairData(pair) {
                 const pnl =
                     openSignal.type === "LONG"
                         ? first_bid_price
-                              .minus(openSignal.buy_price)
-                              .times(100)
-                              .dividedBy(openSignal.buy_price)
+                            .minus(openSignal.buy_price)
+                            .times(100)
+                            .dividedBy(openSignal.buy_price)
                         : BigNumber(openSignal.sell_price)
-                              .minus(first_ask_price)
-                              .times(100)
-                              .dividedBy(openSignal.sell_price)
+                            .minus(first_ask_price)
+                            .times(100)
+                            .dividedBy(openSignal.sell_price)
 
                 if (
                     pnl.isLessThan(openSignals[pair + signal_key].stop_loss) ||
@@ -432,6 +441,11 @@ async function trackPairData(pair) {
                         key: bva_key,
                         stratname: stratname,
                         pair: pair,
+                    }
+
+                    if (first_signal) {
+                        signal.description = description
+                        signal.max_concurrent = max_concurrent
                     }
 
                     if (openSignal.type === "LONG") {
@@ -449,6 +463,8 @@ async function trackPairData(pair) {
                                 : "buy_signal",
                             signal
                         )
+
+                        first_signal = false
                     }
 
                     // remove open signal
@@ -551,15 +567,12 @@ async function createPgPairTable(pair) {
                 pair +
                 "(id bigserial primary key, eventtime bigint NOT NULL, datetime varchar(200), price decimal, candle_open decimal, candle_high decimal, candle_low decimal, candle_close decimal, sum_interv_vols decimal, trades integer, makers_count real, depth_report decimal, sum_bids real, sum_asks real, first_bid_price decimal, first_ask_price decimal, first_bid_qty decimal, first_ask_qty decimal, srsi real)"
         )
-        .then((res) => {
+        .then(() => {
             console.log("TABLE " + nbt_prefix + pair + " CREATION SUCCESS")
-        })
-        .catch((e) => {
-            //console.log(e)
         })
 }
 
-sleep = (x) => {
+function sleep (x) {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve(true)
