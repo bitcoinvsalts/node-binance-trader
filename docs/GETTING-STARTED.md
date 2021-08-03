@@ -153,6 +153,7 @@ To add new Config Vars in Heroku:
 | IS_PAY_INTEREST_ENABLED | true / false | Automatically repays all BNB interest before repaying margin loans |
 | VIRTUAL_WALLET_FUNDS | decimal number > 0 | The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets |
 | WEB_PASSWORD | string | Password to restrict access to the internal diagnostics webserver |
+| TZ | string | Configure your own time zone for display of dates and times (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) |
 
 *There are a few other internal configuration options available, check the env.ts file for details.*
 

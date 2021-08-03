@@ -98,6 +98,10 @@
       "WEB_PASSWORD": {
         "description": "Password to restrict access to the internal diagnostics webserver",
         "required": false
+      },
+      "TZ": {
+        "description": "Configure your own time zone for display of dates and times (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)",
+        "required": false
       }
     }
   }
