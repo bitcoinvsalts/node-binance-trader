@@ -1,3 +1,9 @@
+## [1.0.1] (2021-08-03)
+
+### Bug Fixes
+
+* **trader:** Telegram notifications now work, and /info command will work without configuring a valid Chat ID.
+
 ## [1.0.0] (2021-08-01)
 
 ### Bug Fixes

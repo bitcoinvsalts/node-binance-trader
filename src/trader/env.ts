@@ -35,7 +35,7 @@ export function getDefault(): Readonly<any> {
         // Then talk to the @userinfobot at Telegram, and it will give you your personal receiver ID, and thats what you use for the TELEGRAM_RECEIVER_ID
         IS_NOTIFIER_TELEGRAM_ENABLED: bool({ default: false, desc: "Selects if Telegram will be used" }),
         NOTIFIER_TELEGRAM_API_KEY: str({ default: "", desc: "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather)" }),
-        NOTIFIER_TELEGRAM_RECEIVER_ID: str({ default: "", desc: "Unique identifier for the target chat or username of the target channel (in the format @channelusername)" }),
+        NOTIFIER_TELEGRAM_RECEIVER_ID: str({ default: "", desc: "Unique identifier for the target chat (as a number) or username of the target channel (in the format @channelusername)" }),
 
         // Additional configuration options for trader features
         IS_BUY_QTY_FRACTION: bool({ default: false, desc: "Uses the 'Quantity to Buy' from the NBT Hub as a fraction of your wallet balance (e.g. 0.1 is 10%)" }),

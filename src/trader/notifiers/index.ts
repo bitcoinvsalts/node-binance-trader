@@ -1,4 +1,5 @@
 import { basename } from "path/posix"
+import logger from "../../logger"
 import { EntryType, PositionType, Signal, TradeOpen } from "../types/bva"
 import { MessageType, Notifier, NotifierMessage } from "../types/notifier"
 import { SourceType } from "../types/trader"
@@ -19,10 +20,14 @@ export default function initializeNotifiers(): Notifier {
 
 // Sends notifications on all the different channels
 export function notifyAll(notifierMessage: NotifierMessage): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         Promise.all(
             notifiers.map((notifier) => notifier.notify(notifierMessage))
         ).then(() => resolve())
+        .catch(reason => {
+            logger.error(reason)
+            reject(reason)
+        })
     })
 }
 

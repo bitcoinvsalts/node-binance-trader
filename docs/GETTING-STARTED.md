@@ -135,7 +135,9 @@ To add new Config Vars in Heroku:
 | NOTIFIER_GMAIL_APP_PASSWORD | string | Gmail password to get notifications |
 | IS_NOTIFIER_TELEGRAM_ENABLED | true / false | Selects if Telegram will be used
 | NOTIFIER_TELEGRAM_API_KEY | string | Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather)
-| NOTIFIER_TELEGRAM_RECEIVER_ID | string | Unique identifier for the target chat or username of the target channel (in the format @channelusername)
+| NOTIFIER_TELEGRAM_RECEIVER_ID | string | Unique identifier for the target chat (as a number) or username of the target channel (in the format @channelusername)
+
+*If you want to use Telegram and don't know your Chat ID, set the NOTIFIER_TELEGRAM_RECEIVER_ID to a dummy value, start the trader (you will see errors in the log), then use the /info command in Telegram and it will respond with the ID that you can use.*
 
 **Trader Features**
 | Key | Value Format | Description |
