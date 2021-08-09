@@ -67,6 +67,7 @@ The new features that I have added to the trader include:
     * **/pnl?reset=** - Specify a coin to clear the Balance History and PnL for that coin (e.g. ?reset=BTC). This is useful if you have manually added or removed funds in Binance. Note that it will clear both real and virtual history at the same time, if you only want to clear virtual history then use the the **/virtual?reset=true** command.
     * **/strategies** - Configured strategies.
     * **/trades** - Current open trades list.
+    * **/trades?close=** - Specify a trade ID to attempt to close the trade on Binance. You may need to use this if the trader gets out of sync with the BVA Hub.
     * **/trades?delete=** - Specify a trade ID to delete the trade without closing it. This will not remove the trade from the BVA Hub, so you may have to do that separately. It also will not modify the virtual balances nor close the trade on Binance, so this will probably throw out the PnL calculations as it will seem like there was a significant change in the closing balance. You may want to use one of the 'reset' commands to start fresh.
     * **/trans** - Log of actual buy, sell, borrow, repay transactions held in memory (newest entries at the top).
     * **/trans?db=1** - Log of actual buy, sell, borrow, repay transactions loaded from the database (newest entries at the top).

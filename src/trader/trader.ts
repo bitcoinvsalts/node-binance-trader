@@ -613,6 +613,23 @@ export async function onCloseTradedSignal(signalJson: SignalJson, timestamp: Dat
     })
 }
 
+// Used by the web server to allow users to close trades manually
+export function closeTrade(tradeId: string) {
+    const tradeOpen = tradingMetaData.tradesOpen.find(trade => trade.id == tradeId)
+    if (tradeOpen) {
+        // Check that the trade isn't already closing, maybe the user clicked twice
+        if (!tradingMetaData.tradesClosing.has(tradeOpen)) {
+            logger.info(`Scheduling close for ${getLogName(tradeOpen)} trade.`)
+            scheduleTrade(tradeOpen, EntryType.EXIT, SourceType.MANUAL)
+            return getLogName(tradeOpen)
+        } else {
+            logger.warn(`${getLogName(tradeOpen)} trade is already closing.`)
+        }
+    }
+
+    return ""
+}
+
 // There are two special case either where the user has stopped a trade then tried to close it and it failed, or it was previously a bad trade that couldn't be reloaded
 // In these cases we just want to get rid of the trade so that it does not hang around on the NBT Hub
 function checkFailedCloseTrade(signal: Signal) {
@@ -2209,7 +2226,7 @@ function removeTradeOpen(tradeOpen: TradeOpen) {
     saveState("tradesOpen")
 }
 
-// Used by the web server to allow users to delete trades
+// Used by the web server to allow users to delete trades manually
 export function deleteTrade(tradeId: string): string | undefined {
     const tradeOpen = tradingMetaData.tradesOpen.find(trade => trade.id == tradeId)
     if (tradeOpen) {

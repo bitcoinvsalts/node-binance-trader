@@ -3,7 +3,7 @@ import express from "express"
 
 import logger, { loggerOutput } from "../logger"
 import env from "./env"
-import { deleteBalanceHistory, deleteTrade, resetVirtualBalances, setVirtualWalletFunds, tradingMetaData} from "./trader"
+import { closeTrade, deleteBalanceHistory, deleteTrade, resetVirtualBalances, setVirtualWalletFunds, tradingMetaData} from "./trader"
 import { Dictionary } from "ccxt"
 import { BalanceHistory } from "./types/trader"
 import BigNumber from "bignumber.js"
@@ -26,7 +26,15 @@ export default function startWebserver(): http.Server {
                 } else {
                     res.send(`No trade was found with the ID of '${tradeId}'.`)
                 }
-            } else {
+            } else if (req.query.close) {
+                const tradeId = req.query.close.toString()
+                const tradeName = closeTrade(tradeId)
+                if (tradeName) {
+                    res.send(`A close request has been sent for ${tradeName}. Wait a few seconds before checking the logs.`)
+                } else {
+                    res.send(`No trade was found with the ID of '${tradeId}'.`)
+                }
+            }else {
                 res.send(HTMLTableFormat(Pages.TRADES, tradingMetaData.tradesOpen))
             }
         }

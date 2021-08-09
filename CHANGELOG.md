@@ -1,3 +1,9 @@
+## [1.1.0] (2021-08-09)
+
+### Features
+
+* **trader:** Added option to manually close trades from the web diagnostics.
+
 ## [1.0.1] (2021-08-03)
 
 ### Bug Fixes
