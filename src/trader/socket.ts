@@ -8,6 +8,7 @@ import {
     onSellSignal,
     onStopTradedSignal,
     onUserPayload,
+    shutDown,
 } from "./trader"
 import {
     SignalJson,
@@ -20,17 +21,27 @@ import BigNumber from "bignumber.js"
 let socket: SocketIOClient.Socket
 
 export function connect(): void {
+    let authenticated = false
     socket = io("https://nbt-hub.herokuapp.com", {
         query: `v=${env().VERSION}&type=client&key=${env().BVA_API_KEY}`,
         autoConnect: false
     })
 
-    socket.on("connect", () => logger.info("Connected to the NBT Hub."))
+    socket.on("connect", () => {
+        logger.info("Connected to the NBT Hub.")
+        authenticated = true
+    })
     socket.on("disconnect", () => logger.warn("Connection to the NBT Hub has been interrupted."))
 
-    socket.on("error", (error: any) =>
+    socket.on("connect_error", (error: any) => {
+        logger.error(`Unable to connect to the NBT Hub: ${error}`)
+        shutDown(error)
+    })
+
+    socket.on("error", (error: any) => {
         logger.error(`Received an error from the socket: ${error}`)
-    )
+        if (!authenticated) shutDown(error)
+    })
 
     socket.on("message", (message: string) => {
         logger.info(`Received a message: "${message}"`)

@@ -2399,12 +2399,17 @@ export function shutDown(reason: any) {
     logger.error("NBT Trader is not operational, shutting down...")
     isOperational = false
 
-    // Just in case something still needs to be written to the database
-    if (dirty.size) {
-        flushDirty().catch(() => {}).finally(process.exit())
-    } else {
-        process.exit()
-    }
+    // First try to send a notification that the trader is shutting down
+    notifyAll({subject: MessageType.ERROR, content: `NBT Trader is not operational, shutting down...\n${reason}`}).catch((reason) => {
+        logger.silly("shutDown->notifyAll: " + reason)
+    }).finally(() => {
+        // Just in case something still needs to be written to the database, try to flush it first
+        if (dirty.size) {
+            flushDirty().catch(() => {}).finally(process.exit())
+        } else {
+            process.exit()
+        }
+    })
 }
 
 // Adds the tradingMetaData object type to the dirty set for saving to the database
