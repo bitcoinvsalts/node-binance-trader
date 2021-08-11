@@ -91,6 +91,10 @@
         "description": "Automatically repays all BNB interest before repaying margin loans",
         "required": false
       },
+      "BNB_FREE_THRESHOLD": {
+        "description": "Creates a warning if your available BNB balance is below the threshold (too low for fees and interest)",
+        "required": false
+      },
       "VIRTUAL_WALLET_FUNDS": {
         "description": "The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets",
         "required": false

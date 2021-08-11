@@ -1,8 +1,13 @@
 ## [1.1.0] (2021-08-09)
 
+### Bug Fixes
+
+* **trader:** report initial connection failure.
+
 ### Features
 
-* **trader:** Added option to manually close trades from the web diagnostics.
+* **trader:** added option to manually close trades from the web diagnostics.
+* **trader:** added BNB Free Threshold check.
 
 ## [1.0.1] (2021-08-03)
 

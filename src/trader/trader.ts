@@ -1423,6 +1423,11 @@ export async function executeTradingTask(
     notifyAll(getNotifierMessage(MessageType.SUCCESS, signal, tradeOpen)).catch((reason) => {
         logger.silly("executeTradingTask->notifyAll: " + reason)
     })
+
+    // Check that you still have enough BNB in each wallet
+    checkBNBThreshold().catch((reason) => {
+        logger.silly("executeTradingTask->checkBNBThreshold: " + reason)
+    })
 }
 
 // Notify NBT Hub that the trade has been executed
@@ -1502,7 +1507,10 @@ function scheduleTrade(
 // Processes the trade signal and schedules the trade actions
 export async function trade(signal: Signal, source: SourceType) {
     // Check if the cache needs to be refreshed, we'll do this asynchronously because we can use the previous set of data now
-    refreshMarkets()
+    refreshMarkets().catch((reason) => {
+        logger.silly("trade->refreshMarkets: " + reason)
+        // Don't really care if this doesn't work
+    })
 
     // Check that this is a signal we want to process
     const tradingData = checkTradingData(signal, source)
@@ -2315,6 +2323,48 @@ async function refreshMarkets() {
 
         // Potentially some symbols may have been withdrawn from Binance, so need to check we don't have any open trades for them
         checkOpenTrades()
+    }
+}
+
+// Loads the balances from Binance and checks whether you still have sufficient BNB funds to cover fees and interest
+// This also helps to pre-cache the balances ready for the next trade
+const BNBState: Dictionary<string> = {}
+async function checkBNBThreshold() {
+    if (env().BNB_FREE_THRESHOLD >= 0) {
+        for (let wallet of Object.values(WalletType)) {
+            // Skip if margin trading is not in use
+            if (wallet == WalletType.MARGIN && !env().IS_TRADE_MARGIN_ENABLED) continue
+
+            // Initialise dictionary, assuming it is ok to start with
+            if (!(wallet in Object.keys(BNBState))) BNBState[wallet] = "ok"
+
+            // Fetch the BNB balance for this wallet
+            const balance = (await fetchBalance(wallet))["BNB"]
+            if (balance.free <= env().BNB_FREE_THRESHOLD) {
+                // Check if the low balance hasn't already been reported
+                if (BNBState[wallet] == "ok" || (BNBState[wallet] == "low" && balance.free <= 0)) {
+                    // Log the low balance warning or error for empty balance
+                    const logMessage = `Your ${wallet} wallet only has ${balance.free} BNB free. You may need to top it up.`
+                    let notifyLevel = MessageType.ERROR
+                    if (balance.free <= 0) {
+                        BNBState[wallet] = "empty"
+                        logger.error(logMessage)
+                    } else {
+                        BNBState[wallet] = "low"
+                        logger.warn(logMessage)
+                        notifyLevel = MessageType.WARN
+                    }
+
+                    // Send as a notification
+                    notifyAll({subject: notifyLevel, content: logMessage}).catch((reason) => {
+                        logger.silly("checkBNBThreshold->notifyAll: " + reason)
+                    })
+                }
+            } else {
+                // Reset once the balance has exceeded the threshold again
+                BNBState[wallet] = "ok"
+            }
+        }
     }
 }
 

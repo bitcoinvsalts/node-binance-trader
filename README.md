@@ -50,6 +50,9 @@ The new features that I have added to the trader include:
   * You can set a limit on the number of sequential losses for a strategy. If this many losing trades occur for a strategy then that strategy will be stopped. The trader will ignore all open signals for that strategy, and will only process close signals if the price is better (i.e. higher than the open price for LONG trades and lower for SHORT trades). You can still manually close the trades regardless of the price.
   * Once a strategy has been stopped, you will have to untick the trade option on the NBT Hub and the re-tick it. Toggling the trade option will clear the stopped flag and reset the count of losing trades.
   * The default is zero, which is unlimited.
+* ***CONFIG:* BNB Free Threshold**
+  * After a trade is closed it will check your remaining BNB balance and generate a warning if it has dropped below this threshold. This helps you to manage your BNB balance so that there are always sufficient funds to cover fees and interest. These warnings will be displayed in the log and also sent using the notification systems. It will check the spot and margin wallets independently.
+  * The default is 0.04 BNB, you can set it to 0 if you only want a warning when it is completely empty, or -1 to disable the check.
 * ***CONFIG:* Virtual Wallet Funds**
   * You can set a default balance for virtual trades, this allows you to simulate some of the auto-balancing or funding models above. The value represents roughly the equivalent BTC amount. For example, if you set the funds to 1 but you are trading in USDT, it will use the minimum purchase volumes to estimate a 'similar' USDT value of 1 BTC as the starting balance. This is not current market price, it is just a pre-determined scale set by Binance.
   * The default is 0.1 BTC which (at the time of writing) converts to 10,000 USDT.
