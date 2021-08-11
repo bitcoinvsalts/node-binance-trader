@@ -8,6 +8,7 @@
 
 * **trader:** added option to manually close trades from the web diagnostics.
 * **trader:** added BNB Free Threshold check.
+* **trader:** added Stop, Resume, Close, and Delete buttons to Open Trades page.
 
 ## [1.0.1] (2021-08-03)
 

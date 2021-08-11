@@ -2244,6 +2244,20 @@ export function deleteTrade(tradeId: string): string | undefined {
     }
 }
 
+// Used by the web server to allow users to stop and start trades manually
+export function setTradeStopped(tradeId: string, stop: boolean): string | undefined {
+    const tradeOpen = tradingMetaData.tradesOpen.find(trade => trade.id == tradeId)
+    if (tradeOpen) {
+        if (stop) {
+            logger.info(`Stopping ${getLogName(tradeOpen)} trade.`)
+        } else {
+            logger.info(`Resuming ${getLogName(tradeOpen)} trade.`)
+        }
+        tradeOpen.isStopped = stop
+        return getLogName(tradeOpen)
+    }
+}
+
 // Gets a count of the open active trades for a given position type, and also within the same real/virtual trading
 function getOpenTradeCount(positionType: PositionType, tradingType: TradingType) {
     return tradingMetaData.tradesOpen.filter(
@@ -2340,19 +2354,21 @@ async function checkBNBThreshold() {
 
             // Fetch the BNB balance for this wallet
             const balance = (await fetchBalance(wallet))["BNB"]
+            logger.debug(`${balance.free} BNB free in ${wallet}.`)
             if (balance.free <= env().BNB_FREE_THRESHOLD) {
                 // Check if the low balance hasn't already been reported
                 if (BNBState[wallet] == "ok" || (BNBState[wallet] == "low" && balance.free <= 0)) {
                     // Log the low balance warning or error for empty balance
-                    const logMessage = `Your ${wallet} wallet only has ${balance.free} BNB free. You may need to top it up.`
-                    let notifyLevel = MessageType.ERROR
+                    let notifyLevel = MessageType.WARN
+                    let logMessage = `Your ${wallet} wallet only has ${balance.free} BNB free. You may need to top it up.`
                     if (balance.free <= 0) {
                         BNBState[wallet] = "empty"
+                        notifyLevel = MessageType.ERROR
+                        logMessage = `Your ${wallet} wallet has no free BNB. You will need to top it up now.`
                         logger.error(logMessage)
                     } else {
                         BNBState[wallet] = "low"
                         logger.warn(logMessage)
-                        notifyLevel = MessageType.WARN
                     }
 
                     // Send as a notification

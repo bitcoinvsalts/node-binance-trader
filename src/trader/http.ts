@@ -3,7 +3,7 @@ import express from "express"
 
 import logger, { loggerOutput } from "../logger"
 import env from "./env"
-import { closeTrade, deleteBalanceHistory, deleteTrade, resetVirtualBalances, setVirtualWalletFunds, tradingMetaData} from "./trader"
+import { closeTrade, deleteBalanceHistory, deleteTrade, resetVirtualBalances, setTradeStopped, setVirtualWalletFunds, tradingMetaData} from "./trader"
 import { Dictionary } from "ccxt"
 import { BalanceHistory } from "./types/trader"
 import BigNumber from "bignumber.js"
@@ -18,11 +18,19 @@ export default function startWebserver(): http.Server {
     // Allow user to see open trades or delete a trade
     webserver.get("/trades", (req, res) => {
         if (Authenticate(req, res)) {
-            if (req.query.delete) {
-                const tradeId = req.query.delete.toString()
-                const tradeName = deleteTrade(tradeId)
+            if (req.query.stop) {
+                const tradeId = req.query.stop.toString()
+                const tradeName = setTradeStopped(tradeId, true)
                 if (tradeName) {
-                    res.send(`${tradeName} has been deleted.`)
+                    res.send(`${tradeName} has been stopped.`)
+                } else {
+                    res.send(`No trade was found with the ID of '${tradeId}'.`)
+                }
+            } else if (req.query.start) {
+                const tradeId = req.query.start.toString()
+                const tradeName = setTradeStopped(tradeId, false)
+                if (tradeName) {
+                    res.send(`${tradeName} will continue to trade.`)
                 } else {
                     res.send(`No trade was found with the ID of '${tradeId}'.`)
                 }
@@ -34,7 +42,15 @@ export default function startWebserver(): http.Server {
                 } else {
                     res.send(`No trade was found with the ID of '${tradeId}'.`)
                 }
-            }else {
+            } else if (req.query.delete) {
+                const tradeId = req.query.delete.toString()
+                const tradeName = deleteTrade(tradeId)
+                if (tradeName) {
+                    res.send(`${tradeName} has been deleted.`)
+                } else {
+                    res.send(`No trade was found with the ID of '${tradeId}'.`)
+                }
+            } else {
                 res.send(HTMLTableFormat(Pages.TRADES, tradingMetaData.tradesOpen))
             }
         }
@@ -215,7 +231,7 @@ function HTMLTableFormat(page: Pages, data: any, nextPage?: number, breadcrumb?:
             for (let col of cols) {
                 result += "<th>" + col + "</th>"
             }
-            result += "</tr>"
+            result += "<th></th></tr>"
 
             // Add row data
             for (let row of data) {
@@ -239,13 +255,14 @@ function HTMLTableFormat(page: Pages, data: any, nextPage?: number, breadcrumb?:
                         if (typeof(row[col]) == "boolean" && row[col]) result += " style='color: blue;'"
 
                         // Colour string as a gradient based on unique values (too many colours get meaningless)
-                        if (typeof(row[col]) == "string" && row[col] && col in values) result += ` style='color: ${makeColor(values[col].indexOf(row[col]), values[col].length)};'`
+                        if (typeof(row[col]) == "string" && row[col] && col in values) result += ` style='color: ${MakeColor(values[col].indexOf(row[col]), values[col].length)};'`
 
                         result += ">"
                         if (row[col] != undefined) result += row[col]
                     }
                     result += "</td>"
                 }
+                result += "<td>" + MakeCommands(page, row) + "</td>"
                 result += "</tr>"
             }
             if (result != "") {
@@ -285,9 +302,37 @@ function PercentageChange(period: string, history: BalanceHistory[]): {} {
     }
 }
 
-function makeColor(n: number, total: number): string {
+function MakeColor(n: number, total: number): string {
     if (total <= 1) return "black"
 
     // Offset to start with blue, darken a bit for readability
     return `hsl(${(225 + (n * (360 / total))) % 360}, 100%, 40%)`
+}
+
+function MakeCommands(page: Pages, record: any) : string {
+    let commands = ""
+    let root = URLs[page]
+    if (env().WEB_PASSWORD) root += env().WEB_PASSWORD + "&"
+    switch (page) {
+        case (Pages.TRADES):
+            if (!record.isStopped) {
+                commands += MakeButton("Stop", `Are you sure you want to stop trade ${record.id}?`, `${root}stop=${record.id}`)
+            } else {
+                commands += MakeButton("Resume", `Are you sure you want to resume trade ${record.id}?`, `${root}start=${record.id}`)
+            }
+            commands += " "
+            commands += MakeButton("Close", `Are you sure you want to close trade ${record.id}?`, `${root}close=${record.id}`)
+            commands += " "
+            commands += MakeButton("Delete", `Are you sure you want to delete trade ${record.id}?`, `${root}delete=${record.id}`)
+            break
+    }
+
+    return commands
+}
+
+function MakeButton(name: string, question: string, action: string): string {
+    let button = `<button onclick="(function(){`
+    button += `if(confirm('${question}')) window.location.href='${action}'`
+    button += `})();">${name}</button>`
+    return button
 }
