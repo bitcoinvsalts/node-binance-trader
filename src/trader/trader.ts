@@ -633,6 +633,11 @@ export function closeTrade(tradeId: string) {
 // There are two special case either where the user has stopped a trade then tried to close it and it failed, or it was previously a bad trade that couldn't be reloaded
 // In these cases we just want to get rid of the trade so that it does not hang around on the NBT Hub
 function checkFailedCloseTrade(signal: Signal) {
+    // Check if the trade couldn't be closed because there were multiple matches (i.e. both a short and long trade)
+    if (!signal.positionType && getTradeOpenFiltered(signal, tradingMetaData.tradesOpen).length > 1) {
+        return false
+    }
+
     // See if it was for a trade we already know about
     let tradeOpen = getTradeOpen(signal)
     let fake = false
@@ -2203,10 +2208,18 @@ function getLogName(source: TradeOpen | Signal | Strategy) {
 export function getTradeOpen(match: Signal | TradeOpen): TradeOpen | undefined {
     const tradesOpenFiltered = getTradeOpenFiltered(match, tradingMetaData.tradesOpen)
 
-    if (tradesOpenFiltered.length > 1) {
-        logger.warn(`There is more than one trade open for ${getLogName(match)}. Using the first found.`)
-    } else if (tradesOpenFiltered.length == 0) {
+    if (tradesOpenFiltered.length == 0) {
         logger.debug(`No open trade found for ${getLogName(match)}.`)
+    } else if (tradesOpenFiltered.length > 1) {
+        if (match.positionType) {
+            // Hopefully this won't happen
+            logger.warn(`There is more than one trade open for ${getLogName(match)}. Using the first found.`)
+            return tradesOpenFiltered[0]
+        } else {
+            // This happens when you try to manually close a trade from the NBT Hub while both a short and long are open for the same strategy and symbol
+            // You'll have to close the right one from the trader web interface
+            logger.error(`There is more than one trade open for ${getLogName(match)}. The signal did not include a position type.`)
+        }
     } else {
         logger.silly(`Exactly one open trade found for ${getLogName(match)}.`)
         return tradesOpenFiltered[0]
