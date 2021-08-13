@@ -619,6 +619,13 @@ export function closeTrade(tradeId: string) {
     if (tradeOpen) {
         // Check that the trade isn't already closing, maybe the user clicked twice
         if (!tradingMetaData.tradesClosing.has(tradeOpen)) {
+            // We don't know what the closing price is, so we'll just have to use the original opening price
+            if (tradeOpen.positionType == PositionType.SHORT) {
+                if (!tradeOpen.priceBuy) tradeOpen.priceBuy = tradeOpen.priceSell
+            } else {
+                if (!tradeOpen.priceSell) tradeOpen.priceSell = tradeOpen.priceBuy
+            }
+
             logger.info(`Scheduling close for ${getLogName(tradeOpen)} trade.`)
             scheduleTrade(tradeOpen, EntryType.EXIT, SourceType.MANUAL)
             return getLogName(tradeOpen)
