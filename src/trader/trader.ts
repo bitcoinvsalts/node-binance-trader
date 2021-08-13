@@ -1381,8 +1381,8 @@ export async function executeTradingTask(
     const info = source == SourceType.SIGNAL ? `within ${diff} milliseconds of the signal` : `for ${source}`
     logger.info(`${getLogName(tradeOpen)} trade successfully ${action == ActionType.BUY ? "bought" : "sold" } ${tradeOpen.quantity} ${market.base} for ${tradeOpen.cost} ${market.quote} on ${tradeOpen.wallet} ${info}.`)
 
-    if (signal && signal.entryType == EntryType.EXIT) {
-        // Remove the completed trade (no signal means it is from a rebalance and won't be in the trade list anyway)
+    if ((signal && signal.entryType == EntryType.EXIT) || source == SourceType.MANUAL) {
+        // Remove the completed trade if exit or manual close (rebalance won't be in the trade list)
         removeTradeOpen(tradeOpen)
     }
 
