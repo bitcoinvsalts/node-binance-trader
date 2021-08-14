@@ -827,7 +827,7 @@ function checkTradingData(signal: Signal, source: SourceType): TradingData {
             // Check if strategy has hit the losing trade limit
             if (!strategy || strategy.isStopped) {
                 const logMessage = `Skipping signal as strategy for ${getLogName(signal)} has been stopped, toggle the trade flag in the NBT Hub to restart it.`
-                logger.error(logMessage)
+                logger.warn(logMessage)
                 throw logMessage
             }        
 
@@ -837,14 +837,14 @@ function checkTradingData(signal: Signal, source: SourceType): TradingData {
             // So until we have a unique ID that is provided on the signal and NBT Hub can track them correctly, we're just going to have to ignore concurrent trades and treat this as a continuation
             if (tradeOpen) {
                 const logMessage = `Skipping signal as an existing open trade was already found for ${getLogName(signal)}.`
-                logger.error(logMessage)
+                logger.warn(logMessage)
                 throw logMessage
             }
             break
         case EntryType.EXIT:
             // If this is supposed to be a trade exit, check the trade was actually open
             if (!tradeOpen) {
-                logger.error(logTradeOpenNone)
+                logger.warn(logTradeOpenNone)
                 throw logTradeOpenNone
             }
 
