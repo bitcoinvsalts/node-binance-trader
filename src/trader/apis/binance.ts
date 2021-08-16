@@ -68,6 +68,10 @@ export async function fetchBalance(type: WalletType): Promise<ccxt.Balances> {
             // Use the cache
             logger.debug(`Using cached ${type} balances.`)
             return balances[type]
+        } else {
+            // Clear the old cached balances so that it doesn't get used below
+            delete balances[type]
+            delete balanceTimestamps[type]
         }
     }
 
@@ -82,6 +86,12 @@ export async function fetchBalance(type: WalletType): Promise<ccxt.Balances> {
         logger.debug(`Waiting ${delay} milliseconds to allow balances to synchronise.`)
 
         await new Promise( resolve => setTimeout(resolve, delay) )
+    }
+
+    // Other requests may have fetched the balances while we were waiting, so check the cache again
+    if (balances.hasOwnProperty(type)) {
+        logger.debug(`Using newly cached ${type} balances.`)
+        return balances[type]
     }
 
     return binanceClient.fetchBalance({type: type})
