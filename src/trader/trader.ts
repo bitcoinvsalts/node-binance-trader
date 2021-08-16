@@ -626,7 +626,7 @@ export function closeTrade(tradeId: string) {
                 if (!tradeOpen.priceSell) tradeOpen.priceSell = tradeOpen.priceBuy
             }
 
-            logger.info(`Scheduling close for ${getLogName(tradeOpen)} trade.`)
+            logger.info(`Closing ${getLogName(tradeOpen)} trade.`)
             scheduleTrade(tradeOpen, EntryType.EXIT, SourceType.MANUAL)
             return getLogName(tradeOpen)
         } else {
