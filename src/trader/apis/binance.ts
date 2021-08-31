@@ -57,7 +57,7 @@ export async function marginBorrow(
     timestamp: number
 ): Promise<ccxt.Order> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
-    return binanceClient.api.sapiPostMarginLoan({
+    return binanceClient.sapiPostMarginLoan({
         asset,
         isIsolated: false, // "false" for cross margin borrow without specification of a symbol.
         amount,
@@ -71,7 +71,7 @@ export async function marginRepay(
     timestamp: number
 ): Promise<ccxt.Order> {
     if (!binanceClient) return Promise.reject(logBinanceUndefined)
-    return binanceClient.api.sapiPostMarginRepay({
+    return binanceClient.sapiPostMarginRepay({
         asset,
         isIsolated: false, // "false" for cross margin repay without specification of a symbol.
         amount,
