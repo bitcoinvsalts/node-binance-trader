@@ -1,0 +1,38 @@
+# Place this file at /lib/systemd/system/nbt.service
+#
+# Use sudo for all commands if you're not root at the moment.
+# After it's saved there AND "WorkingDirectory" AND "User" are set correctly then run:
+#
+# systemctl daemon-reload
+#
+# Enable auto-start on system boot:
+# systemctl enable
+#
+# Start NBT service:
+# systemctl start
+#
+#
+# IF NEEDED LATER:
+# Stop NBT service:
+# systemctl stop
+#
+# Restart NBT service:
+# systemctl restart
+#
+# Monitoring output of NBT:
+# journalctl -n500 -u nbt -f
+
+[Unit]
+Description = NBT
+After = network.target
+
+[Service]
+Type=simple
+User=games
+Restart=always
+WorkingDirectory=/path/to/node-binance-trader
+ExecStart=/usr/local/bin/npm run trader
+ExecStop=/usr/bin/pkill -f npm
+
+[Install]
+WantedBy = multi-user.target

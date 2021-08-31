@@ -1,3 +1,31 @@
+# [0.5.0](https://github.com/jsappme/node-binance-trader/compare/0.4.1...0.5.0) (2021-05-19)
+
+
+### Features
+
+* **funding:** rename funding file ([b906477](https://github.com/jsappme/node-binance-trader/commit/b9064775557839d1e6810181bccc5cb2d2181022))
+* **funding:** temporarily disable funding ([5b2b5a3](https://github.com/jsappme/node-binance-trader/commit/5b2b5a3410be18809d9e530254f7433d3e2db271)), closes [#110](https://github.com/jsappme/node-binance-trader/issues/110)
+
+## [0.4.1](https://github.com/jsappme/node-binance-trader/compare/0.4.0...0.4.1) (2021-03-22)
+
+
+### Bug Fixes
+
+* **deps:** recreate package-lock.json ([a2a5099](https://github.com/jsappme/node-binance-trader/commit/a2a50991292ad16819fffb1ff319d9999d415f57))
+
+# [0.4.0](https://github.com/jsappme/node-binance-trader/compare/0.3.1...0.4.0) (2021-03-21)
+
+
+### Bug Fixes
+
+* **trader:** correct merge ([989af49](https://github.com/jsappme/node-binance-trader/commit/989af492cc1f007a9b2f021d34d6ab4be23b23fb))
+* **trader:** use trading data variable ([38dfb20](https://github.com/jsappme/node-binance-trader/commit/38dfb202d415f002f120a9cbc0cbcd3ad883a92a))
+
+
+### Features
+
+* **trader:** implement requested changes ([6b46938](https://github.com/jsappme/node-binance-trader/commit/6b469384d558801be77c6cd3f750a8a9676de0dd))
+
 ## [0.3.1](https://github.com/jsappme/node-binance-trader/compare/0.3.0...0.3.1) (2021-03-08)
 
 
