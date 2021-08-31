@@ -19,8 +19,8 @@ WORKDIR /srv/app/
 
 COPY --from=development /srv/app/ ./
 
-RUN npm install && \
-    npm run lint && \
+RUN npm run lint && \
+    npm run build && \
     npm run test
 
 ENV NODE_ENV=production
