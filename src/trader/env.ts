@@ -50,6 +50,7 @@ export function getDefault(): Readonly<any> {
         IS_TRADE_MARGIN_ENABLED: bool({ default: true, desc: "Used to disable use of margin wallet trading for both LONG and SHORT trades" }),
         IS_PAY_INTEREST_ENABLED: bool({ default: true, desc: "Automatically repays all BNB interest before repaying margin loans" }),
         BNB_FREE_THRESHOLD: num({ default: 0.04, desc: "Creates a warning if your available BNB balance is below the threshold (too low for fees and interest)"}),
+        TAKER_FEE_PERCENT: num({ default: 0.075, desc: "The spot trading Taker Fee as quoted on Binance"}),
         VIRTUAL_WALLET_FUNDS: num({ default: 0.1, desc: "The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets" }),
         WEB_PASSWORD: str({ default: "", desc: "Password to restrict access to the internal diagnostics webserver" }),
 

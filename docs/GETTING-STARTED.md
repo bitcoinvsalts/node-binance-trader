@@ -154,6 +154,7 @@ To add new Config Vars in Heroku:
 | IS_TRADE_MARGIN_ENABLED | true / false | Used to disable use of margin wallet trading for both LONG and SHORT trades |
 | IS_PAY_INTEREST_ENABLED | true / false | Automatically repays all BNB interest before repaying margin loans |
 | BNB_FREE_THRESHOLD | decimal number | Creates a warning if your available BNB balance is below the threshold (too low for fees and interest) |
+| TAKER_FEE_PERCENT | decimal number >= 0 | The spot trading Taker Fee as quoted on Binance |
 | VIRTUAL_WALLET_FUNDS | decimal number > 0 | The (roughly) equivalent BTC value used as the default starting balance for all virtual wallets |
 | WEB_PASSWORD | string | Password to restrict access to the internal diagnostics webserver |
 | TZ | string | Configure your own time zone for display of dates and times (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) |

@@ -283,7 +283,8 @@ function PercentageChange(period: string, history: BalanceHistory[]): {} {
         const open = history[0].openBalance
         const close = history[history.length-1].closeBalance
         const time = Date.now() - history[0].date.getTime()
-        const value = close.minus(open)
+        const fees = history.filter(h => h.estimatedFees).reduce((sum, current) => sum.plus(current.estimatedFees), new BigNumber(0))
+        const value = close.minus(open).minus(fees) // TODO: don't subtract fees if BNB balance
         const percent = (!open.isZero()) ? new Percent(value.dividedBy(open).multipliedBy(100)) : ""
         const apr = (!open.isZero() && time) ? new Percent(value.dividedBy(open).dividedBy(time).multipliedBy(365 * 24 * 60 * 60 * 1000).multipliedBy(100)) : ""
 

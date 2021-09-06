@@ -968,7 +968,7 @@ function checkOpenTrades() {
                     checkSymbol(trade.symbol, `${getLogName(trade)} trade is no longer valid`, trade.wallet)
                 } catch (reason) {
                     // Send notification that the trade is no longer valid
-                    notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, reason)).catch((reason) => {
+                    notifyAll(getNotifierMessage(MessageType.WARN, undefined, trade, reason as string)).catch((reason) => {
                         logger.silly("checkOpenTrades->notifyAll: " + reason)
                     })
                 }
@@ -1428,8 +1428,11 @@ export async function executeTradingTask(
         }
     }
 
+    // Regardless of whether it is buy, sell, or rebalance, every time there is a transaction there is a fee
+    const fee = tradeOpen.cost!.multipliedBy(env().TAKER_FEE_PERCENT / 100)
+
     // Send the entry type and/or value change to the balance history
-    updateBalanceHistory(tradeOpen.tradingType!, market.quote, signal?.entryType, undefined, change)
+    updateBalanceHistory(tradeOpen.tradingType!, market.quote, signal?.entryType, undefined, change, fee)
 
     // Send notifications that trading completed successfully
     notifyAll(getNotifierMessage(MessageType.SUCCESS, signal, tradeOpen)).catch((reason) => {
@@ -2131,7 +2134,7 @@ export function deleteBalanceHistory(asset: string): string[] {
 }
 
 // Updates the running balance for the current day
-function updateBalanceHistory(tradingType: TradingType, quote: string, entryType?: EntryType, balance?: BigNumber, change?: BigNumber) {
+function updateBalanceHistory(tradingType: TradingType, quote: string, entryType?: EntryType, balance?: BigNumber, change?: BigNumber, fee?: BigNumber) {
     if (!Object.keys(tradingMetaData.balanceHistory).includes(tradingType)) tradingMetaData.balanceHistory[tradingType] = {}
     if (!Object.keys(tradingMetaData.balanceHistory[tradingType]).includes(quote)) tradingMetaData.balanceHistory[tradingType][quote] = []
 
@@ -2166,6 +2169,7 @@ function updateBalanceHistory(tradingType: TradingType, quote: string, entryType
     
     // Update latest balances and stats
     if (change) balance = balance.plus(change)
+    if (fee) h.estimatedFees = h.estimatedFees.plus(fee)
     h.closeBalance = balance
     h.profitLoss = h.closeBalance.minus(h.openBalance)
     if (h.minOpenTrades == undefined || minOpenTradeCount < h.minOpenTrades) h.minOpenTrades = minOpenTradeCount
@@ -2419,6 +2423,7 @@ async function run() {
     if (env().STRATEGY_LOSS_LIMIT < 0) issues.push("STRATEGY_LOSS_LIMIT must be 0 or more.")
     if (!Number.isInteger(env().STRATEGY_LOSS_LIMIT)) issues.push("STRATEGY_LOSS_LIMIT must be a whole number.")
     if (env().VIRTUAL_WALLET_FUNDS <= 0) issues.push("VIRTUAL_WALLET_FUNDS must be greater than 0.")
+    if (env().TAKER_FEE_PERCENT < 0) issues.push("TAKER_FEE_PERCENT must be 0 or more.")
     if (!env().IS_TRADE_MARGIN_ENABLED && env().PRIMARY_WALLET == WalletType.MARGIN) issues.push(`PRIMARY_WALLET cannot be ${WalletType.MARGIN} if IS_TRADE_MARGIN_ENABLED is false.`)
     if (!env().IS_TRADE_MARGIN_ENABLED && (env().TRADE_LONG_FUNDS == LongFundsType.BORROW_ALL || env().TRADE_LONG_FUNDS == LongFundsType.BORROW_MIN)) issues.push(`TRADE_LONG_FUNDS cannot be ${env().TRADE_LONG_FUNDS} if IS_TRADE_MARGIN_ENABLED is false.`)
     if (env().IS_NOTIFIER_GMAIL_ENABLED && (!env().NOTIFIER_GMAIL_ADDRESS || !env().NOTIFIER_GMAIL_APP_PASSWORD)) issues.push("NOTIFIER_GMAIL_ADDRESS and NOTIFIER_GMAIL_APP_PASSWORD are required for IS_NOTIFIER_GMAIL_ENABLED.")

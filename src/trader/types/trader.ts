@@ -1,5 +1,5 @@
 import BigNumber from "bignumber.js"
-
+import env from "../env"
 import { Dictionary, Market } from "ccxt"
 import { PositionType, Signal, Strategy, TradeOpen, TradingType } from "./bva"
 
@@ -93,6 +93,7 @@ export class Transaction {
     signalPrice?: BigNumber // The expected price if initiated by a signal (only for buy/sell)
     timeSinceSignal?: number // The total time in milliseconds from receiving the signal to executing on Binance
     profitLoss?: BigNumber // Calculated profit or loss of the quote coin on a closing trade
+    estimatedFee?: BigNumber // Estimated value of the fee calculated in the quote coin
 
     constructor(timestamp: Date, tradeOpen: TradeOpen, source: SourceType, action: ActionType, symbolAsset: string, quantity: BigNumber, signal?: Signal) {
         this.timestamp = timestamp
@@ -111,7 +112,10 @@ export class Transaction {
         } else if (action == ActionType.SELL) {
             this.price = tradeOpen.priceSell
         }
-        if (this.price) this.value = this.quantity.multipliedBy(this.price)
+        if (this.price) {
+            this.value = this.quantity.multipliedBy(this.price)
+            this.estimatedFee = this.value.multipliedBy(env().TAKER_FEE_PERCENT / 100)
+        }
         if (signal) {
             this.signalPrice = signal.price
             this.timeSinceSignal = timestamp.getTime() - signal.timestamp.getTime()
@@ -129,6 +133,7 @@ export class BalanceHistory {
     openBalance: BigNumber // Opening balance
     closeBalance: BigNumber // Last observed balance
     profitLoss: BigNumber // Difference between open and close balance
+    estimatedFees: BigNumber // Total estimated fees
     minOpenTrades?: number // Lowest number of concurrent open trades
     maxOpenTrades?: number // Highest number of concurrent open trades
     totalOpenedTrades: number // Total number of trades opened
@@ -140,6 +145,7 @@ export class BalanceHistory {
         this.openBalance = balance
         this.closeBalance = balance
         this.profitLoss = new BigNumber(0)
+        this.estimatedFees = new BigNumber(0)
         this.totalOpenedTrades = 0
         this.totalClosedTrades = 0
     }

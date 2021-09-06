@@ -53,6 +53,9 @@ The new features that I have added to the trader include:
 * ***CONFIG:* BNB Free Threshold**
   * After a trade is closed it will check your remaining BNB balance and generate a warning if it has dropped below this threshold. This helps you to manage your BNB balance so that there are always sufficient funds to cover fees and interest. These warnings will be displayed in the log and also sent using the notification systems. It will check the spot and margin wallets independently.
   * The default is 0.04 BNB, you can set it to 0 if you only want a warning when it is completely empty, or -1 to disable the check.
+* ***CONFIG:* Estimated Taker Fee**
+  * In a typical setup, fees are charged in BNB, therefore they do not affect the balance of the coin used for funding the strategy. So in order to make the calculated PnL more accurate, the estimated fees are calculated based on the spot wallet Taker Fee percentage. It does not currently calculate the interest charged on margin lending.
+  * The default is 0.075%. If you have a higher VIP level or rebate on Binance that entitles you to lower fees, you can modify the Taker Fee percentage within the trader to match.
 * ***CONFIG:* Virtual Wallet Funds**
   * You can set a default balance for virtual trades, this allows you to simulate some of the auto-balancing or funding models above. The value represents roughly the equivalent BTC amount. For example, if you set the funds to 1 but you are trading in USDT, it will use the minimum purchase volumes to estimate a 'similar' USDT value of 1 BTC as the starting balance. This is not current market price, it is just a pre-determined scale set by Binance.
   * The default is 0.1 BTC which (at the time of writing) converts to 10,000 USDT.
