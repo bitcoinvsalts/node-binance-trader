@@ -1429,7 +1429,7 @@ export async function executeTradingTask(
     }
 
     // Regardless of whether it is buy, sell, or rebalance, every time there is a transaction there is a fee
-    const fee = tradeOpen.cost!.multipliedBy(env().TAKER_FEE_PERCENT / 100)
+    const fee = tradeOpen.cost!.multipliedBy(env().TAKER_FEE_PERCENT / 100).negated()
 
     // Send the entry type and/or value change to the balance history
     updateBalanceHistory(tradeOpen.tradingType!, market.quote, signal?.entryType, undefined, change, fee)
@@ -2182,9 +2182,13 @@ function updateBalanceHistory(tradingType: TradingType, quote: string, entryType
 
     // Remove previous history slices that are older than 1 year, but keep the very first entry for lifetime opening balance
     const lastYear = new Date(tmpH.date.getFullYear()-1, tmpH.date.getMonth(), tmpH.date.getDate()).getTime()
+    let fees = new BigNumber(tradingMetaData.balanceHistory[tradingType][quote][0].estimatedFees)
     while (tradingMetaData.balanceHistory[tradingType][quote].length > 1 && tradingMetaData.balanceHistory[tradingType][quote][1].date.getTime() <= lastYear) {
+        // As we need to sum the fees from the history to calculate PnL, we need to keep any fees that we delete
+        fees = fees.plus(tradingMetaData.balanceHistory[tradingType][quote][1].estimatedFees)
         tradingMetaData.balanceHistory[tradingType][quote].splice(1, 1)
     }
+    tradingMetaData.balanceHistory[tradingType][quote][0].estimatedFees = fees
 
     saveState("balanceHistory")
 }

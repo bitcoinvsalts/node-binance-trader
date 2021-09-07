@@ -246,7 +246,7 @@ function HTMLTableFormat(page: Pages, data: any, nextPage?: number, breadcrumb?:
                         // Colour negative numbers as red
                         if (row[col].isLessThan(0)) result += " style='color: red;'"
                         result += ">"
-                        if (row[col] != undefined) result += row[col].toFixed()
+                        if (row[col] != undefined) result += row[col].toFixed(env().MAX_WEB_PRECISION).replace(/\.?0+$/,"")
                     } else {
                         // Colour negative percentages as red
                         if (row[col] instanceof Percent && row[col].value.isLessThan(0)) result += " style='color: red;'"
@@ -284,7 +284,7 @@ function PercentageChange(period: string, history: BalanceHistory[]): {} {
         const close = history[history.length-1].closeBalance
         const time = Date.now() - history[0].date.getTime()
         const fees = history.filter(h => h.estimatedFees).reduce((sum, current) => sum.plus(current.estimatedFees), new BigNumber(0))
-        const value = close.minus(open).minus(fees) // TODO: don't subtract fees if BNB balance
+        const value = close.minus(open).plus(fees) // TODO: don't subtract fees if BNB balance
         const percent = (!open.isZero()) ? new Percent(value.dividedBy(open).multipliedBy(100)) : ""
         const apr = (!open.isZero() && time) ? new Percent(value.dividedBy(open).dividedBy(time).multipliedBy(365 * 24 * 60 * 60 * 1000).multipliedBy(100)) : ""
 

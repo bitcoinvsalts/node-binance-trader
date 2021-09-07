@@ -114,7 +114,7 @@ export class Transaction {
         }
         if (this.price) {
             this.value = this.quantity.multipliedBy(this.price)
-            this.estimatedFee = this.value.multipliedBy(env().TAKER_FEE_PERCENT / 100)
+            this.estimatedFee = this.value.multipliedBy(env().TAKER_FEE_PERCENT / 100).negated()
         }
         if (signal) {
             this.signalPrice = signal.price
