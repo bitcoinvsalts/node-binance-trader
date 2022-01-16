@@ -24,7 +24,7 @@
         "backtest": "node ./src/backtest.js"
     },
     "dependencies": {
-        "axios": "0.21.1",
+        "axios": "0.21.2",
         "bignumber.js": "9.0.1",
         "binance-api-node": "0.10.33",
         "colors": "1.4.0",
