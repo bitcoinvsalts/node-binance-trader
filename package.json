@@ -34,7 +34,7 @@
         "lodash": "4.17.21",
         "moment": "2.29.1",
         "node-binance-api": "0.12.5",
-        "nodemailer": "6.5.0",
+        "nodemailer": "6.6.1",
         "ora": "3.4.0",
         "pg": "7.18.2",
         "set-interval-async": "1.0.34",
