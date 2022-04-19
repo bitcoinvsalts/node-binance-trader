@@ -34,15 +34,15 @@
         "trader": "node ./dist/src/trader/trader.js"
     },
     "dependencies": {
-        "axios": "0.21.1",
+        "axios": "0.21.2",
         "bignumber.js": "9.0.1",
         "binance-api-node": "0.10.41",
         "ccxt": "1.48.90",
         "dotenv": "8.2.0",
         "envalid": "7.1.0",
         "express": "4.17.1",
-        "moment": "2.29.1",
-        "nodemailer": "6.6.0",
+        "moment": "2.29.2",
+        "nodemailer": "6.6.1",
         "ora": "5.4.0",
         "p-queue": "6.6.2",
         "pg": "8.6.0",
