@@ -1,5 +1,5 @@
 import env from "../env"
-import nodeMailer from "nodemailer"
+import nodeMailer, { SentMessageInfo } from "nodemailer"
 import { Notifier, NotifierMessage } from "../types/notifier"
 import logger from "../../logger"
 
@@ -18,7 +18,7 @@ const mailTransport = nodeMailer.createTransport(
     )}@smtp.gmail.com`
 )
 
-async function notify(message: NotifierMessage): Promise<void> {
+async function notify(message: NotifierMessage): Promise<SentMessageInfo> {
     if (!env().IS_NOTIFIER_GMAIL_ENABLED) return
 
     return mailTransport

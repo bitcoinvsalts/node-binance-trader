@@ -264,6 +264,12 @@ export function getTradingSequence(
 
     switch (signal.entryType) {
         case EntryType.ENTER: {
+            if (!market.precision.amount) {
+                const logMessage = "Could not get precision amount!"
+                logger.error(logMessage)
+                break
+            }
+
             // First, get the quantity to enter with.
             quantity = Number(
                 roundStep(
