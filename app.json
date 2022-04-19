@@ -17,28 +17,32 @@
         "description": "Your BitcoinVsAltcoins.com Account API Key",
         "required": true
       },
-      "GMAIL_ADDRESS": {
-        "description": "Gmail email to get notifications",
-        "required": false
-      },
-      "GMAIL_APP_PASSWORD": {
-        "description": "Gmail password to get notifications",
-        "required": false
-      },
-      "TELEGRAM_API_KEY": {
-        "description": "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather )",
-        "required": false
-      },
-      "TELEGRAM_RECEIVER_ID": {
-        "description": "Unique identifier for the target chat or username of the target channel (in the format @channelusername)",
-        "required": false
-      },
-      "USE_GMAIL": {
+      "IS_NOTIFIER_GMAIL_ENABLED": {
         "description": "Selects if Gmail will be used",
         "required": false
       },
-      "USE_TELEGRAM": {
+      "IS_NOTIFIER_TELEGRAM_ENABLED": {
         "description": "Selects if Telegram will be used",
+        "required": false
+      },
+      "IS_TRADE_MARGIN_ENABLED": {
+        "description": "Selects if short trades are enabled",
+        "required": false
+      },
+      "NOTIFIER_GMAIL_ADDRESS": {
+        "description": "Gmail email to get notifications",
+        "required": false
+      },
+      "NOTIFIER_GMAIL_APP_PASSWORD": {
+        "description": "Gmail password to get notifications",
+        "required": false
+      },
+      "NOTIFIER_TELEGRAM_API_KEY": {
+        "description": "Telegram Key for your bot (To create one follow https://core.telegram.org/bots#6-botfather )",
+        "required": false
+      },
+      "NOTIFIER_TELEGRAM_RECEIVER_ID": {
+        "description": "Unique identifier for the target chat or username of the target channel (in the format @channelusername)",
         "required": false
       }
     }

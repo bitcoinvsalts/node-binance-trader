@@ -9,13 +9,19 @@ secrets:
   # The database's default user.
     file: ./docker/secrets/postgres/user.secret
 services:
+  node-binance-trader:
+  # You cannot access the trader via a web interface.
+    command: yarn run trader
+    image: herve76/node-binance-trader:latest@sha256:4c4fbcba67644c32c3c48ae8d882d33aa1f1b31e1b4cfe8dfe8f182db4a22acf
+    volumes:
+    - ./docker/secrets/node-binance-trader/secrets.env:/srv/app/.env:ro
   postgres:
   # This runs the database that everything else connects to
     environment:
       POSTGRES_DB_FILE: /run/secrets/postgres_db
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_USER_FILE: /run/secrets/postgres_user
-    image: postgres:13.2-alpine@sha256:59f48f15d037cc4ac87557cdb69fc9e5891b8a4b8d95254b7030dff561d6fd3a
+    image: postgres:13.2-alpine@sha256:c4c7a1585974706b5f72b8ab595e47399b23b2e03d93bbf75c1b0904be1803dc
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
