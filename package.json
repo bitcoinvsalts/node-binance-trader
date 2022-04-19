@@ -3,7 +3,7 @@
     "private": true,
     "version": "0.5.0",
     "engine": {
-        "node": ">=0.12"
+        "node": ">=12"
     },
     "description": "An efficient cryptocurrency trading bot development framework for Binance using Node.js",
     "main": "./src/server.js",
@@ -34,16 +34,15 @@
         "trader": "node ./dist/src/trader/trader.js"
     },
     "dependencies": {
-        "axios": "0.21.2",
+        "axios": "0.26.1",
         "bignumber.js": "9.0.2",
-        "binance-api-node": "0.10.41",
+        "binance-api-node": "0.11.35",
         "ccxt": "1.79.84",
-        "dotenv": "8.2.0",
+        "dotenv": "16.0.0",
         "envalid": "7.3.1",
         "express": "4.17.3",
         "moment": "2.29.3",
         "nodemailer": "6.7.3",
-        "ora": "5.4.0",
         "p-queue": "6.6.2",
         "pg": "8.7.3",
         "socket.io": "2.4.1",
@@ -54,20 +53,20 @@
     },
     "devDependencies": {
         "@types/express": "4.17.13",
-        "@types/jest": "26.0.23",
+        "@types/jest": "27.4.1",
         "@types/lodash": "4.14.182",
         "@types/nodemailer": "6.4.4",
         "@types/socket.io-client": "1.4.36",
         "@types/supertest": "2.0.12",
         "@types/telebot": "1.2.4",
-        "@typescript-eslint/eslint-plugin": "4.22.0",
-        "@typescript-eslint/parser": "4.22.0",
-        "eslint": "7.24.0",
-        "jest": "26.6.3",
-        "strip-ansi": "6.0.0",
+        "@typescript-eslint/eslint-plugin": "5.20.0",
+        "@typescript-eslint/parser": "5.20.0",
+        "eslint": "8.13.0",
+        "jest": "27.5.1",
+        "strip-ansi": "6.0.1",
         "supertest": "6.2.2",
-        "ts-jest": "26.5.5",
-        "ts-node": "9.1.1",
+        "ts-jest": "27.1.4",
+        "ts-node": "10.7.0",
         "typescript": "4.6.3"
     }
 }
