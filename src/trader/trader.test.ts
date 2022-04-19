@@ -326,7 +326,7 @@ describe("trader", () => {
                 cost: { min: 0.0001, max: 0 }, // "max" didn't come with this dataset originally and was added due to typescript constraints.
                 // market: { min: 0, max: 1695.00721821 },
             },
-            precision: { base: 8, quote: 8, amount: 3, price: 6 },
+            precision: { amount: 3, price: 6 },
             tierBased: false,
             percentage: true,
             taker: 0.001,
@@ -447,7 +447,7 @@ describe("trader", () => {
                 cost: { min: 0.0001, max: 0 }, // "max" didn't come with this dataset originally and was added due to typescript constraints.
                 // market: { min: 0, max: 1695.00721821 },
             },
-            precision: { base: 8, quote: 8, amount: 3, price: 6 },
+            precision: { amount: 3, price: 6 },
             tierBased: false,
             percentage: true,
             taker: 0.001,
@@ -678,7 +678,7 @@ describe("trader", () => {
                 cost: { min: 0.0001, max: 0 }, // "max" didn't come with this dataset originally and was added due to typescript constraints.
                 // market: { min: 0, max: 1695.00721821 },
             },
-            precision: { base: 8, quote: 8, amount: 3, price: 6 },
+            precision: { amount: 3, price: 6 },
             tierBased: false,
             percentage: true,
             taker: 0.001,
