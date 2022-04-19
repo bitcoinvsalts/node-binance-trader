@@ -1,3 +1,5 @@
+import { jest } from "@jest/globals"
+
 import env, { setDefault, testOnly } from "./env"
 
 const OLD_ENV = process.env

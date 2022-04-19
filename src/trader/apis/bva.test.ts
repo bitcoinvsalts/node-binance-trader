@@ -1,10 +1,20 @@
 import axios from "axios"
+import MockAdapter from "axios-mock-adapter"
+
 import { BvaCommand, TradeOpen } from "../types/bva"
 import { getTradeOpenList } from "./bva"
 
-jest.mock("axios")
-
 describe("bva", () => {
+    let mock: MockAdapter
+
+    beforeAll(() => {
+        mock = new MockAdapter(axios)
+    })
+
+    afterEach(() => {
+        mock.reset()
+    })
+
     it("gets trade open list", async () => {
         const bvaCommand: BvaCommand = {
             rowCount: 1,
@@ -26,18 +36,14 @@ describe("bva", () => {
             ],
         }
 
-        ;(axios.get as jest.Mock).mockImplementationOnce(() =>
-            Promise.resolve({ data: bvaCommand })
-        )
+        mock.onGet().replyOnce(200, bvaCommand)
         await expect(getTradeOpenList()).resolves.toEqual([
             new TradeOpen(bvaCommand.rows[0]),
         ])
     })
 
     it("fails to get trade open list", async () => {
-        (axios.get as jest.Mock).mockImplementationOnce(() =>
-            Promise.reject("ERROR")
-        )
-        await expect(getTradeOpenList()).rejects.toEqual("ERROR")
+        mock.onGet().replyOnce(400, "ERROR")
+        await expect(getTradeOpenList()).rejects.toEqual(new Error("Request failed with status code 400"))
     })
 })

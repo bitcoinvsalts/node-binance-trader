@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals"
 import BigNumber from "bignumber.js"
 import stripAnsi from "strip-ansi"
 
@@ -32,6 +33,12 @@ import { Market } from "ccxt"
 import { getDefault, setDefault } from "./env"
 import { TradingData, TradingSequence } from "./types/trader"
 import { loggerOutput, resetLoggerOutput } from "../logger"
+
+jest.unstable_mockModule("./apis/binance", () => {
+    return {
+        loadMarkets: jest.fn(() => Promise.resolve({}))
+    }
+})
 
 beforeAll(() => {
     const date = new Date(0)
@@ -748,7 +755,7 @@ describe("trader", () => {
             socketChannel: "socketChannel",
         }
 
-        const spy = jest.spyOn(socket, "emitSignalTraded").mockImplementation()
+        const spy = jest.spyOn(socket, "emitSignalTraded").mockImplementation(() => undefined)
 
         await executeTradingTask(tradingData, tradingSequence)
 

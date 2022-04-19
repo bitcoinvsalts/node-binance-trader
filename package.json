@@ -30,7 +30,7 @@
         "build": "tsc",
         "lint": "eslint --cache src",
         "server": "node ./src/server/server.js",
-        "test": "jest",
+        "test": "NODE_OPTIONS=--experimental-vm-modules jest",
         "trader": "node ./dist/src/trader/trader.js"
     },
     "dependencies": {
@@ -61,6 +61,7 @@
         "@types/telebot": "1.2.4",
         "@typescript-eslint/eslint-plugin": "5.20.0",
         "@typescript-eslint/parser": "5.20.0",
+        "axios-mock-adapter": "1.20.0",
         "eslint": "8.13.0",
         "jest": "27.5.1",
         "strip-ansi": "6.0.1",

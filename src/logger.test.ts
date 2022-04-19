@@ -1,4 +1,9 @@
+import { jest } from "@jest/globals"
+import logform from "logform"
+
 // https://stackoverflow.com/a/59392688/4682621
+
+import * as winston from 'winston'
 
 jest.mock("winston", () => {
     const format = {
@@ -19,13 +24,14 @@ jest.mock("winston", () => {
     }
 })
 
-import { format } from "winston"
+const formatMocked = jest.mocked(winston.format, true)
 
 describe("logger", () => {
     it("should pass", () => {
         const templateFunctions: any[] = []
-        ;(format.printf as jest.Mock).mockImplementation((templateFn) => {
+        formatMocked.mockImplementation((templateFn: logform.TransformFunction) => {
             templateFunctions.push(templateFn)
+            return () => new logform.Format()
         })
         require("./logger")
         const info = {
