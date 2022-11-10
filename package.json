@@ -41,7 +41,7 @@
         "dotenv": "16.0.0",
         "envalid": "7.3.1",
         "express": "4.17.3",
-        "moment": "2.29.3",
+        "moment": "2.29.4",
         "nodemailer": "6.7.3",
         "p-queue": "6.6.2",
         "pg": "8.7.3",
