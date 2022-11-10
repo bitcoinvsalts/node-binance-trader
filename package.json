@@ -45,7 +45,7 @@
         "nodemailer": "6.7.3",
         "p-queue": "6.6.2",
         "pg": "8.7.3",
-        "socket.io": "2.4.1",
+        "socket.io": "2.5.0",
         "socket.io-client": "2.4.0",
         "telebot": "1.4.1",
         "tulind": "0.8.20",
