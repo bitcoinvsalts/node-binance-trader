@@ -9,17 +9,19 @@ on:
 jobs:
   build:
     name: Build
-    uses: dargmuesli/github-actions/.github/workflows/docker.yml@0.22.3
+    uses: dargmuesli/github-actions/.github/workflows/docker.yml@0.23.0
+    with:
+      IMAGE_ID: herve76/node-binance-trader
     secrets:
       DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       DOCKER_HUB_USER_NAME: ${{ secrets.DOCKER_HUB_USER_NAME }}
   release-semantic:
     needs: build
     name: Release (semantic)
-    uses: dargmuesli/github-actions/.github/workflows/release-semantic.yml@0.22.3
+    uses: dargmuesli/github-actions/.github/workflows/release-semantic.yml@0.23.0
     secrets:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
   release-assets:
     needs: release-semantic
     name: Release (assets)
-    uses: dargmuesli/github-actions/.github/workflows/release-assets.yml@0.22.3
+    uses: dargmuesli/github-actions/.github/workflows/release-assets.yml@0.23.0
