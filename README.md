@@ -1,3 +1,7 @@
+| Archived |
+|-|
+| As bitcoinvsalts.com shut down, this project is not maintained anymore. You can still use it as inspiration to create your own trading bot. |
+
 [![build status](https://github.com/jsappme/node-binance-trader/workflows/CI/badge.svg)](https://github.com/jsappme/node-binance-trader/actions?query=workflow%3ACI "build status")
 [![Donate NIM](https://www.nimiq.com/accept-donations/img/donationBtnImg/light-blue-small.svg)](https://wallet.nimiq.com/nimiq:NQ38SDPGREC3USTALLCT87GQTCUYFH5L6PCQ)
 
