@@ -3,7 +3,7 @@
     "private": true,
     "version": "0.5.0",
     "engine": {
-        "node": ">=12"
+        "node": ">=12 <17"
     },
     "description": "An efficient cryptocurrency trading bot development framework for Binance using Node.js",
     "main": "./src/server.js",
